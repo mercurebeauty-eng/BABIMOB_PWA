@@ -1,0 +1,17 @@
+{
+  "name": "babimob-pwa-ingestion",
+  "version": "4.0.0",
+  "private": true,
+  "description": "Ingestion GTFS + bootstrap Supabase pour BABIMOB_PWA",
+  "scripts": {
+    "import": "node import_gtfs.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.103.3",
+    "dotenv": "^16.6.1",
+    "papaparse": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
