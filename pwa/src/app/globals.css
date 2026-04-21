@@ -1,0 +1,32 @@
+/* Leaflet CSS (nécessaire pour que les tiles s'affichent correctement) */
+/* ⚠ @import DOIT précéder toutes les autres règles — Turbopack est strict */
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  height: 100%;
+  background: theme('colors.babimob.paper');
+  color: theme('colors.babimob.ink');
+}
+
+body {
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar discret */
+::-webkit-scrollbar          { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb    { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Override Leaflet pour un rendu plus propre */
+.leaflet-container {
+  background: #e6eef7;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  border-radius: 10px;
+}
