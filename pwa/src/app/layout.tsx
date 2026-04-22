@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Syne } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -42,7 +43,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
-      <body className="font-sans min-h-screen flex flex-col">{children}</body>
+      <body className="font-sans min-h-screen flex flex-col">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
