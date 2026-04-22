@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/compte';
+  const next = searchParams.get('next') ?? '/app/compte';
 
   if (code) {
     const supabase = await createClient();
@@ -13,5 +13,5 @@ export async function GET(request: Request) {
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}/auth/signin?error=callback_failed`);
+  return NextResponse.redirect(`${origin}/app/auth/signin?error=callback_failed`);
 }
