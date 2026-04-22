@@ -6,7 +6,7 @@ export default async function ComptePage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/auth/signin');
+  if (!user) redirect('/app/auth/signin');
 
   // Récupérer le quota si l'user existe dans la table user_quotas
   // Note : l'user peut exister dans auth.users sans être dans public.users.

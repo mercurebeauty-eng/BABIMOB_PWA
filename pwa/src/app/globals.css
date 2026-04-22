@@ -8,19 +8,23 @@
 
 html, body {
   height: 100%;
-  background: theme('colors.babimob.paper');
-  color: theme('colors.babimob.ink');
 }
 
 body {
-  font-family: theme('fontFamily.sans');
   -webkit-font-smoothing: antialiased;
+  background: theme('colors.bm.bg');
+  color: theme('colors.bm.text');
 }
 
-/* Scrollbar discret */
-::-webkit-scrollbar          { width: 6px; height: 6px; }
-::-webkit-scrollbar-thumb    { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* Scrollbar discret (contexte clair) */
+.scope-light ::-webkit-scrollbar          { width: 6px; height: 6px; }
+.scope-light ::-webkit-scrollbar-thumb    { background: #cbd5e1; border-radius: 3px; }
+.scope-light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Scrollbar discret (contexte sombre) */
+.scope-dark ::-webkit-scrollbar           { width: 6px; height: 6px; }
+.scope-dark ::-webkit-scrollbar-thumb     { background: #2a2f3a; border-radius: 3px; }
+.scope-dark ::-webkit-scrollbar-thumb:hover { background: #3a4150; }
 
 /* Override Leaflet pour un rendu plus propre */
 .leaflet-container {

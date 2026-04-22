@@ -1,10 +1,25 @@
 import type { Metadata, Viewport } from 'next';
+import { DM_Sans, Syne } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/Header';
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '700'],
+  variable: '--font-dm-sans',
+  display: 'swap'
+});
+
+const syne = Syne({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-syne',
+  display: 'swap'
+});
 
 export const metadata: Metadata = {
   title: 'BABIMOB — Mobilité Abidjan',
-  description: 'Gbaka, woro-woro et itinéraires temps réel à Abidjan.',
+  description:
+    'Trouve ton gbaka, ton woro-woro et tes itinéraires à Abidjan. Sur Telegram ou sur le web — au choix.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -18,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1746D1',
+  themeColor: '#0a0c0f',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5
@@ -26,11 +41,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <body className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex flex-col">{children}</main>
-      </body>
+    <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
+      <body className="font-sans min-h-screen flex flex-col">{children}</body>
     </html>
   );
 }

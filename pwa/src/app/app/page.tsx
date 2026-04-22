@@ -38,7 +38,7 @@ export default function Home() {
           <StopSearch
             onSelect={(s) => {
               setSelected(s);
-              // Plus tard : router.push(`/arret/${encodeURIComponent(s.stop_id)}`)
+              // Bouton "Voir les lignes →" ci-dessous fait router.push('/app/arret/...')
             }}
           />
         </div>
@@ -64,7 +64,7 @@ export default function Home() {
                 )}
               </div>
               <button
-                onClick={() => router.push(`/arret/${encodeURIComponent(selected.stop_id)}`)}
+                onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
                 className="bg-babimob-orange hover:bg-babimob-orange-br text-white px-4 py-2 rounded-lg text-sm font-medium transition"
               >
                 Voir les lignes →
