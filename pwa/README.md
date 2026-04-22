@@ -57,8 +57,8 @@ Dans **Supabase → Authentication → URL Configuration** :
 
 1. **Site URL** : `http://localhost:3000` (dev) puis `https://babimob.app` (prod)
 2. **Redirect URLs** (allowlist) — ajoute les deux :
-   - `http://localhost:3000/auth/callback`
-   - `https://babimob.app/auth/callback`
+   - `http://localhost:3000/app/auth/callback`
+   - `https://babimob.app/app/auth/callback`
 
 Dans **Authentication → Providers → Email** :
 - Active "Enable Email provider"
@@ -146,12 +146,13 @@ pwa/
 
 | Route | Description |
 |---|---|
-| `/` | Accueil : recherche d'arrêt + carte Leaflet |
-| `/arret/[stop_id]` | Détail d'un arrêt + lignes qui le desservent |
-| `/auth/signin` | Formulaire magic link |
-| `/auth/callback` | Callback Supabase (ne pas visiter directement) |
-| `/compte` | Dashboard : quota, statut premium/essai, déconnexion |
-| `/itineraire` | Placeholder → futur calculateur OTP |
+| `/` | Landing marketing (dark) — choix Telegram vs web app |
+| `/app` | Accueil carte : recherche d'arrêt + carte Leaflet |
+| `/app/arret/[stop_id]` | Détail d'un arrêt + lignes qui le desservent |
+| `/app/auth/signin` | Formulaire magic link |
+| `/app/auth/callback` | Callback Supabase (ne pas visiter directement) |
+| `/app/compte` | Dashboard : quota, statut premium/essai, déconnexion |
+| `/app/itineraire` | Placeholder → futur calculateur OTP |
 
 ---
 

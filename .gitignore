@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Secrets & env
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Build artifacts
+.next/
+**/.next/
+dist/
+build/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# OTP data (trop lourd pour git)
+otp/data/
+otp/graphs/
+otp/*.osm.pbf
+otp/*.zip
+
+# GTFS source files (tu les re-télécharges depuis data-transport.org)
+gtfs/
+data/
+
+# Vercel
+.vercel/

@@ -1,1 +1,0 @@
-Dossier pwa pour next et deploiement du site.
