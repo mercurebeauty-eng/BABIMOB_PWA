@@ -51,7 +51,7 @@ export default function SignInPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="w-14 h-14 rounded-2xl bg-bm-gradient flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg className="w-7 h-7 text-gray-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
@@ -98,7 +98,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-bm-gradient text-white font-semibold py-3 rounded-xl transition disabled:opacity-60"
+                  className="w-full bg-bm-gradient text-black font-semibold py-3 rounded-xl transition disabled:opacity-60"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">

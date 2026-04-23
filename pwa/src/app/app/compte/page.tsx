@@ -36,7 +36,7 @@ export default async function ComptePage() {
         {/* User info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-bm-gradient flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-base font-bold select-none">
+            <span className="text-black text-base font-bold select-none">
               {(user.email?.[0] ?? 'U').toUpperCase()}
             </span>
           </div>
