@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Le premier assistant de mobilité qui cartographie le transport informel d'Abidjan. Gbaka, woro-woro, taxi rouge — trouve ton chemin et le vrai tarif en quelques secondes.",
 };
 
-const TG = 'https://t.me/babimob_bot';
+const TG = 'https://t.me/babimobbot';
 
 // ── Data ───────────────────────────────────────────────────
 
@@ -333,7 +333,7 @@ export default function LandingPage() {
                     </div>
                     <p className="mt-0.5 text-xs text-bm-muted">Notifs temps réel · bons plans</p>
                     <span className="mt-2 flex text-xs text-bm-telegram font-medium items-center gap-1 group-hover:gap-2 transition-all">
-                      @babimob_bot <span>→</span>
+                      @babimobbot <span>→</span>
                     </span>
                   </div>
                 </a>
