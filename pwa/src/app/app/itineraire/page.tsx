@@ -20,7 +20,16 @@ export default function ItinerairePage() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-4">🚐</div>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-bm-amber/10 flex items-center justify-center">
+                <svg className="w-8 h-8 text-bm-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="1" y="6" width="15" height="10" rx="2" />
+                  <path d="M16 10h4l2 3v3h-6V10z" />
+                  <circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="18.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </div>
+            </div>
             <h1 className="text-2xl font-bold text-gray-900">Calculateur d&apos;itinéraire</h1>
             <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
               Saisis ton point de départ et ta destination, on calcule le meilleur trajet

@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
@@ -11,7 +11,10 @@ const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-bm-amber border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-bm-amber border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-gray-400 font-medium">Chargement de la carte…</span>
+      </div>
     </div>
   ),
 });
@@ -22,6 +25,66 @@ const SUGGESTIONS = ['Adjamé gare', 'Angré', 'Yopougon mairie', 'Riviera 2', '
 function formatDistance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
+
+/* ── SVG icons ──────────────────────────────────────────────────────────── */
+const IconSearch = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.35-4.35" strokeLinecap="round" />
+  </svg>
+);
+
+const IconX = ({ size = 'w-3.5 h-3.5' }: { size?: string }) => (
+  <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+  </svg>
+);
+
+const IconChevronLeft = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconLocate = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" strokeWidth="2" />
+    <circle cx="12" cy="12" r="8" />
+  </svg>
+);
+
+const IconUser = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
+  </svg>
+);
+
+const IconPin = () => (
+  <svg className="w-4 h-4 text-bm-amber" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+  </svg>
+);
+
+const IconMap = () => (
+  <svg className="w-10 h-10 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+    <path d="M9 3L3 6v15l6-3 6 3 6-3V3l-6 3-6-3z" strokeLinejoin="round" />
+    <path d="M9 3v15M15 6v15" strokeLinecap="round" />
+  </svg>
+);
+
+const IconRoute = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M3 12h18M12 3l9 9-9 9" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconList = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 export default function AppPage() {
   const router = useRouter();
@@ -41,12 +104,18 @@ export default function AppPage() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
+  // Auto-dismiss geo error after 5 s
+  useEffect(() => {
+    if (!geoError) return;
+    const t = setTimeout(() => setGeoError(null), 5000);
+    return () => clearTimeout(t);
+  }, [geoError]);
+
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
     : userLoc ?? ABIDJAN_CENTER;
   const zoom = selected ? 16 : userLoc ? 15 : 12;
 
-  // Map stops: selected stop OR nearby stops (as Stop[])
   const mapStops: Stop[] = selected
     ? [selected]
     : nearbyStops.map((a) => ({
@@ -130,17 +199,12 @@ export default function AppPage() {
   }, [supabase]);
 
   const openSearch = () => setSearchOpen(true);
-
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setQuery('');
-    setResults([]);
-  };
+  const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
 
   return (
     <div className="flex-1 relative overflow-hidden">
 
-      {/* ── Map ───────────────────────────────────────────────────────── */}
+      {/* ── Map ─────────────────────────────────────────────────────────── */}
       <Map
         stops={mapStops}
         center={center}
@@ -151,17 +215,14 @@ export default function AppPage() {
         userLocation={userLoc}
       />
 
-      {/* ── Floating top bar ──────────────────────────────────────────── */}
+      {/* ── Floating top bar ────────────────────────────────────────────── */}
       <div className="absolute top-4 left-4 right-4 z-[500] flex items-center gap-2">
         {/* Search bar */}
         <button
           onClick={openSearch}
-          className="flex-1 flex items-center gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/80 px-4 py-3 text-left transition hover:shadow-xl"
+          className="flex-1 flex items-center gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/80 px-4 py-3 text-left transition-shadow hover:shadow-xl active:scale-[0.99]"
         >
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" strokeLinecap="round" />
-          </svg>
+          <span className="text-gray-400 flex-shrink-0"><IconSearch /></span>
           <span className="text-sm text-gray-500 flex-1 truncate">
             {selected ? selected.stop_name : "Rechercher un arrêt…"}
           </span>
@@ -169,10 +230,9 @@ export default function AppPage() {
             <button
               onClick={(e) => { e.stopPropagation(); clearSelection(); }}
               className="text-gray-400 hover:text-gray-700 p-0.5 rounded-full transition"
+              aria-label="Effacer la sélection"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-              </svg>
+              <IconX />
             </button>
           )}
         </button>
@@ -182,49 +242,44 @@ export default function AppPage() {
           onClick={handleLocateMe}
           disabled={geoLoading}
           aria-label="Me localiser"
-          className={`w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center justify-center flex-shrink-0 transition hover:shadow-xl ${
-            userLoc ? 'border-blue-400 text-blue-500' : 'border-gray-200/80 text-gray-600'
+          className={`w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center justify-center flex-shrink-0 transition-all hover:shadow-xl active:scale-95 ${
+            userLoc ? 'border-blue-400 text-blue-500' : 'border-gray-200/80 text-gray-500'
           } disabled:opacity-60`}
         >
           {geoLoading ? (
             <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           ) : (
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
-              <circle cx="12" cy="12" r="8" />
-            </svg>
+            <IconLocate />
           )}
         </button>
 
         {/* Account */}
         <Link
           href="/app/compte"
-          className="w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/80 flex items-center justify-center flex-shrink-0 transition hover:shadow-xl"
+          className="w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/80 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-xl active:scale-95 text-gray-500"
           aria-label="Mon compte"
         >
-          <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
-          </svg>
+          <IconUser />
         </Link>
       </div>
 
       {/* Geo error toast */}
       {geoError && (
-        <div className="absolute top-20 left-4 right-4 z-[500] bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700 flex items-center justify-between shadow-md">
+        <div className="bm-toast absolute top-20 left-4 right-4 z-[500] bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700 flex items-center justify-between shadow-md">
           <span>{geoError}</span>
-          <button onClick={() => setGeoError(null)} className="ml-3 text-red-400 hover:text-red-600">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-            </svg>
+          <button
+            onClick={() => setGeoError(null)}
+            className="ml-3 p-1 text-red-400 hover:text-red-600 rounded-full transition"
+            aria-label="Fermer"
+          >
+            <IconX />
           </button>
         </div>
       )}
 
-      {/* ── Bottom sheet ──────────────────────────────────────────────── */}
+      {/* ── Bottom sheet ────────────────────────────────────────────────── */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.10)] transition-transform duration-300 ease-out ${
+        className={`bm-sheet absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.10)] transition-transform duration-300 ease-out ${
           sheetExpanded ? 'translate-y-0' : 'translate-y-[calc(100%-72px)]'
         }`}
       >
@@ -234,6 +289,7 @@ export default function AppPage() {
           onClick={() => setSheetExpanded(!sheetExpanded)}
           role="button"
           aria-label={sheetExpanded ? "Réduire" : "Agrandir"}
+          aria-expanded={sheetExpanded}
         >
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
@@ -246,7 +302,7 @@ export default function AppPage() {
                 ? selected.stop_name
                 : nearbyStops.length > 0
                   ? `${nearbyStops.length} arrêt${nearbyStops.length > 1 ? 's' : ''} à proximité`
-                  : "Explore Abidjan"}
+                  : "Explorer Abidjan"}
             </div>
             {selected ? (
               <button
@@ -269,58 +325,49 @@ export default function AppPage() {
 
         {/* Expanded content */}
         {sheetExpanded && (
-          <div className="px-5 pb-10 pt-2">
+          <div className="px-5 pt-2 pb-safe">
             {selected ? (
               /* ── Stop detail ── */
               <>
                 <div className="flex items-start justify-between gap-3 mb-5">
                   <div>
-                    <div className="text-xs uppercase tracking-wide text-bm-amber font-semibold mb-0.5">Arrêt</div>
-                    <h2 className="text-xl font-bold text-gray-900">{selected.stop_name}</h2>
+                    <div className="text-xs uppercase tracking-widest text-bm-amber font-semibold mb-0.5">Arrêt sélectionné</div>
+                    <h2 className="text-xl font-bold text-gray-900 leading-tight">{selected.stop_name}</h2>
                     {selected.commune && (
-                      <div className="text-sm text-gray-500 mt-0.5">{selected.commune}</div>
+                      <div className="text-sm text-gray-400 mt-0.5">{selected.commune}</div>
                     )}
                   </div>
                   <button
                     onClick={clearSelection}
-                    className="mt-1 p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 transition text-gray-500 flex-shrink-0"
+                    className="mt-1 p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition text-gray-500 flex-shrink-0"
                     aria-label="Fermer"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-                    </svg>
+                    <IconX size="w-4 h-4" />
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
-                    className="flex items-center gap-2.5 bg-bm-gradient text-white text-sm font-semibold px-4 py-3 rounded-2xl col-span-2"
+                    className="flex items-center justify-center gap-2.5 bg-bm-gradient text-white text-sm font-semibold px-4 py-3.5 rounded-2xl col-span-2 active:opacity-90 transition-opacity"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <IconList />
                     Voir les lignes desservant cet arrêt
                   </button>
 
                   <Link
                     href="/app/itineraire"
-                    className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 text-sm font-medium px-4 py-3 rounded-2xl"
+                    className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-3.5 rounded-2xl transition-colors"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M3 12h18M12 3l9 9-9 9" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <IconRoute />
                     Itinéraire
                   </Link>
 
                   <button
                     onClick={openSearch}
-                    className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 text-sm font-medium px-4 py-3 rounded-2xl"
+                    className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-3.5 rounded-2xl transition-colors"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="m21 21-4.35-4.35" strokeLinecap="round" />
-                    </svg>
+                    <IconSearch />
                     Autre arrêt
                   </button>
                 </div>
@@ -330,21 +377,19 @@ export default function AppPage() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <div className="text-xs uppercase tracking-wide text-blue-500 font-semibold mb-0.5">
+                    <div className="text-xs uppercase tracking-widest text-blue-500 font-semibold mb-0.5">
                       Arrêts à proximité
                     </div>
                     <div className="text-base font-bold text-gray-900">
-                      {nearbyStops.length} arrêt{nearbyStops.length > 1 ? 's' : ''} dans un rayon de 800 m
+                      {nearbyStops.length} arrêt{nearbyStops.length > 1 ? 's' : ''} · rayon 800 m
                     </div>
                   </div>
                   <button
                     onClick={() => { setUserLoc(null); setNearbyStops([]); setSheetExpanded(false); }}
-                    className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 transition text-gray-500"
+                    className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition text-gray-500"
                     aria-label="Effacer"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-                    </svg>
+                    <IconX size="w-4 h-4" />
                   </button>
                 </div>
 
@@ -359,20 +404,19 @@ export default function AppPage() {
                         stop_lon: a.stop_lon,
                         commune: a.commune,
                       })}
-                      className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-2xl px-4 py-3 cursor-pointer transition"
+                      className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-2xl px-4 py-3 cursor-pointer transition-colors"
+                      role="button"
                     >
-                      <div className="w-8 h-8 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-bm-amber" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                        </svg>
+                      <div className="w-9 h-9 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
+                        <IconPin />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-gray-900 truncate">{a.stop_name}</div>
                         {a.commune && (
-                          <div className="text-xs text-gray-500">{a.commune}</div>
+                          <div className="text-xs text-gray-400">{a.commune}</div>
                         )}
                       </div>
-                      <div className="text-xs font-semibold text-blue-500 flex-shrink-0">
+                      <div className="text-xs font-semibold text-blue-500 flex-shrink-0 tabular-nums">
                         {formatDistance(a.distance_m)}
                       </div>
                     </li>
@@ -381,31 +425,29 @@ export default function AppPage() {
               </>
             ) : (
               /* ── Empty state ── */
-              <div className="text-center py-4">
-                <div className="text-4xl mb-3">🗺️</div>
-                <p className="text-sm text-gray-500 mb-4">
-                  Recherche un arrêt ou utilise ta position GPS pour voir les arrêts proches.
+              <div className="text-center py-5">
+                <div className="flex justify-center mb-4">
+                  <IconMap />
+                </div>
+                <p className="text-sm font-medium text-gray-500 mb-5 leading-relaxed">
+                  Recherche un arrêt ou utilise ta position GPS<br />pour voir les arrêts proches.
                 </p>
                 <div className="flex flex-col gap-2.5">
                   <button
                     onClick={openSearch}
-                    className="bg-bm-gradient text-white text-sm font-semibold px-6 py-3 rounded-2xl"
+                    className="bg-bm-gradient text-white text-sm font-semibold px-6 py-3.5 rounded-2xl active:opacity-90 transition-opacity"
                   >
                     Rechercher un arrêt
                   </button>
                   <button
                     onClick={handleLocateMe}
                     disabled={geoLoading}
-                    className="flex items-center justify-center gap-2 bg-blue-50 text-blue-600 text-sm font-semibold px-6 py-3 rounded-2xl disabled:opacity-60"
+                    className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-semibold px-6 py-3.5 rounded-2xl disabled:opacity-60 transition-colors"
                   >
                     {geoLoading ? (
                       <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
-                        <circle cx="12" cy="12" r="8" />
-                      </svg>
+                      <IconLocate />
                     )}
                     Arrêts proches de moi
                   </button>
@@ -416,18 +458,16 @@ export default function AppPage() {
         )}
       </div>
 
-      {/* ── Search overlay ────────────────────────────────────────────── */}
+      {/* ── Search overlay ──────────────────────────────────────────────── */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[600] bg-white flex flex-col">
+        <div className="bm-search-overlay fixed inset-0 z-[600] bg-white flex flex-col">
           <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gray-100">
             <button
               onClick={closeSearch}
-              className="p-1.5 -ml-1 rounded-xl hover:bg-gray-100 transition"
+              className="p-2 -ml-1 rounded-xl hover:bg-gray-100 transition text-gray-600"
               aria-label="Retour"
             >
-              <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <IconChevronLeft />
             </button>
             <input
               autoFocus
@@ -442,12 +482,10 @@ export default function AppPage() {
             ) : query ? (
               <button
                 onClick={() => handleSearchChange('')}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-full transition"
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full transition"
                 aria-label="Effacer"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-                </svg>
+                <IconX />
               </button>
             ) : null}
           </div>
@@ -459,39 +497,36 @@ export default function AppPage() {
                   <li
                     key={s.stop_id}
                     onClick={() => handleSelectStop(s)}
-                    className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50 active:bg-gray-100 cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors"
+                    role="button"
                   >
-                    <div className="w-8 h-8 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-bm-amber" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                      </svg>
+                    <div className="w-9 h-9 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
+                      <IconPin />
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-900">{s.stop_name}</div>
-                      {s.commune && <div className="text-xs text-gray-500">{s.commune}</div>}
+                      {s.commune && <div className="text-xs text-gray-400">{s.commune}</div>}
                     </div>
                   </li>
                 ))}
               </ul>
             ) : query.trim().length >= 2 && !isSearching ? (
-              <div className="text-center py-16 text-gray-400 text-sm">
-                Aucun arrêt trouvé pour «{query}»
+              <div className="flex flex-col items-center py-16 gap-3">
+                <IconMap />
+                <p className="text-sm text-gray-400">Aucun arrêt trouvé pour «{query}»</p>
               </div>
             ) : (
               <div className="px-4 py-8">
-                <div className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">
+                <div className="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-3">
                   Suggestions
                 </div>
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s}
                     onClick={() => handleSearchChange(s)}
-                    className="w-full text-left flex items-center gap-3 px-3 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition"
+                    className="w-full text-left flex items-center gap-3 px-3 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                   >
-                    <svg className="w-4 h-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="m21 21-4.35-4.35" strokeLinecap="round" />
-                    </svg>
+                    <span className="text-gray-300"><IconSearch /></span>
                     {s}
                   </button>
                 ))}
@@ -503,3 +538,4 @@ export default function AppPage() {
     </div>
   );
 }
+
