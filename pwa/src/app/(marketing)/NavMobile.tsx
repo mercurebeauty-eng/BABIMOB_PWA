@@ -41,7 +41,7 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
               ['#comment',    'Comment ça marche'],
               ['#transports', 'Transports'],
               ['#fonctions',  'Fonctionnalités'],
-              ['#tarifs',     'Tarifs'],
+              ['#ccomment',   "C'comment"],
             ].map(([href, label]) => (
               <a
                 key={label}
