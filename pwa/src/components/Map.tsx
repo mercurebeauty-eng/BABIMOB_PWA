@@ -14,6 +14,7 @@ type Props = {
   selectedStopId?: string | null;
   onStopClick?: (stop: Stop) => void;
   onMapReady?: (map: L.Map) => void;
+  userLocation?: [number, number] | null;
 };
 
 function makeMarkerIcon(selected = false) {
@@ -43,10 +44,12 @@ export default function Map({
   selectedStopId = null,
   onStopClick,
   onMapReady,
+  userLocation = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
 
   useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
@@ -92,6 +95,7 @@ export default function Map({
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;
+      userMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -128,6 +132,35 @@ export default function Map({
       marker.addTo(layer);
     });
   }, [stops, selectedStopId]);
+
+  // ── User location marker ───────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+
+    if (!userLocation) return;
+
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="bm-user-marker"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
+    const marker = L.marker(userLocation, { icon, zIndexOffset: 1000 })
+      .bindPopup('<div class="bm-popup"><strong>Ma position</strong></div>', {
+        className: 'bm-popup-wrapper',
+        offset: [0, -4],
+      })
+      .addTo(map);
+
+    userMarkerRef.current = marker;
+  }, [userLocation]);
 
   return <div ref={containerRef} className={className} />;
 }

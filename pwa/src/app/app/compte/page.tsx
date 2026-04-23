@@ -35,20 +35,27 @@ export default async function ComptePage() {
       <div className="max-w-2xl mx-auto w-full px-4 py-6 space-y-4">
         {/* User info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
-            <svg className="w-6 h-6 text-bm-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
-            </svg>
+          <div className="w-12 h-12 rounded-2xl bg-bm-gradient flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-base font-bold select-none">
+              {(user.email?.[0] ?? 'U').toUpperCase()}
+            </span>
           </div>
-          <div>
-            <div className="text-sm font-semibold text-gray-900">{user.email}</div>
-            <div className="text-xs text-gray-400 mt-0.5">
-              {quota?.premium_active
-                ? "Compte Premium"
-                : quota?.essai_premium_active
-                  ? "Essai Premium"
-                  : "Compte gratuit"}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900 truncate">{user.email}</div>
+            <div className="mt-1">
+              {quota?.premium_active ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  Premium
+                </span>
+              ) : quota?.essai_premium_active ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-bm-amber bg-bm-amber/10 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-bm-amber inline-block" />
+                  Essai Premium
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">Compte gratuit</span>
+              )}
             </div>
           </div>
         </div>

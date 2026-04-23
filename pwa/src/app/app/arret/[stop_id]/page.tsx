@@ -67,9 +67,12 @@ export default async function ArretPage({ params }: Props) {
         </div>
 
         {(!lignes || lignes.length === 0) && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
-            <div className="text-3xl mb-2">🔍</div>
-            <div className="text-sm text-gray-500">Aucune ligne trouvée pour cet arrêt.</div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center gap-3">
+            <svg className="w-10 h-10 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <rect x="4" y="2" width="16" height="20" rx="2" />
+              <path d="M9 7h6M9 11h6M9 15h4" strokeLinecap="round" />
+            </svg>
+            <div className="text-sm text-gray-400 text-center">Aucune ligne trouvée pour cet arrêt.</div>
           </div>
         )}
 
