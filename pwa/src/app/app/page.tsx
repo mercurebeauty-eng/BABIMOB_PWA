@@ -349,7 +349,7 @@ export default function AppPage() {
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
-                    className="flex items-center justify-center gap-2.5 bg-bm-gradient text-white text-sm font-semibold px-4 py-3.5 rounded-2xl col-span-2 active:opacity-90 transition-opacity"
+                    className="flex items-center justify-center gap-2.5 bg-bm-gradient text-black text-sm font-semibold px-4 py-3.5 rounded-2xl col-span-2 active:opacity-90 transition-opacity"
                   >
                     <IconList />
                     Voir les lignes desservant cet arrêt
@@ -435,7 +435,7 @@ export default function AppPage() {
                 <div className="flex flex-col gap-2.5">
                   <button
                     onClick={openSearch}
-                    className="bg-bm-gradient text-white text-sm font-semibold px-6 py-3.5 rounded-2xl active:opacity-90 transition-opacity"
+                    className="bg-bm-gradient text-black text-sm font-semibold px-6 py-3.5 rounded-2xl active:opacity-90 transition-opacity"
                   >
                     Rechercher un arrêt
                   </button>

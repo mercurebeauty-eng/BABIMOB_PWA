@@ -839,8 +839,14 @@ export default function LandingPage() {
               © {new Date().getFullYear()} BABIMOB · Tous droits réservés · Abidjan, Côte d&apos;Ivoire
             </span>
             <div className="flex gap-2">
-              <span className="bg-bm-surface border border-bm-border rounded-md px-2 py-1 text-[11px] text-bm-muted">⚡ Powered by Claude AI</span>
-              <span className="bg-bm-surface border border-bm-border rounded-md px-2 py-1 text-[11px] text-bm-muted">🔒 Données sécurisées</span>
+              <span className="bg-bm-surface border border-bm-border rounded-md px-2 py-1 text-[11px] text-bm-muted inline-flex items-center gap-1">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 text-bm-amber flex-shrink-0" fill="currentColor" aria-hidden><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+                Powered by Claude AI
+              </span>
+              <span className="bg-bm-surface border border-bm-border rounded-md px-2 py-1 text-[11px] text-bm-muted inline-flex items-center gap-1">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 text-bm-green flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                Données sécurisées
+              </span>
             </div>
           </div>
         </div>

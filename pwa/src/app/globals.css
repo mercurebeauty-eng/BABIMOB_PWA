@@ -115,3 +115,21 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
+
+/* Respect prefers-reduced-motion — pause all decorative animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-float,
+  .animate-phone-float {
+    animation: none !important;
+  }
+  .bm-search-overlay {
+    animation: none !important;
+  }
+  .bm-toast {
+    animation: none !important;
+  }
+  .bm-sheet {
+    transition: none !important;
+  }
+}
