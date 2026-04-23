@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 
 export default async function ComptePage() {
@@ -8,9 +9,6 @@ export default async function ComptePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/app/auth/signin');
 
-  // Récupérer le quota si l'user existe dans la table user_quotas
-  // Note : l'user peut exister dans auth.users sans être dans public.users.
-  // On adresse ça plus tard avec un trigger post-auth.
   const { data: quota } = await supabase
     .from('user_quotas')
     .select('requetes_restantes, requetes_bonus, essai_premium_active, essai_premium_expire, premium_active')
@@ -18,55 +16,101 @@ export default async function ComptePage() {
     .maybeSingle();
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-4 py-8">
-      <h1 className="text-2xl font-bold text-babimob-blue">Mon compte</h1>
-      <p className="text-sm text-gray-500 mt-1">{user.email}</p>
-
-      <section className="mt-6 bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        <h2 className="font-semibold mb-4">📊 Mon quota</h2>
-        {quota ? (
-          <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt className="text-gray-500">Requêtes gratuites restantes</dt>
-              <dd className="text-2xl font-bold text-babimob-blue">{quota.requetes_restantes}/30</dd>
-            </div>
-            <div>
-              <dt className="text-gray-500">Requêtes bonus</dt>
-              <dd className="text-2xl font-bold text-babimob-orange">{quota.requetes_bonus}</dd>
-            </div>
-            <div className="col-span-2 pt-2 border-t border-gray-100">
-              <dt className="text-gray-500 text-xs uppercase tracking-wide">Statut</dt>
-              <dd className="mt-1 font-medium">
-                {quota.premium_active
-                  ? <span className="text-emerald-600">💎 Premium actif</span>
-                  : quota.essai_premium_active
-                    ? <span className="text-amber-600">✨ Essai premium en cours{quota.essai_premium_expire && ` (jusqu'au ${quota.essai_premium_expire})`}</span>
-                    : <span className="text-gray-500">Compte gratuit</span>}
-              </dd>
-            </div>
-          </dl>
-        ) : (
-          <p className="text-sm text-gray-500">
-            Aucun quota associé à ce compte. <span className="text-xs">(Un trigger post-auth va bientôt gérer ça automatiquement.)</span>
-          </p>
-        )}
-      </section>
-
-      <section className="mt-6 bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        <h2 className="font-semibold mb-2">💳 Recharger / passer Premium</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Paiement par mobile money (Wave, Orange Money, MTN, Moov) via CinetPay.
-        </p>
-        <button
-          disabled
-          className="bg-babimob-orange/40 text-white px-4 py-2 rounded-lg text-sm cursor-not-allowed"
+    <div className="flex-1 flex flex-col overflow-y-auto bg-gray-50">
+      {/* Top nav */}
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+        <Link
+          href="/app"
+          className="p-1.5 -ml-1 rounded-xl hover:bg-gray-100 transition"
+          aria-label="Retour à la carte"
         >
-          (Activation CinetPay prochainement)
-        </button>
-      </section>
-
-      <div className="mt-8">
+          <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+        <span className="text-sm font-medium text-gray-600 flex-1">Mon compte</span>
         <SignOutButton />
+      </div>
+
+      <div className="max-w-2xl mx-auto w-full px-4 py-6 space-y-4">
+        {/* User info */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
+            <svg className="w-6 h-6 text-bm-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-gray-900">{user.email}</div>
+            <div className="text-xs text-gray-400 mt-0.5">
+              {quota?.premium_active
+                ? "Compte Premium"
+                : quota?.essai_premium_active
+                  ? "Essai Premium"
+                  : "Compte gratuit"}
+            </div>
+          </div>
+        </div>
+
+        {/* Quota */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-4">
+            Mon quota
+          </div>
+          {quota ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Requêtes gratuites restantes</span>
+                <span className="text-2xl font-bold text-bm-amber">{quota.requetes_restantes}<span className="text-sm font-normal text-gray-400">/30</span></span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div
+                  className="bg-bm-gradient h-1.5 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (quota.requetes_restantes / 30) * 100)}%` }}
+                />
+              </div>
+              {quota.requetes_bonus > 0 && (
+                <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+                  <span className="text-sm text-gray-600">Requêtes bonus</span>
+                  <span className="text-xl font-bold text-bm-coral">{quota.requetes_bonus}</span>
+                </div>
+              )}
+              <div className="pt-1 border-t border-gray-50">
+                <span className="text-xs text-gray-500">Statut : </span>
+                {quota.premium_active ? (
+                  <span className="text-xs font-semibold text-emerald-600">Premium actif</span>
+                ) : quota.essai_premium_active ? (
+                  <span className="text-xs font-semibold text-bm-amber">
+                    Essai premium en cours{quota.essai_premium_expire && ` · expire le ${quota.essai_premium_expire}`}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">Compte gratuit</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              Aucun quota associé à ce compte pour le moment.
+            </p>
+          )}
+        </div>
+
+        {/* Payment */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">
+            Recharger / passer Premium
+          </div>
+          <p className="text-sm text-gray-500 mb-4 mt-1">
+            Paiement par mobile money (Wave, Orange Money, MTN, Moov) via CinetPay.
+          </p>
+          <button
+            disabled
+            className="w-full py-3 rounded-2xl bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed"
+          >
+            Activation CinetPay prochainement
+          </button>
+        </div>
       </div>
     </div>
   );
