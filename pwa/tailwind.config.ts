@@ -39,7 +39,26 @@ const config: Config = {
       },
       backgroundImage: {
         'bm-gradient': 'linear-gradient(135deg, #f5a623 0%, #ff6b4a 100%)'
-      }
+      },
+      animation: {
+        'marquee':     'marquee 30s linear infinite',
+        'float':       'float 6s ease-in-out infinite',
+        'phone-float': 'phoneFloat 7s ease-in-out infinite',
+      },
+      keyframes: {
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to:   { transform: 'translateX(-50%)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%':      { transform: 'translateY(-10px)' },
+        },
+        phoneFloat: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(-1deg)' },
+          '50%':      { transform: 'translateY(-8px) rotate(0.5deg)' },
+        },
+      },
     }
   },
   plugins: []
