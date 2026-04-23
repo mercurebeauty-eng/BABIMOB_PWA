@@ -4,19 +4,6 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { Stop } from '@/lib/types';
 
-// Fix icônes Leaflet sous Next (les chemins par défaut pointent vers /dist/)
-const DefaultIcon = L.icon({
-  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize:    [25, 41],
-  iconAnchor:  [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize:  [41, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Centre d'Abidjan (~Plateau)
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 
 type Props = {
@@ -24,51 +11,82 @@ type Props = {
   center?: [number, number];
   zoom?: number;
   className?: string;
+  selectedStopId?: string | null;
+  onStopClick?: (stop: Stop) => void;
+  onMapReady?: (map: L.Map) => void;
 };
 
-/**
- * Carte Leaflet "vanilla", pilotée en impératif via useEffect.
- * On évite react-leaflet parce qu'en React 19 + StrictMode (Next 16),
- * les effects sont invoqués deux fois en dev et react-leaflet crashe avec
- * "Map container is already initialized."
- */
+function makeMarkerIcon(selected = false) {
+  const size = selected ? 14 : 10;
+  const style = [
+    `width:${size}px`,
+    `height:${size}px`,
+    'border-radius:50%',
+    'background:#f5a623',
+    'border:2px solid white',
+    'box-shadow:0 1px 4px rgba(0,0,0,0.25)',
+    ...(selected ? ['outline:3px solid rgba(245,166,35,0.35)', 'outline-offset:1px'] : []),
+  ].join(';');
+  return L.divIcon({
+    className: '',
+    html: `<div style="${style}"></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
 export default function Map({
   stops = [],
   center = ABIDJAN_CENTER,
   zoom = 12,
-  className = 'h-[70vh] w-full rounded-xl overflow-hidden shadow-md'
+  className = 'absolute inset-0',
+  selectedStopId = null,
+  onStopClick,
+  onMapReady,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const onStopClickRef = useRef(onStopClick);
 
-  // ---- Mount / Unmount ----
+  useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
+
+  // ── Init (once) ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Si un container a déjà un id Leaflet (double-invoke StrictMode),
-    // on le nettoie avant de ré-initialiser.
-    // @ts-expect-error propriété interne Leaflet
+    // Reset Leaflet internal ID in case StrictMode double-invokes
+    // @ts-expect-error Leaflet internal
     if (containerRef.current._leaflet_id) {
-      // @ts-expect-error propriété interne Leaflet
+      // @ts-expect-error Leaflet internal
       containerRef.current._leaflet_id = null;
     }
 
     const map = L.map(containerRef.current, {
       center,
       zoom,
-      scrollWheelZoom: true
+      scrollWheelZoom: true,
+      zoomControl: false,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
+      }
+    ).addTo(map);
+
+    // Zoom control bottom-right
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
-
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
+
+    onMapReady?.(map);
 
     return () => {
       map.remove();
@@ -76,16 +94,14 @@ export default function Map({
       markersLayerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ← init une seule fois, le reste est piloté en effets séparés
+  }, []);
 
-  // ---- Recentrage ----
+  // ── Recentrage ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.setView(center, zoom);
+    mapRef.current?.setView(center, zoom);
   }, [center, zoom]);
 
-  // ---- Markers ----
+  // ── Markers ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const layer = markersLayerRef.current;
     if (!layer) return;
@@ -93,22 +109,29 @@ export default function Map({
     layer.clearLayers();
 
     stops.forEach((s) => {
-      const marker = L.marker([s.stop_lat, s.stop_lon]);
-      const popupHtml = `
-        <div style="font-size:13px">
-          <div style="font-weight:600">${escapeHtml(s.stop_name)}</div>
-          ${s.commune ? `<div style="color:#6b7280">${escapeHtml(s.commune)}</div>` : ''}
-        </div>
-      `;
-      marker.bindPopup(popupHtml);
+      const isSelected = s.stop_id === selectedStopId;
+      const marker = L.marker([s.stop_lat, s.stop_lon], {
+        icon: makeMarkerIcon(isSelected),
+      });
+
+      marker.bindPopup(
+        `<div class="bm-popup"><strong>${escapeHtml(s.stop_name)}</strong>${
+          s.commune ? `<div class="bm-popup-sub">${escapeHtml(s.commune)}</div>` : ''
+        }</div>`,
+        { className: 'bm-popup-wrapper', offset: [0, -4] }
+      );
+
+      if (onStopClick) {
+        marker.on('click', () => onStopClickRef.current?.(s));
+      }
+
       marker.addTo(layer);
     });
-  }, [stops]);
+  }, [stops, selectedStopId]);
 
   return <div ref={containerRef} className={className} />;
 }
 
-// Mini-helper pour éviter l'injection HTML dans les popups
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

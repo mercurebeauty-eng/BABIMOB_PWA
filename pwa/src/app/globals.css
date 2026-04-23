@@ -12,8 +12,8 @@ html, body {
 
 body {
   -webkit-font-smoothing: antialiased;
-  background: theme('colors.bm.bg');
-  color: theme('colors.bm.text');
+  background: #ffffff;
+  color: #111827;
 }
 
 /* Scrollbar discret (contexte clair) */
@@ -28,9 +28,36 @@ body {
 
 /* Override Leaflet pour un rendu plus propre */
 .leaflet-container {
-  background: #e6eef7;
+  background: #f4f4f0;
 }
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-  border-radius: 10px;
+
+.bm-popup-wrapper .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border: 1px solid #f0f0f0;
+}
+
+.bm-popup-wrapper .leaflet-popup-tip-container {
+  display: none;
+}
+
+.bm-popup-wrapper .leaflet-popup-content {
+  margin: 0;
+}
+
+.bm-popup {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+.bm-popup-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-top: 1px;
 }

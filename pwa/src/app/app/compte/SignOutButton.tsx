@@ -12,7 +12,7 @@ export default function SignOutButton() {
   async function handleSignOut() {
     setLoading(true);
     await supabase.auth.signOut();
-    router.push('/');
+    router.push('/app');
     router.refresh();
   }
 
@@ -20,9 +20,9 @@ export default function SignOutButton() {
     <button
       onClick={handleSignOut}
       disabled={loading}
-      className="text-sm text-gray-600 hover:text-red-600 underline underline-offset-4 disabled:opacity-50"
+      className="text-xs text-gray-500 hover:text-red-500 font-medium transition disabled:opacity-50"
     >
-      {loading ? 'Déconnexion…' : 'Se déconnecter'}
+      {loading ? 'Déconnexion…' : 'Déconnexion'}
     </button>
   );
 }
