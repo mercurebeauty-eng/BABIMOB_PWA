@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import RouteMapWrapper from './RouteMapWrapper';
+import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 type Props = {
   params: Promise<{ route_id: string }>;
@@ -96,26 +97,28 @@ export default async function LignePage({ params, searchParams }: Props) {
   const colorHex = `#${routeColor}`;
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-gray-50">
+    <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
+      <BeigeMapBackground />
+      
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
         <Link
           href="/app"
-          className="p-1.5 -ml-1 rounded-xl hover:bg-gray-100 transition"
+          className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors"
           aria-label="Retour à la carte"
         >
-          <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-gray-900 truncate">{route.route_long_name}</div>
-          <div className="text-xs text-gray-400">{typeEmoji} {typeLabel}</div>
+          <div className="text-sm font-black text-beige-text truncate uppercase tracking-tight">{route.route_long_name}</div>
+          <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest">{typeEmoji} {typeLabel}</div>
         </div>
       </div>
 
-      {/* Map */}
-      <div className="overflow-hidden bg-gray-100">
+      {/* Map Section */}
+      <div className="overflow-hidden border-b border-beige-200 shadow-inner">
         <RouteMapWrapper
           shape={(shapePoints ?? []) as { shape_pt_lat: number; shape_pt_lon: number }[]}
           stops={orderedStops}
@@ -123,22 +126,22 @@ export default async function LignePage({ params, searchParams }: Props) {
         />
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-4 py-4 space-y-3">
+      <div className="max-w-2xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
         {/* Route info card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+        <div className="bg-white rounded-3xl border-2 border-beige-200 shadow-xl shadow-black/5 p-6 flex items-center gap-4">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: `${colorHex}22` }}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-inner"
+            style={{ background: `${colorHex}15`, border: `1px solid ${colorHex}30` }}
           >
             {typeEmoji}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-gray-500 truncate">{route.agency_id}</div>
-            <div className="text-sm font-semibold text-gray-900">{orderedStops.length} arrêts</div>
+            <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mb-1">{route.agency_id}</div>
+            <div className="text-base font-black text-beige-text">{orderedStops.length} arrêts sur ce trajet</div>
           </div>
           <div
-            className="text-xs font-bold px-2.5 py-1 rounded-lg flex-shrink-0"
-            style={{ background: `${colorHex}22`, color: colorHex }}
+            className="text-xs font-black px-3 py-1.5 rounded-xl flex-shrink-0 border"
+            style={{ background: `${colorHex}10`, color: colorHex, borderColor: `${colorHex}30` }}
           >
             #{routeId.slice(-6)}
           </div>
@@ -146,15 +149,15 @@ export default async function LignePage({ params, searchParams }: Props) {
 
         {/* Direction tabs */}
         {dirMap.size > 1 && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 p-1 bg-beige-200/50 rounded-2xl border border-beige-200/30">
             {[...dirMap.entries()].map(([dirId, info]) => (
               <Link
                 key={dirId}
                 href={`/app/ligne/${encodeURIComponent(routeId)}?dir=${dirId}`}
-                className={`flex-1 text-center text-sm font-semibold py-2.5 px-3 rounded-xl transition-colors truncate ${
+                className={`flex-1 text-center text-xs font-black py-3 px-4 rounded-xl transition-all uppercase tracking-tight truncate ${
                   activeDir === dirId
-                    ? 'bg-bm-amber text-black'
-                    : 'bg-white border border-gray-100 text-gray-600 hover:border-bm-amber/40'
+                    ? 'bg-white text-abidjan-orange shadow-md'
+                    : 'text-beige-muted hover:text-beige-text'
                 }`}
               >
                 {dirId === 0 ? '→' : '←'} {info.trip_headsign ?? `Dir. ${dirId}`}
@@ -165,11 +168,11 @@ export default async function LignePage({ params, searchParams }: Props) {
 
         {/* Stops list */}
         <div>
-          <div className="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">
-            Arrêts ({orderedStops.length})
+          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-4 px-2">
+            Itinéraire ({orderedStops.length} arrêts)
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 overflow-hidden">
             {orderedStops.map((stop, idx) => {
               const isFirst = idx === 0;
               const isLast = idx === orderedStops.length - 1;
@@ -177,48 +180,48 @@ export default async function LignePage({ params, searchParams }: Props) {
                 <Link
                   key={`${stop.stop_id}-${stop.stop_sequence}`}
                   href={`/app/arret/${encodeURIComponent(stop.stop_id)}`}
-                  className={`flex items-stretch gap-3 px-4 hover:bg-gray-50 transition-colors ${
-                    !isLast ? 'border-b border-gray-50' : ''
+                  className={`flex items-stretch gap-4 px-6 hover:bg-beige-50 transition-colors group ${
+                    !isLast ? 'border-b border-beige-100' : ''
                   }`}
                 >
                   {/* Timeline column */}
-                  <div className="flex flex-col items-center flex-shrink-0 w-5 py-1">
-                    <div className={`w-0.5 flex-1 ${isFirst ? 'bg-transparent' : 'bg-gray-200'}`} />
+                  <div className="flex flex-col items-center flex-shrink-0 w-6 py-1">
+                    <div className={`w-1 flex-1 ${isFirst ? 'bg-transparent' : 'bg-beige-100'}`} />
                     <div
-                      className={`rounded-full flex-shrink-0 ${
+                      className={`rounded-full flex-shrink-0 transition-transform group-hover:scale-125 ${
                         isFirst || isLast
-                          ? 'w-4 h-4'
-                          : 'w-2.5 h-2.5'
+                          ? 'w-5 h-5'
+                          : 'w-3 h-3'
                       }`}
                       style={
                         isFirst || isLast
-                          ? { background: colorHex, boxShadow: `0 0 0 3px ${colorHex}22` }
-                          : { background: '#d1d5db' }
+                          ? { background: colorHex, boxShadow: `0 0 0 4px ${colorHex}20` }
+                          : { background: '#D9C8AC' }
                       }
                     />
-                    <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-gray-200'}`} />
+                    <div className={`w-1 flex-1 ${isLast ? 'bg-transparent' : 'bg-beige-100'}`} />
                   </div>
 
                   {/* Stop info */}
-                  <div className="flex-1 min-w-0 py-3 flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0 py-5 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div
                         className={`text-sm truncate ${
-                          isFirst || isLast ? 'font-bold text-gray-900' : 'font-medium text-gray-800'
+                          isFirst || isLast ? 'font-black text-beige-text' : 'font-bold text-beige-muted group-hover:text-beige-text'
                         }`}
                       >
                         {stop.stop_name}
                       </div>
                       {stop.commune && (
-                        <div className="text-xs text-gray-400 mt-0.5">{stop.commune}</div>
+                        <div className="text-[10px] text-beige-200 font-bold uppercase tracking-widest mt-1 group-hover:text-beige-muted transition-colors">{stop.commune}</div>
                       )}
                     </div>
                     <svg
-                      className="w-4 h-4 text-gray-300 flex-shrink-0"
+                      className="w-5 h-5 text-beige-100 group-hover:text-abidjan-orange transition-colors flex-shrink-0"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="3"
                     >
                       <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

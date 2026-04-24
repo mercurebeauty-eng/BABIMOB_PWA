@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import SignOutButton from './SignOutButton';
-import GridMapBackground from '@/components/GridMapBackground';
+import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -42,33 +42,32 @@ export default async function ComptePage() {
   const initiale = (user.email?.[0] ?? 'U').toUpperCase();
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto relative text-white">
-      <GridMapBackground />
+    <div className="flex-1 flex flex-col overflow-y-auto relative bg-beige-50 text-beige-text font-sans">
+      <BeigeMapBackground />
       
-      <div className="sticky top-0 z-10 bg-[#0c111a]/80 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center gap-3">
-        <Link href="/app" className="p-1.5 -ml-1 rounded-xl hover:bg-white/10 transition" aria-label="Retour à la carte">
-          <svg className="w-5 h-5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
+        <Link href="/app" className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors" aria-label="Retour à la carte">
+          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
-        <span className="text-sm font-medium text-gray-200 flex-1">Mon profil</span>
+        <span className="text-sm font-bold uppercase tracking-widest text-beige-muted flex-1">Mon profil</span>
         <SignOutButton />
       </div>
 
-      <div className="max-w-3xl mx-auto w-full px-4 py-6 grid gap-4 md:gap-5 grid-cols-1 md:grid-cols-2 relative z-10">
+      <div className="max-w-3xl mx-auto w-full px-5 py-8 grid gap-6 md:grid-cols-2 relative z-10">
         
         {/* PROFILE HEADER - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-3xl overflow-hidden glass-card p-6 flex items-center gap-5 border-white/5 hover:border-white/15 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-bm-amber/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="relative z-10 w-16 h-16 rounded-2xl bg-bm-gradient flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(245,166,35,0.3)]">
-            <span className="text-black text-2xl font-black select-none">{initiale}</span>
+        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 flex flex-col sm:flex-row items-center gap-6 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
+          <div className="relative z-10 w-20 h-20 rounded-2xl bg-abidjan-gradient flex items-center justify-center flex-shrink-0 shadow-lg shadow-abidjan-orange/20">
+            <span className="text-white text-3xl font-black select-none">{initiale}</span>
           </div>
-          <div className="relative z-10 flex-1 min-w-0">
-            <div className="text-lg font-bold text-white truncate">{user.email}</div>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="text-xs font-medium text-gray-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">Membre BABIMOB</span>
+          <div className="relative z-10 flex-1 text-center sm:text-left">
+            <div className="text-2xl font-black text-beige-text mb-2">{user.email}</div>
+            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+              <span className="text-xs font-bold text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100 uppercase tracking-wider">Membre BABIMOB</span>
               {badge && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-bm-amber bg-bm-amber/10 px-3 py-1 rounded-full border border-bm-amber/20 shadow-[0_0_10px_rgba(245,166,35,0.2)]">
+                <span className="inline-flex items-center gap-1.5 text-xs font-black text-abidjan-orange bg-abidjan-orange/10 px-3 py-1.5 rounded-full border border-abidjan-orange/20 shadow-sm">
                   🏅 {badge}
                 </span>
               )}
@@ -77,47 +76,46 @@ export default async function ComptePage() {
         </div>
 
         {/* EXPLORATIONS - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-3xl overflow-hidden glass-card p-6 border-white/5 hover:border-white/15 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-br from-bm-telegram/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-blue/30">
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-bm-telegram/20 text-bm-telegram flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" /><circle cx="12" cy="10" r="3" /></svg>
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-xl">
+                  📍
                 </div>
-                <div className="text-sm uppercase tracking-wider text-white font-bold">Mes explorations</div>
+                <div className="text-sm uppercase tracking-widest text-beige-text font-black">Mes explorations</div>
               </div>
-              <Link href="/app/ccomment" className="text-xs font-semibold text-bm-amber hover:text-bm-amber/80 transition flex items-center gap-1">Voir tout <span>→</span></Link>
+              <Link href="/app/ccomment" className="text-xs font-black text-abidjan-orange hover:text-abidjan-orange/80 transition flex items-center gap-1 uppercase tracking-widest">Voir tout <span>→</span></Link>
             </div>
             
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <div className="text-center p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                <div className="text-3xl font-black text-white">{total}</div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-500 mt-1 font-semibold">check-ins</div>
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
+                <div className="text-4xl font-black text-beige-text">{total}</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">check-ins</div>
               </div>
-              <div className="text-center p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                <div className="text-3xl font-black text-white">{topCommunes.length}</div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-500 mt-1 font-semibold">communes</div>
+              <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
+                <div className="text-4xl font-black text-beige-text">{topCommunes.length}</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">communes</div>
               </div>
-              <div className="text-center p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                <div className="text-3xl font-black text-white">{badge ? '🏅' : '—'}</div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-500 mt-1 font-semibold">badge</div>
+              <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
+                <div className="text-4xl font-black text-beige-text">{badge ? '🏅' : '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">badge</div>
               </div>
             </div>
 
             {topCommunes.length > 0 && (
-              <div className="pt-4 border-t border-white/10">
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-3">Communes fréquentées</div>
+              <div className="pt-6 border-t border-beige-100">
+                <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-4">Communes fréquentées</div>
                 <div className="flex gap-2 flex-wrap">
                   {topCommunes.map((c) => (
-                    <span key={c} className="text-xs font-medium bg-white/10 border border-white/20 text-white px-3 py-1.5 rounded-full shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">{c}</span>
+                    <span key={c} className="text-xs font-bold bg-white border border-beige-200 text-beige-text px-4 py-2 rounded-full shadow-sm">{c}</span>
                   ))}
                 </div>
               </div>
             )}
             
             {total === 0 && (
-              <p className="text-sm text-gray-400 text-center mt-2 py-4 bg-white/5 rounded-2xl border border-white/5">
+              <p className="text-sm text-beige-muted font-medium text-center mt-2 py-6 bg-beige-50 rounded-3xl border border-beige-100 border-dashed">
                 Fais ton premier check-in sur un arrêt pour commencer à explorer ! 📍
               </p>
             )}
@@ -125,27 +123,24 @@ export default async function ComptePage() {
         </div>
 
         {/* FAVORITES - Span 1 */}
-        <div className="md:col-span-1 group relative rounded-3xl overflow-hidden glass-card p-6 border-white/5 hover:border-white/15 transition-all duration-500 flex flex-col h-full">
-          <div className="absolute inset-0 bg-gradient-to-bl from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-red-500/30 flex flex-col h-full">
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-red-500/20 text-red-500 flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                </div>
-                <div className="text-sm uppercase tracking-wider text-white font-bold">Favoris</div>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center text-xl">❤️</div>
+                <div className="text-sm uppercase tracking-widest text-beige-text font-black">Favoris</div>
               </div>
-              <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded-lg text-white">{favorites?.length ?? 0}</span>
+              <span className="text-xs font-black bg-beige-50 px-3 py-1 rounded-lg text-beige-muted border border-beige-100">{favorites?.length ?? 0}</span>
             </div>
 
             {!favorites || favorites.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-                <p className="text-xs text-gray-400 leading-relaxed">
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-6 bg-beige-50 rounded-3xl border border-beige-100 border-dashed">
+                <p className="text-xs text-beige-muted font-bold leading-relaxed px-4">
                   Appuie sur le cœur sur un arrêt pour le sauvegarder ici.
                 </p>
               </div>
             ) : (
-              <ul className="space-y-2 flex-1">
+              <ul className="space-y-3 flex-1">
                 {favorites.map((fav) => (
                   <li key={fav.id}>
                     <Link
@@ -156,13 +151,13 @@ export default async function ComptePage() {
                           ? `/app/ligne/${encodeURIComponent(fav.route_id)}`
                           : '/app'
                       }
-                      className="flex items-center gap-3 bg-white/[0.02] hover:bg-white/[0.08] border border-white/5 rounded-xl px-3 py-2.5 transition-colors"
+                      className="flex items-center gap-4 bg-beige-50 hover:bg-white border border-beige-100 hover:border-red-500/30 rounded-2xl px-4 py-3.5 transition-all shadow-sm"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-white truncate">{fav.label}</div>
-                        <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-0.5">{fav.kind === 'stop' ? 'Arrêt' : 'Ligne'}</div>
+                        <div className="text-sm font-black text-beige-text truncate">{fav.label}</div>
+                        <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{fav.kind === 'stop' ? 'Arrêt' : 'Ligne'}</div>
                       </div>
-                      <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg className="w-4 h-4 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </Link>
                   </li>
                 ))}
@@ -172,41 +167,40 @@ export default async function ComptePage() {
         </div>
 
         {/* PREFERENCES - Span 1 */}
-        <div className="md:col-span-1 group relative rounded-3xl overflow-hidden glass-card p-6 border-white/5 hover:border-white/15 transition-all duration-500 flex flex-col h-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-bm-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-green/30 flex flex-col h-full">
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-8 h-8 rounded-xl bg-bm-green/20 text-bm-green flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              </div>
-              <div className="text-sm uppercase tracking-wider text-white font-bold">Préférences</div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-xl">⚙️</div>
+              <div className="text-sm uppercase tracking-widest text-beige-text font-black">Préférences</div>
             </div>
 
             <div className="flex flex-wrap gap-2 flex-1">
               {['🚐 Gbaka', '🚖 Woro-woro', '🚕 Taxi', '🛺 Saloni'].map((t) => (
-                <button key={t} className="text-xs font-medium bg-white/5 border border-white/10 hover:border-bm-amber/50 hover:bg-bm-amber/10 hover:text-bm-amber hover:shadow-[0_0_10px_rgba(245,166,35,0.2)] text-gray-300 px-3.5 py-2 rounded-xl transition-all">
+                <button key={t} className="text-xs font-black bg-beige-50 border-2 border-beige-100 hover:border-abidjan-orange hover:bg-abidjan-orange/10 hover:text-abidjan-orange text-beige-muted px-4 py-2.5 rounded-2xl transition-all shadow-sm">
                   {t}
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-gray-500 mt-4 bg-white/5 p-2.5 rounded-xl border border-white/5">Mode personnalisation bientôt actif.</p>
+            <div className="mt-6 p-4 bg-beige-50 rounded-2xl border border-beige-100 border-dashed">
+               <p className="text-[10px] text-beige-muted font-bold uppercase tracking-widest leading-relaxed">Le mode personnalisation sera bientôt actif pour tes calculs d&apos;itinéraires.</p>
+            </div>
           </div>
         </div>
 
         {/* PRIVACY - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-3xl overflow-hidden glass-card p-6 border-white/5 hover:border-white/15 transition-all duration-500">
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-beige-50 text-beige-text flex items-center justify-center text-2xl border border-beige-100 shadow-inner">
+                👁️‍🗨️
               </div>
-              <div>
-                <div className="text-sm font-bold text-white">Profil Public</div>
-                <div className="text-xs text-gray-400 mt-0.5">Tes check-ins sont visibles par la communauté</div>
+              <div className="text-center sm:text-left">
+                <div className="text-lg font-black text-beige-text">Visibilité Publique</div>
+                <div className="text-sm text-beige-muted font-medium mt-1">Tes check-ins sont visibles par les autres explorateurs.</div>
               </div>
             </div>
-            <div className="w-12 h-7 bg-bm-amber rounded-full flex items-center px-1 cursor-pointer shadow-[0_0_15px_rgba(245,166,35,0.3)] hover:scale-105 transition-transform">
-              <div className="w-5 h-5 bg-black rounded-full shadow translate-x-5 transition-transform" />
+            <div className="w-16 h-9 bg-abidjan-orange rounded-full flex items-center px-1.5 cursor-pointer shadow-lg shadow-abidjan-orange/30 hover:scale-105 transition-all group-active:scale-95">
+              <div className="w-6 h-6 bg-white rounded-full shadow-md translate-x-7 transition-transform" />
             </div>
           </div>
         </div>

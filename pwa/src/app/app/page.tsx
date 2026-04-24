@@ -10,10 +10,10 @@ import { useRouter } from 'next/navigation';
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
-    <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+    <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-bm-amber border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs text-gray-400 font-medium">Chargement de la carte…</span>
+        <div className="w-10 h-10 border-4 border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
+        <span className="text-xs text-beige-muted font-black uppercase tracking-widest">Chargement de la ville…</span>
       </div>
     </div>
   ),
@@ -28,60 +28,60 @@ function formatDistance(m: number): string {
 
 /* ── SVG icons ──────────────────────────────────────────────────────────── */
 const IconSearch = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <circle cx="11" cy="11" r="8" />
     <path d="m21 21-4.35-4.35" strokeLinecap="round" />
   </svg>
 );
 
-const IconX = ({ size = 'w-3.5 h-3.5' }: { size?: string }) => (
-  <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+const IconX = ({ size = 'w-4 h-4' }: { size?: string }) => (
+  <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
     <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
   </svg>
 );
 
 const IconChevronLeft = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
     <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const IconLocate = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
-    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" strokeWidth="2" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" strokeWidth="3" />
     <circle cx="12" cy="12" r="8" />
   </svg>
 );
 
 const IconUser = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="8" r="4" />
     <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
   </svg>
 );
 
 const IconPin = () => (
-  <svg className="w-4 h-4 text-bm-amber" viewBox="0 0 24 24" fill="currentColor">
+  <svg className="w-5 h-5 text-abidjan-orange" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
   </svg>
 );
 
 const IconMap = () => (
-  <svg className="w-10 h-10 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+  <svg className="w-12 h-12 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M9 3L3 6v15l6-3 6 3 6-3V3l-6 3-6-3z" strokeLinejoin="round" />
     <path d="M9 3v15M15 6v15" strokeLinecap="round" />
   </svg>
 );
 
 const IconRoute = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M3 12h18M12 3l9 9-9 9" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const IconList = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
@@ -203,7 +203,7 @@ export default function AppPage() {
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
 
   return (
-    <div className="flex-1 relative overflow-hidden">
+    <div className="flex-1 relative overflow-hidden bg-beige-50 font-sans text-beige-text">
 
       {/* ── Map ─────────────────────────────────────────────────────────── */}
       <Map
@@ -217,20 +217,20 @@ export default function AppPage() {
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
-      <div className="absolute top-4 left-4 right-4 z-[500] flex items-center gap-2">
+      <div className="absolute top-6 left-4 right-4 z-[500] flex items-center gap-3">
         {/* Search bar */}
         <button
           onClick={openSearch}
-          className="flex-1 flex items-center gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/80 px-4 py-3 text-left transition-shadow hover:shadow-xl active:scale-[0.99]"
+          className="flex-1 flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-[0.98]"
         >
-          <span className="text-gray-400 flex-shrink-0"><IconSearch /></span>
-          <span className="text-sm text-gray-500 flex-1 truncate">
+          <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
+          <span className="text-sm font-bold text-beige-muted flex-1 truncate">
             {selected ? selected.stop_name : "Rechercher un arrêt…"}
           </span>
           {selected && (
             <button
               onClick={(e) => { e.stopPropagation(); clearSelection(); }}
-              className="text-gray-400 hover:text-gray-700 p-0.5 rounded-full transition"
+              className="text-beige-200 hover:text-beige-text p-1 rounded-full transition"
               aria-label="Effacer la sélection"
             >
               <IconX />
@@ -243,12 +243,12 @@ export default function AppPage() {
           onClick={handleLocateMe}
           disabled={geoLoading}
           aria-label="Me localiser"
-          className={`w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center justify-center flex-shrink-0 transition-all hover:shadow-xl active:scale-95 ${
-            userLoc ? 'border-blue-400 text-blue-500' : 'border-gray-200/80 text-gray-500'
+          className={`w-14 h-14 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 ${
+            userLoc ? 'border-abidjan-blue text-abidjan-blue bg-abidjan-blue/5' : 'border-beige-200/50 text-beige-muted'
           } disabled:opacity-60`}
         >
           {geoLoading ? (
-            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />
           ) : (
             <IconLocate />
           )}
@@ -257,7 +257,7 @@ export default function AppPage() {
         {/* Account */}
         <Link
           href="/app/compte"
-          className="w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/80 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-xl active:scale-95 text-gray-500"
+          className="w-14 h-14 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 text-beige-muted"
           aria-label="Mon compte"
         >
           <IconUser />
@@ -266,11 +266,11 @@ export default function AppPage() {
 
       {/* Geo error toast */}
       {geoError && (
-        <div className="bm-toast absolute top-20 left-4 right-4 z-[500] bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700 flex items-center justify-between shadow-md">
+        <div className="bm-toast absolute top-24 left-4 right-4 z-[500] bg-red-50 border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex items-center justify-between shadow-xl uppercase tracking-widest animate-in slide-in-from-top-4 duration-300">
           <span>{geoError}</span>
           <button
             onClick={() => setGeoError(null)}
-            className="ml-3 p-1 text-red-400 hover:text-red-600 rounded-full transition"
+            className="ml-4 p-1.5 text-red-300 hover:text-red-500 rounded-full transition"
             aria-label="Fermer"
           >
             <IconX />
@@ -280,45 +280,45 @@ export default function AppPage() {
 
       {/* ── Bottom sheet ────────────────────────────────────────────────── */}
       <div
-        className={`bm-sheet absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.10)] transition-transform duration-300 ease-out ${
-          sheetExpanded ? 'translate-y-0' : 'translate-y-[calc(100%-72px)]'
+        className={`bm-sheet absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 ease-out border-t-2 border-beige-100 ${
+          sheetExpanded ? 'translate-y-0' : 'translate-y-[calc(100%-88px)]'
         }`}
       >
         {/* Handle */}
         <div
-          className="flex flex-col items-center pt-3 pb-1 cursor-pointer select-none"
+          className="flex flex-col items-center pt-4 pb-2 cursor-pointer select-none"
           onClick={() => setSheetExpanded(!sheetExpanded)}
           role="button"
           aria-label={sheetExpanded ? "Réduire" : "Agrandir"}
           aria-expanded={sheetExpanded}
         >
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+          <div className="w-12 h-1.5 bg-beige-200 rounded-full" />
         </div>
 
         {/* Collapsed peek */}
         {!sheetExpanded && (
-          <div className="flex items-center justify-between px-5 py-2 pb-4">
-            <div className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">
+          <div className="flex items-center justify-between px-6 py-3 pb-6">
+            <div className="text-base font-black text-beige-text truncate max-w-[220px] tracking-tight">
               {selected
                 ? selected.stop_name
                 : nearbyStops.length > 0
-                  ? `${nearbyStops.length} arrêt${nearbyStops.length > 1 ? 's' : ''} à proximité`
-                  : "Explorer Abidjan"}
+                  ? `${nearbyStops.length} arrêt${nearbyStops.length > 1 ? 's' : ''} proches`
+                  : "Où vas-tu aujourd&apos;hui ?"}
             </div>
             {selected ? (
               <button
                 onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
-                className="text-xs font-semibold text-bm-amber"
+                className="text-xs font-black text-abidjan-orange uppercase tracking-widest px-4 py-2 bg-abidjan-orange/10 rounded-full"
               >
-                Voir les lignes →
+                Lignes →
               </button>
             ) : nearbyStops.length > 0 ? (
-              <button onClick={() => setSheetExpanded(true)} className="text-xs font-semibold text-blue-500">
-                Voir la liste →
+              <button onClick={() => setSheetExpanded(true)} className="text-xs font-black text-abidjan-blue uppercase tracking-widest px-4 py-2 bg-abidjan-blue/10 rounded-full">
+                Liste →
               </button>
             ) : (
-              <button onClick={openSearch} className="text-xs font-semibold text-bm-amber">
-                Rechercher →
+              <button onClick={openSearch} className="text-xs font-black text-abidjan-orange uppercase tracking-widest px-4 py-2 bg-abidjan-orange/10 rounded-full">
+                Chercher →
               </button>
             )}
           </div>
@@ -326,75 +326,75 @@ export default function AppPage() {
 
         {/* Expanded content */}
         {sheetExpanded && (
-          <div className="px-5 pt-2 pb-safe">
+          <div className="px-6 pt-4 pb-12 overflow-y-auto max-h-[70vh]">
             {selected ? (
               /* ── Stop detail ── */
-              <>
-                <div className="flex items-start justify-between gap-3 mb-5">
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-start justify-between gap-4 mb-8">
                   <div>
-                    <div className="text-xs uppercase tracking-widest text-bm-amber font-semibold mb-0.5">Arrêt sélectionné</div>
-                    <h2 className="text-xl font-bold text-gray-900 leading-tight">{selected.stop_name}</h2>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-abidjan-orange font-black mb-1">Arrêt sélectionné</div>
+                    <h2 className="text-2xl font-black text-beige-text leading-tight tracking-tight">{selected.stop_name}</h2>
                     {selected.commune && (
-                      <div className="text-sm text-gray-400 mt-0.5">{selected.commune}</div>
+                      <div className="text-sm text-beige-muted font-bold mt-1 uppercase tracking-widest opacity-80">{selected.commune}</div>
                     )}
                   </div>
                   <button
                     onClick={clearSelection}
-                    className="mt-1 p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition text-gray-500 flex-shrink-0"
+                    className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200 flex-shrink-0"
                     aria-label="Fermer"
                   >
-                    <IconX size="w-4 h-4" />
+                    <IconX size="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
-                    className="flex items-center justify-center gap-2.5 bg-bm-gradient text-black text-sm font-semibold px-4 py-3.5 rounded-2xl col-span-2 active:opacity-90 transition-opacity"
+                    className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
                   >
                     <IconList />
-                    Voir les lignes desservant cet arrêt
+                    VOIR LES LIGNES &amp; CHECK-IN
                   </button>
 
                   <Link
                     href="/app/itineraire"
-                    className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-3.5 rounded-2xl transition-colors"
+                    className="flex items-center justify-center gap-3 bg-beige-50 hover:bg-beige-100 text-beige-text text-sm font-black px-6 py-5 rounded-3xl transition-all border-2 border-beige-100"
                   >
                     <IconRoute />
-                    Itinéraire
+                    ITINÉRAIRE
                   </Link>
 
                   <button
                     onClick={openSearch}
-                    className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-3.5 rounded-2xl transition-colors"
+                    className="flex items-center justify-center gap-3 bg-beige-50 hover:bg-beige-100 text-beige-text text-sm font-black px-6 py-5 rounded-3xl transition-all border-2 border-beige-100"
                   >
                     <IconSearch />
-                    Autre arrêt
+                    AUTRE ARRÊT
                   </button>
                 </div>
-              </>
+              </div>
             ) : nearbyStops.length > 0 ? (
               /* ── Nearby stops list ── */
-              <>
-                <div className="flex items-center justify-between mb-4">
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <div className="text-xs uppercase tracking-widest text-blue-500 font-semibold mb-0.5">
-                      Arrêts à proximité
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-abidjan-blue font-black mb-1">
+                      À proximité
                     </div>
-                    <div className="text-base font-bold text-gray-900">
-                      {nearbyStops.length} arrêt{nearbyStops.length > 1 ? 's' : ''} · rayon 800 m
+                    <div className="text-lg font-black text-beige-text tracking-tight">
+                      {nearbyStops.length} arrêt{nearbyStops.length > 1 ? 's' : ''} trouvés
                     </div>
                   </div>
                   <button
                     onClick={() => { setUserLoc(null); setNearbyStops([]); setSheetExpanded(false); }}
-                    className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition text-gray-500"
+                    className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
                     aria-label="Effacer"
                   >
-                    <IconX size="w-4 h-4" />
+                    <IconX size="w-5 h-5" />
                   </button>
                 </div>
 
-                <ul className="space-y-1.5 max-h-60 overflow-y-auto -mx-1 px-1">
+                <ul className="space-y-3">
                   {nearbyStops.map((a) => (
                     <li
                       key={a.stop_id}
@@ -405,46 +405,46 @@ export default function AppPage() {
                         stop_lon: a.stop_lon,
                         commune: a.commune,
                       })}
-                      className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-2xl px-4 py-3 cursor-pointer transition-colors"
+                      className="flex items-center gap-4 bg-beige-50/50 hover:bg-white active:bg-beige-100 border-2 border-beige-100/50 hover:border-abidjan-orange/30 rounded-3xl px-5 py-4 cursor-pointer transition-all group"
                       role="button"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform">
                         <IconPin />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">{a.stop_name}</div>
+                        <div className="text-sm font-black text-beige-text truncate group-hover:text-abidjan-orange transition-colors">{a.stop_name}</div>
                         {a.commune && (
-                          <div className="text-xs text-gray-400">{a.commune}</div>
+                          <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{a.commune}</div>
                         )}
                       </div>
-                      <div className="text-xs font-semibold text-blue-500 flex-shrink-0 tabular-nums">
+                      <div className="text-[10px] font-black text-abidjan-blue flex-shrink-0 tabular-nums bg-abidjan-blue/10 px-2 py-1 rounded-lg">
                         {formatDistance(a.distance_m)}
                       </div>
                     </li>
                   ))}
                 </ul>
-              </>
+              </div>
             ) : (
               /* ── Empty state with tabs ── */
-              <>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 {/* Tabs */}
-                <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-5">
+                <div className="flex gap-2 bg-beige-100/50 p-1.5 rounded-2xl mb-8 border border-beige-200/30">
                   <button
                     onClick={() => setSheetTab('explorer')}
-                    className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${
+                    className={`flex-1 text-xs font-black py-3 rounded-[1.25rem] transition-all uppercase tracking-widest ${
                       sheetTab === 'explorer'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500'
+                        ? 'bg-white text-abidjan-orange shadow-md'
+                        : 'text-beige-muted'
                     }`}
                   >
                     🗺️ Explorer
                   </button>
                   <button
                     onClick={() => setSheetTab('activite')}
-                    className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${
+                    className={`flex-1 text-xs font-black py-3 rounded-[1.25rem] transition-all uppercase tracking-widest ${
                       sheetTab === 'activite'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500'
+                        ? 'bg-white text-abidjan-orange shadow-md'
+                        : 'text-beige-muted'
                     }`}
                   >
                     💬 Activité
@@ -452,48 +452,49 @@ export default function AppPage() {
                 </div>
 
                 {sheetTab === 'explorer' ? (
-                  <div className="text-center py-4">
-                    <div className="flex justify-center mb-4">
+                  <div className="text-center py-6">
+                    <div className="flex justify-center mb-6">
                       <IconMap />
                     </div>
-                    <p className="text-sm font-medium text-gray-500 mb-5 leading-relaxed">
-                      Recherche un arrêt ou utilise ta position GPS<br />pour voir les arrêts proches.
+                    <p className="text-base font-bold text-beige-muted mb-8 leading-relaxed px-4 tracking-tight">
+                      Recherche un arrêt ou utilise le GPS pour voir ce qui est proche de toi.
                     </p>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-4">
                       <button
                         onClick={openSearch}
-                        className="bg-bm-gradient text-black text-sm font-semibold px-6 py-3.5 rounded-2xl active:opacity-90 transition-opacity"
+                        className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
                       >
-                        Rechercher un arrêt
+                        RECHERCHER UN ARRÊT
                       </button>
                       <button
                         onClick={handleLocateMe}
                         disabled={geoLoading}
-                        className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-semibold px-6 py-3.5 rounded-2xl disabled:opacity-60 transition-colors"
+                        className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-[0.98] transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-60"
                       >
                         {geoLoading ? (
-                          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />
                         ) : (
                           <IconLocate />
                         )}
-                        Arrêts proches de moi
+                        ARRÊTS À PROXIMITÉ
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-500 mb-4">
-                      Découvre les arrêts actifs de la communauté.
+                  <div className="text-center py-8">
+                    <div className="text-5xl mb-6">💬</div>
+                    <p className="text-base font-bold text-beige-muted mb-8 px-6 leading-relaxed">
+                      Découvre où bouge la communauté en ce moment même.
                     </p>
                     <Link
                       href="/app/ccomment"
-                      className="inline-flex items-center gap-2 bg-bm-amber/10 text-bm-amber text-sm font-semibold px-5 py-3 rounded-2xl"
+                      className="inline-flex items-center gap-3 bg-abidjan-orange text-white text-base font-black px-10 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20"
                     >
-                      💬 Voir C&apos;comment
+                      VOIR C&apos;COMMENT
                     </Link>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
@@ -501,11 +502,11 @@ export default function AppPage() {
 
       {/* ── Search overlay ──────────────────────────────────────────────── */}
       {searchOpen && (
-        <div className="bm-search-overlay fixed inset-0 z-[600] bg-white flex flex-col">
-          <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gray-100">
+        <div className="bm-search-overlay fixed inset-0 z-[600] bg-beige-50 flex flex-col animate-in slide-in-from-bottom-8 duration-500">
+          <div className="flex items-center gap-4 px-5 pt-12 pb-4 bg-white border-b-2 border-beige-200">
             <button
               onClick={closeSearch}
-              className="p-2 -ml-1 rounded-xl hover:bg-gray-100 transition text-gray-600"
+              className="p-2 -ml-2 rounded-full hover:bg-beige-50 transition text-beige-text"
               aria-label="Retour"
             >
               <IconChevronLeft />
@@ -516,14 +517,14 @@ export default function AppPage() {
               value={query}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Rechercher un arrêt…"
-              className="flex-1 text-base outline-none text-gray-900 placeholder-gray-400"
+              className="flex-1 text-lg font-black outline-none text-beige-text placeholder-beige-200 bg-transparent"
             />
             {isSearching ? (
-              <div className="w-4 h-4 border-2 border-bm-amber border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-3 border-abidjan-orange/30 border-t-abidjan-orange rounded-full animate-spin" />
             ) : query ? (
               <button
                 onClick={() => handleSearchChange('')}
-                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full transition"
+                className="p-2 text-beige-200 hover:text-beige-text rounded-full transition"
                 aria-label="Effacer"
               >
                 <IconX />
@@ -531,46 +532,48 @@ export default function AppPage() {
             ) : null}
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto px-5 py-6">
             {results.length > 0 ? (
-              <ul>
+              <ul className="space-y-3">
                 {results.map((s) => (
                   <li
                     key={s.stop_id}
                     onClick={() => handleSelectStop(s)}
-                    className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors"
+                    className="flex items-center gap-4 bg-white rounded-3xl p-5 border-2 border-beige-100 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
                     role="button"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-beige-50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                       <IconPin />
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{s.stop_name}</div>
-                      {s.commune && <div className="text-xs text-gray-400">{s.commune}</div>}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-black text-beige-text group-hover:text-abidjan-orange transition-colors">{s.stop_name}</div>
+                      {s.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-[0.2em] mt-1">{s.commune}</div>}
                     </div>
                   </li>
                 ))}
               </ul>
             ) : query.trim().length >= 2 && !isSearching ? (
-              <div className="flex flex-col items-center py-16 gap-3">
-                <IconMap />
-                <p className="text-sm text-gray-400">Aucun arrêt trouvé pour «{query}»</p>
+              <div className="flex flex-col items-center py-20 gap-6">
+                <div className="text-6xl">🔍</div>
+                <p className="text-base font-bold text-beige-muted uppercase tracking-widest">Aucun arrêt trouvé</p>
               </div>
             ) : (
-              <div className="px-4 py-8">
-                <div className="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-3">
-                  Suggestions
+              <div className="space-y-8">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-beige-muted font-black px-2">
+                  Suggestions populaires
                 </div>
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleSearchChange(s)}
-                    className="w-full text-left flex items-center gap-3 px-3 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
-                  >
-                    <span className="text-gray-300"><IconSearch /></span>
-                    {s}
-                  </button>
-                ))}
+                <div className="grid grid-cols-1 gap-3">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handleSearchChange(s)}
+                      className="w-full text-left flex items-center gap-4 px-6 py-5 bg-white border-2 border-beige-100 rounded-3xl hover:border-abidjan-orange transition-all font-black text-beige-text group"
+                    >
+                      <span className="text-beige-200 group-hover:text-abidjan-orange transition-colors"><IconSearch /></span>
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -579,4 +582,3 @@ export default function AppPage() {
     </div>
   );
 }
-

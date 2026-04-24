@@ -39,12 +39,12 @@ export default function CheckInButton({ stopId, stopName, commune }: Props) {
 
   if (status === 'done') {
     return (
-      <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3">
-        <span className="text-xl">✅</span>
+      <div className="flex items-center gap-4 bg-abidjan-green/10 border-2 border-abidjan-green/20 rounded-[2rem] px-6 py-4 shadow-inner animate-in zoom-in-95 duration-300">
+        <span className="text-2xl">✅</span>
         <div>
-          <div className="text-sm font-semibold text-emerald-800">Check-in enregistré !</div>
-          {recentCount !== null && recentCount > 0 && (
-            <div className="text-xs text-emerald-600 mt-0.5">
+          <div className="text-sm font-black text-abidjan-green uppercase tracking-widest">C&apos;est validé !</div>
+          {recentCount !== null && (
+            <div className="text-[10px] text-abidjan-green font-bold mt-1 uppercase tracking-wider">
               👤 {recentCount} personne{recentCount > 1 ? 's' : ''} ici cette semaine
             </div>
           )}
@@ -55,10 +55,10 @@ export default function CheckInButton({ stopId, stopName, commune }: Props) {
 
   if (status === 'error') {
     return (
-      <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl px-4 py-3 text-sm text-red-700">
+      <Link href="/app/auth/signin" className="w-full flex items-center justify-center gap-3 bg-red-50 border-2 border-red-100 rounded-[2rem] px-6 py-4 text-xs font-black text-red-600 uppercase tracking-widest hover:bg-red-100 transition-colors">
         <span>❌</span>
-        <span>Connecte-toi pour faire un check-in.</span>
-      </div>
+        <span>Connecte-toi pour check-in</span>
+      </Link>
     );
   }
 
@@ -66,14 +66,16 @@ export default function CheckInButton({ stopId, stopName, commune }: Props) {
     <button
       onClick={handleCheckin}
       disabled={status === 'loading'}
-      className="w-full flex items-center justify-center gap-2 bg-bm-amber/10 hover:bg-bm-amber/20 text-bm-amber text-sm font-semibold px-4 py-3.5 rounded-2xl transition-colors disabled:opacity-60"
+      className="w-full flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-4.5 rounded-[2rem] shadow-lg shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-60"
     >
       {status === 'loading' ? (
-        <span className="w-4 h-4 border-2 border-bm-amber border-t-transparent rounded-full animate-spin" />
+        <span className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
       ) : (
-        <span>📍</span>
+        <span className="text-xl">📍</span>
       )}
-      J&apos;y suis ! — Check-in C&apos;comment
+      <span className="uppercase tracking-tight">Je suis ici !</span>
     </button>
   );
 }
+
+import Link from 'next/link';

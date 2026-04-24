@@ -268,6 +268,50 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ══ FONCTIONNALITÉS / C'COMMENT ══════════════════════ */}
+      <section id="fonctions" className="py-24 md:py-32 relative">
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-abidjan-blue bg-abidjan-blue/10 border border-abidjan-blue/20 px-4 py-1.5 rounded-full mb-6">
+              ✨ Nouveau
+            </div>
+            <h2 className="font-display font-black text-4xl md:text-6xl tracking-tight mb-6">
+              C&apos;COMMENT ?<br />
+              <span className="text-abidjan-orange">Le cœur social d&apos;Abidjan.</span>
+            </h2>
+            <p className="text-xl text-beige-muted font-medium leading-relaxed">
+              BABIMOB n&apos;est plus seulement une carte. C&apos;est la communauté qui te dit la vérité sur le terrain.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-3xl mb-8">📍</div>
+              <h3 className="font-display font-bold text-2xl mb-4">Check-in Instantané</h3>
+              <p className="text-beige-muted font-medium leading-relaxed">
+                Un bouton &quot;Je suis ici&quot; pour laisser ta trace horodatée. Maquis, arrêt ou marché : montre que tu explores la ville.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-3xl mb-8">💬</div>
+              <h3 className="font-display font-bold text-2xl mb-4">Qui est déjà allé ?</h3>
+              <p className="text-beige-muted font-medium leading-relaxed">
+                Demande l&apos;avis des autres en un clic. Pas d&apos;algorithmes, juste des vrais Abidjanais qui te répondent en direct.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-3xl mb-8">🏅</div>
+              <h3 className="font-display font-bold text-2xl mb-4">Badge Explorateur</h3>
+              <p className="text-beige-muted font-medium leading-relaxed">
+                Plus tu visites, plus tu gagnes de points. Deviens une Légende d&apos;Abidjan et débloque des privilèges dans ton profil.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ══ TRANSPORTS ═══════════════════════════════════════ */}
       <section id="transports" className="py-24 md:py-32 bg-white border-y border-beige-200/50">
         <div className="max-w-6xl mx-auto px-5">

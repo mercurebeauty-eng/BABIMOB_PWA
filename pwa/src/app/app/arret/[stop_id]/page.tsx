@@ -3,8 +3,17 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import CheckInButton from './CheckInButton';
 import FavoriteButton from './FavoriteButton';
+import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 type Props = { params: Promise<{ stop_id: string }> };
+
+function timeAgo(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1)  return "à l'instant";
+  if (mins < 60) return `il y a ${mins} min`;
+  if (mins < 1440) return `il y a ${Math.floor(mins / 60)} h`;
+  return `il y a ${Math.floor(mins / 1440)} j`;
+}
 
 export default async function ArretPage({ params }: Props) {
   const supabase = await createClient();
@@ -21,7 +30,11 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: lignes }, { data: favRow }] = await Promise.all([
+  const [
+    { data: lignes }, 
+    { data: favRow }, 
+    { data: recentCheckins }
+  ] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
       ? supabase
@@ -33,51 +46,57 @@ export default async function ArretPage({ params }: Props) {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('checkins')
+      .select('id, user_id, created_at')
+      .eq('stop_id', stopId)
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(3)
   ]);
+  
   const isFavorited = !!favRow;
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-gray-50">
+    <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
+      <BeigeMapBackground />
+      
       {/* Top nav */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
         <Link
           href="/app"
-          className="p-1.5 -ml-1 rounded-xl hover:bg-gray-100 transition"
+          className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors"
           aria-label="Retour à la carte"
         >
-          <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
-        <span className="text-sm font-medium text-gray-600">Carte</span>
+        <span className="text-sm font-bold uppercase tracking-widest text-beige-muted">Détails de l&apos;arrêt</span>
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-4 py-6">
+      <div className="max-w-2xl mx-auto w-full px-5 py-8 relative z-10">
         {/* Stop header card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-bm-amber/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <svg className="w-5 h-5 text-bm-amber" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-              </svg>
+        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-abidjan-orange/10 flex items-center justify-center flex-shrink-0 text-3xl shadow-inner">
+              📍
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-bm-amber font-semibold mb-0.5">
-                Arrêt
+              <div className="text-xs uppercase tracking-widest text-abidjan-orange font-black mb-1">
+                Arrêt de transport
               </div>
-              <h1 className="text-xl font-bold text-gray-900">{stop.stop_name}</h1>
+              <h1 className="text-2xl font-black text-beige-text leading-tight">{stop.stop_name}</h1>
               {stop.commune && (
-                <div className="text-sm text-gray-500 mt-0.5">{stop.commune}</div>
+                <div className="text-sm text-beige-muted font-bold mt-1 uppercase tracking-wide">{stop.commune}</div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="mb-5 flex items-center gap-4">
-          <div className="flex-1">
-            <CheckInButton stopId={stop.stop_id} stopName={stop.stop_name} commune={stop.commune ?? null} />
-          </div>
+        {/* Actions - Je suis ici & Favoris */}
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CheckInButton stopId={stop.stop_id} stopName={stop.stop_name} commune={stop.commune ?? null} />
           <FavoriteButton
             stopId={stop.stop_id}
             stopName={stop.stop_name}
@@ -89,47 +108,72 @@ export default async function ArretPage({ params }: Props) {
           />
         </div>
 
+        {/* Social - Qui est déjà allé ? */}
+        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 mb-8">
+           <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display font-black text-xl">C&apos;comment ici ?</h2>
+              <button className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-abidjan-blue/10 text-abidjan-blue rounded-full border border-abidjan-blue/20">
+                 Qui est déjà allé ?
+              </button>
+           </div>
+           
+           {(!recentCheckins || recentCheckins.length === 0) ? (
+             <p className="text-sm text-beige-muted font-medium bg-beige-50 rounded-2xl p-4 border border-beige-100 border-dashed text-center">
+                Personne n&apos;est passé par ici récemment. Sois le premier !
+             </p>
+           ) : (
+             <div className="space-y-4">
+                {recentCheckins.map((c) => (
+                  <div key={c.id} className="flex items-center gap-3">
+                     <div className="w-8 h-8 rounded-full bg-beige-100 flex items-center justify-center text-sm shadow-inner">👤</div>
+                     <div className="flex-1">
+                        <div className="text-xs font-black text-beige-text">Un explorateur était ici</div>
+                        <div className="text-[10px] text-beige-muted font-bold">{timeAgo(c.created_at)}</div>
+                     </div>
+                  </div>
+                ))}
+             </div>
+           )}
+        </div>
+
         {/* Lines section */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-gray-900">Lignes desservant cet arrêt</h2>
+        <div className="flex items-center justify-between mb-4 px-2">
+          <h2 className="font-display font-black text-xl uppercase tracking-tight">Lignes passantes</h2>
           {lignes && (
-            <span className="text-sm text-gray-400">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
+            <span className="text-xs font-black text-beige-muted uppercase tracking-widest">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
           )}
         </div>
 
         {(!lignes || lignes.length === 0) && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center gap-3">
-            <svg className="w-10 h-10 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <rect x="4" y="2" width="16" height="20" rx="2" />
-              <path d="M9 7h6M9 11h6M9 15h4" strokeLinecap="round" />
-            </svg>
-            <div className="text-sm text-gray-400 text-center">Aucune ligne trouvée pour cet arrêt.</div>
+          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-10 flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-beige-50 flex items-center justify-center text-3xl">🚌</div>
+            <div className="text-sm text-beige-muted font-bold uppercase tracking-widest">Aucune ligne trouvée ici.</div>
           </div>
         )}
 
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {lignes?.map((l: any) => (
             <li key={`${l.route_id}-${l.direction_id ?? 0}`}>
               <Link
                 href={`/app/ligne/${encodeURIComponent(l.route_id)}${l.direction_id === 1 ? '?dir=1' : ''}`}
-                className="bg-white rounded-2xl border border-gray-100 hover:border-bm-amber/40 hover:shadow-sm transition p-4 flex items-center justify-between gap-3"
+                className="bg-white rounded-[2rem] border-2 border-beige-200 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all p-5 flex items-center justify-between gap-4"
               >
                 <div className="min-w-0">
-                  <div className="font-semibold text-sm text-gray-900 truncate">
+                  <div className="font-black text-base text-beige-text truncate">
                     {l.route_long_name}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
+                  <div className="text-xs font-bold text-beige-muted mt-1 uppercase tracking-wide">
                     {l.agency_id}
                     {l.trip_headsign && (
-                      <span className="ml-1">· Direction : {l.trip_headsign}</span>
+                      <span className="ml-1 opacity-60">· {l.trip_headsign}</span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="bg-bm-amber/10 text-bm-amber text-xs font-bold px-2.5 py-1 rounded-lg">
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="bg-abidjan-orange/10 text-abidjan-orange text-xs font-black px-3 py-1.5 rounded-xl border border-abidjan-orange/20">
                     {l.route_id}
                   </div>
-                  <svg className="w-4 h-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-5 h-5 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
