@@ -21,53 +21,52 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
       <button
         onClick={() => setOpen(!open)}
         aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
-        className="w-10 h-10 rounded-xl bg-bm-surface border border-bm-border flex items-center justify-center text-bm-text transition hover:border-bm-amber/40"
+        className="w-11 h-11 rounded-full bg-white border border-beige-200 flex items-center justify-center text-beige-text shadow-sm transition hover:border-abidjan-orange/40"
       >
         {open ? (
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
             <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
             <path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round" />
           </svg>
         )}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-40 bg-bm-bg/97 backdrop-blur-xl flex flex-col pt-20 px-6">
-          <nav className="flex flex-col gap-1">
+        <div className="fixed inset-0 top-[80px] z-40 bg-beige-50/95 backdrop-blur-xl flex flex-col pt-8 px-6 overflow-y-auto">
+          <nav className="flex flex-col gap-2">
             {[
               ['#comment',    'Comment ça marche'],
               ['#transports', 'Transports'],
               ['#fonctions',  'Fonctionnalités'],
-              ['#ccomment',   "C'comment"],
             ].map(([href, label]) => (
               <a
                 key={label}
                 href={href}
                 onClick={close}
-                className="font-display font-semibold text-xl py-4 border-b border-bm-border text-bm-text hover:text-bm-amber transition-colors"
+                className="font-display font-bold text-2xl py-4 border-b border-beige-200/50 text-beige-text hover:text-abidjan-orange transition-colors"
               >
                 {label}
               </a>
             ))}
           </nav>
 
-          <div className="mt-8 flex flex-col gap-3">
+          <div className="mt-8 flex flex-col gap-4 pb-8">
             <a
               href={tgUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={close}
-              className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-bm-telegram text-white font-display font-bold text-base"
+              className="flex items-center justify-center gap-2 py-4 rounded-full bg-abidjan-blue text-white font-bold text-lg shadow-lg shadow-abidjan-blue/20"
             >
               <TgIcon /> Démarrer sur Telegram
             </a>
             <Link
               href="/app"
               onClick={close}
-              className="flex items-center justify-center py-4 rounded-2xl bg-bm-gradient text-black font-display font-bold text-base"
+              className="flex items-center justify-center py-4 rounded-full bg-abidjan-orange text-white font-bold text-lg shadow-lg shadow-abidjan-orange/20"
             >
               Ouvrir la carte →
             </Link>

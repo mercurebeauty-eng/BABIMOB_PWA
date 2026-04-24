@@ -31,6 +31,21 @@ const config: Config = {
           coral:     '#ff6b4a',
           green:     '#2edd8b',
           telegram:  '#2aabee'
+        },
+        beige: {
+          50: '#FDFBF7',
+          100: '#F7F3E8',
+          200: '#EAE1D0',
+          300: '#D9C8AC',
+          400: '#C6A981',
+          500: '#B8925D',
+          text: '#2D2721',
+          muted: '#6D645A',
+        },
+        abidjan: {
+          orange: '#FF7A00',
+          green: '#00A651',
+          blue: '#0066CC',
         }
       },
       fontFamily: {
@@ -38,7 +53,8 @@ const config: Config = {
         display: ['var(--font-syne)', 'system-ui', 'sans-serif']
       },
       backgroundImage: {
-        'bm-gradient': 'linear-gradient(135deg, #f5a623 0%, #ff6b4a 100%)'
+        'bm-gradient': 'linear-gradient(135deg, #f5a623 0%, #ff6b4a 100%)',
+        'abidjan-gradient': 'linear-gradient(135deg, #FF7A00 0%, #EAE1D0 100%)'
       },
       animation: {
         'marquee':     'marquee 30s linear infinite',
@@ -48,6 +64,9 @@ const config: Config = {
         'spotlight':   'spotlight 2s ease .75s 1 forwards',
         'aurora':      'aurora 20s linear infinite',
         'pulse-slow':  'pulseSlow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'drive-fast':  'drive 10s linear infinite',
+        'drive-slow':  'drive 18s linear infinite',
+        'bounce-slow': 'bounce 3s infinite',
       },
       keyframes: {
         marquee: {
@@ -77,6 +96,10 @@ const config: Config = {
         pulseSlow: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '.5' },
+        },
+        drive: {
+          '0%': { strokeDashoffset: '1000' },
+          '100%': { strokeDashoffset: '0' },
         }
       },
     }
