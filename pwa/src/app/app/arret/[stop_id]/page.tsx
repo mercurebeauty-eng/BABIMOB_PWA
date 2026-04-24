@@ -19,6 +19,8 @@ export default async function ArretPage({ params }: Props) {
 
   if (stopErr || !stop) notFound();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   const [{ data: lignes }, { data: favRow }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
