@@ -24,133 +24,19 @@ const MARQUEE = [
 ];
 
 const TRANSPORTS = [
-  {
-    n: 'Gbaka',
-    p: '100–300 FCFA',
-    d: "Minibus roi d'Abidjan. Rapide, présent partout, lignes fixes.",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <rect x="1" y="6" width="22" height="13" rx="2" />
-        <path d="M5 19v2M19 19v2M1 10h22" />
-        <circle cx="6.5" cy="16" r="1.5" fill="currentColor" stroke="none" />
-        <circle cx="17.5" cy="16" r="1.5" fill="currentColor" stroke="none" />
-        <path d="M5 6V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2" />
-      </svg>
-    ),
-    color: 'text-bm-amber',
-    bg: 'bg-bm-amber/10',
-  },
-  {
-    n: 'Woro-woro',
-    p: '200–500 FCFA',
-    d: 'Taxi collectif aux couleurs de ta commune. Le réseau invisible d\'Abidjan.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h13l4 4v4a2 2 0 0 1-2 2h-2" />
-        <path d="M8 7v10" strokeDasharray="2 2" />
-        <circle cx="7.5" cy="17" r="2" fill="currentColor" stroke="none" />
-        <circle cx="16.5" cy="17" r="2" fill="currentColor" stroke="none" />
-      </svg>
-    ),
-    color: 'text-bm-coral',
-    bg: 'bg-bm-coral/10',
-  },
-  {
-    n: 'Taxi intercommunal',
-    p: "jusqu'à 3 000 FCFA",
-    d: 'Tarif fixe négocié. Confort garanti entre communes éloignées.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M19 17H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h11l3 4v4a2 2 0 0 1-2 2Z" />
-        <circle cx="7.5" cy="17" r="2" fill="currentColor" stroke="none" />
-        <circle cx="16.5" cy="17" r="2" fill="currentColor" stroke="none" />
-        <path d="M9 7V5" />
-      </svg>
-    ),
-    color: 'text-bm-green',
-    bg: 'bg-bm-green/10',
-  },
-  {
-    n: 'Saloni',
-    p: "jusqu'à 300 FCFA",
-    d: 'Tricycle idéal pour le dernier kilomètre dans les quartiers.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <circle cx="5" cy="17" r="3" />
-        <circle cx="19" cy="17" r="3" />
-        <path d="M5 17h14" />
-        <path d="M12 17V7l-4 4" />
-        <path d="M12 7h5" />
-      </svg>
-    ),
-    color: 'text-[#00b4d8]',
-    bg: 'bg-[#00b4d8]/10',
-  },
+  { e: '🚐', n: 'Gbaka',               p: '100–300 FCFA',      d: "Minibus roi d'Abidjan. Rapide, présent partout, lignes fixes." },
+  { e: '🚖', n: 'Woro-woro',           p: '200–500 FCFA',      d: "Taxi collectif aux couleurs de ta commune. Le réseau invisible d'Abidjan." },
+  { e: '🚕', n: 'Taxi intercommunal',  p: "jusqu'à 3 000 FCFA", d: 'Tarif fixe négocié. Confort garanti entre communes éloignées.' },
+  { e: '🛺', n: 'Saloni',              p: "jusqu'à 300 FCFA",   d: 'Tricycle idéal pour le dernier kilomètre dans les quartiers.' },
 ];
 
 const FEATURES = [
-  {
-    t: 'Nouchi compris',
-    d: 'Dis "je veux aller à Yop" — BABIMOB traduit le langage local en requête transport sans friction.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-    c: 'text-bm-amber bg-bm-amber/10',
-  },
-  {
-    t: 'GPS à chaque arrêt',
-    d: 'Coordonnées cliquables pour chaque arrêt. Ouvre directement dans Google Maps ou partage.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
-    c: 'text-bm-coral bg-bm-coral/10',
-  },
-  {
-    t: 'Tarifs terrain validés',
-    d: "Pas de prix officiels fictifs. Nos tarifs sont collectés et vérifiés sur le terrain.",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
-    ),
-    c: 'text-bm-green bg-bm-green/10',
-  },
-  {
-    t: 'Zéro friction',
-    d: "Telegram est déjà installé. Pas de compte, pas d'app store. Tu commences en 10 secondes.",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-      </svg>
-    ),
-    c: 'text-bm-amber bg-bm-amber/10',
-  },
-  {
-    t: 'Alertes trafic',
-    d: "Bouchon sur le pont HKB, pluie sur Cocody — reçois les alertes avant de partir.",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />
-      </svg>
-    ),
-    c: 'text-bm-coral bg-bm-coral/10',
-  },
-  {
-    t: 'Règle du dernier km',
-    d: "Arrêt à +800m de ta destination ? BABIMOB te suggère automatiquement un saloni.",
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-    ),
-    c: 'text-bm-green bg-bm-green/10',
-  },
+  { e: '🌍', t: 'Nouchi compris',         d: 'Dis "je veux aller à Yop" — BABIMOB traduit le langage local en requête transport sans friction.' },
+  { e: '📍', t: 'GPS à chaque arrêt',     d: 'Coordonnées cliquables pour chaque arrêt. Ouvre directement dans Google Maps ou partage.' },
+  { e: '💰', t: 'Tarifs terrain validés', d: "Pas de prix officiels fictifs. Nos tarifs sont collectés et vérifiés sur le terrain." },
+  { e: '⚡', t: 'Zéro friction',          d: "Telegram est déjà installé. Pas de compte, pas d'app store. Tu commences en 10 secondes." },
+  { e: '🔔', t: 'Alertes trafic',         d: "Bouchon sur le pont HKB, pluie sur Cocody — reçois les alertes avant de partir." },
+  { e: '🛺', t: 'Règle du dernier km',    d: "Arrêt à +800m de ta destination ? BABIMOB te suggère automatiquement un saloni." },
 ];
 
 const TESTI = [
@@ -570,11 +456,9 @@ export default function LandingPage() {
             {TRANSPORTS.map((t) => (
               <div
                 key={t.n}
-                className="rounded-2xl bg-bm-surface border border-bm-border p-5 hover:border-bm-amber/35 hover:-translate-y-1 transition-all duration-300"
+                className="glass-card rounded-2xl p-5 hover:border-bm-amber/35 hover:-translate-y-1 transition-all duration-300"
               >
-                <div className={`w-14 h-14 rounded-2xl ${t.bg} ${t.color} flex items-center justify-center mb-4`}>
-                  {t.icon}
-                </div>
+                <div className="text-4xl mb-3">{t.e}</div>
                 <div className="font-display font-bold text-base mb-2">{t.n}</div>
                 <div className="inline-block bg-bm-green/10 text-bm-green text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
                   {t.p}
@@ -600,10 +484,10 @@ export default function LandingPage() {
             {FEATURES.map((f) => (
               <div
                 key={f.t}
-                className="flex gap-4 rounded-2xl bg-bm-surface border border-bm-border p-5 hover:border-bm-green/30 hover:bg-bm-green/[0.02] transition-all duration-300"
+                className="flex gap-4 glass-card rounded-2xl p-5 hover:border-bm-green/30 transition-all duration-300"
               >
-                <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${f.c}`}>
-                  {f.icon}
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-bm-surface-2 flex items-center justify-center text-xl flex-shrink-0">
+                  {f.e}
                 </div>
                 <div>
                   <h3 className="font-display font-semibold text-sm mb-1">{f.t}</h3>
