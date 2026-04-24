@@ -2,223 +2,128 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import NavMobile from './NavMobile';
-import GridMapBackground from '@/components/GridMapBackground';
+import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 export const metadata: Metadata = {
   title: 'BABIMOB — Bouge à Abidjan comme un local',
-  description:
-    "Le premier assistant de mobilité sociale d'Abidjan. Gbaka, woro-woro, taxi intercommunal, saloni — trouve ton chemin, le vrai tarif et les bons plans de ta commune.",
+  description: 'Le premier assistant intelligent pour le transport informel à Abidjan. Gbaka, Woro-woro, Taxi.',
 };
+
+// ── Icons & Config ──────────────────────────────────────────
 
 const TG = 'https://t.me/babimobbot';
 
-// ── Data ───────────────────────────────────────────────────
-
-const MARQUEE = [
-  { label: 'Gbaka',              sub: '100–300 FCFA' },
-  { label: 'Woro-woro',          sub: '200–500 FCFA' },
-  { label: 'Taxi intercommunal', sub: "jusqu'à 3 000 FCFA" },
-  { label: 'Saloni',             sub: "jusqu'à 300 FCFA" },
-  { label: '4 834 arrêts',       sub: 'référencés' },
-  { label: '13 communes',        sub: 'couvertes' },
-  { label: 'Zéro install',       sub: 'requis' },
-  { label: '100 % gratuit',      sub: 'pour toujours' },
-];
+const TgIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z" />
+  </svg>
+);
 
 const TRANSPORTS = [
-  { e: '🚐', n: 'Gbaka',               p: '100–300 FCFA',      d: "Minibus roi d'Abidjan. Rapide, présent partout, lignes fixes." },
-  { e: '🚖', n: 'Woro-woro',           p: '200–500 FCFA',      d: "Taxi collectif aux couleurs de ta commune. Le réseau invisible d'Abidjan." },
-  { e: '🚕', n: 'Taxi intercommunal',  p: "jusqu'à 3 000 FCFA", d: 'Tarif fixe négocié. Confort garanti entre communes éloignées.' },
-  { e: '🛺', n: 'Saloni',              p: "jusqu'à 300 FCFA",   d: 'Tricycle idéal pour le dernier kilomètre dans les quartiers.' },
+  { n: 'Gbaka', p: '200F - 500F', d: 'Minicars de 18 à 32 places. Le pilier du transport intercommunal rapide.', e: '🚐' },
+  { n: 'Woro-woro', p: '200F - 400F', d: 'Taxis communaux à ligne fixe. La couleur indique la commune d\'opération.', e: '🚖' },
+  { n: 'Taxi', p: '1000F - 3000F', d: 'Taxis compteurs intercommunaux rouges. Négociation possible hors compteur.', e: '🚕' },
+  { n: 'Saloni', p: '100F - 200F', d: 'Tricycles. Parfaits pour les petites distances dans les quartiers denses.', e: '🛺' },
 ];
 
 const FEATURES = [
-  { e: '🌍', t: 'Nouchi compris',         d: 'Dis "je veux aller à Yop" — BABIMOB traduit le langage local en requête transport sans friction.' },
-  { e: '📍', t: 'GPS à chaque arrêt',     d: 'Coordonnées cliquables pour chaque arrêt. Ouvre directement dans Google Maps ou partage.' },
-  { e: '💰', t: 'Tarifs terrain validés', d: "Pas de prix officiels fictifs. Nos tarifs sont collectés et vérifiés sur le terrain." },
-  { e: '⚡', t: 'Zéro friction',          d: "Telegram est déjà installé. Pas de compte, pas d'app store. Tu commences en 10 secondes." },
-  { e: '🔔', t: 'Alertes trafic',         d: "Bouchon sur le pont HKB, pluie sur Cocody — reçois les alertes avant de partir." },
-  { e: '🛺', t: 'Règle du dernier km',    d: "Arrêt à +800m de ta destination ? BABIMOB te suggère automatiquement un saloni." },
+  { t: 'Nouchi supporté', d: 'Demande "Je veux aller à Yop" ou "Zone 4", l\'IA comprend ton langage.', e: '🗣️' },
+  { t: 'Tarifs terrain', d: 'Prix réels pratiqués par les apprentis, pas de mauvaises surprises.', e: '💰' },
+  { t: 'Points d\'arrêt', d: 'Coordonnées précises des carrefours et gares, ouvrables dans Google Maps.', e: '📍' },
+  { t: 'Mode hors-ligne', d: 'Reçois tes itinéraires sur Telegram même avec une connexion faible.', e: '⚡' },
+  { t: 'Multimodal', d: 'Combine Gbaka + Woro-woro pour trouver le chemin le plus rapide.', e: '🔄' },
+  { t: 'Communautaire', d: 'Un réseau cartographié avec l\'aide des vrais usagers quotidiens.', e: '🤝' },
 ];
 
-const TESTI = [
-  {
-    q: '"Avant j\'arrivais en retard à l\'université parce que je prenais le mauvais gbaka. Maintenant en 30 secondes je sais exactement où aller."',
-    name: 'Adjoua K.',
-    role: 'Étudiante, UFHB Cocody',
-    grad: 'from-bm-amber to-bm-coral',
-  },
-  {
-    q: '"Je revenais de France après 4 ans. J\'avais peur de me faire avoir sur les prix. BABIMOB m\'a sauvé la vie — je paie le même prix que les locaux."',
-    name: 'Moussa D.',
-    role: 'Diaspora, de retour à Abidjan',
-    grad: 'from-bm-green to-[#00b4d8]',
-  },
-  {
-    q: '"En tant que commercial, je fais 6–8 déplacements par jour. BABIMOB me fait gagner du temps et de l\'argent chaque semaine."',
-    name: 'Koffi A.',
-    role: 'Commercial itinérant, Yopougon',
-    grad: 'from-bm-coral to-bm-amber',
-  },
+const MARQUEE = [
+  { label: 'Yopougon', sub: 'Gare Siporex' },
+  { label: 'Adjamé', sub: 'Liberté' },
+  { label: 'Cocody', sub: 'Saint-Jean' },
+  { label: 'Koumassi', sub: 'Grand Carrefour' },
+  { label: 'Marcory', sub: 'Zone 4' },
+  { label: 'Abobo', sub: 'Gare' },
+  { label: 'Port-Bouët', sub: 'Phare' },
+  { label: 'Treichville', sub: 'Gare de Bassam' },
 ];
 
-// ── Icons ──────────────────────────────────────────────────
+// ── Components ──────────────────────────────────────────────
 
-function TgIcon({ className = 'w-5 h-5' }: { className?: string }) {
+const PhoneMockup = () => {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
-      <path d="M9.04 15.47 8.9 19.3c.38 0 .55-.16.75-.36l1.8-1.72 3.73 2.72c.68.38 1.17.18 1.35-.63l2.45-11.47c.22-1.02-.37-1.42-1.03-1.18L2.77 11.03c-1 .39-.98.95-.17 1.2l3.88 1.21 9-5.67c.42-.28.81-.12.49.16" />
-    </svg>
-  );
-}
-
-function MapPinIcon({ className = 'w-5 h-5' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-// ── Phone mockup ───────────────────────────────────────────
-
-function PhoneMockup() {
-  return (
-    <div className="hidden md:flex relative justify-center items-center py-12">
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(300px 300px at 50% 50%, rgba(245,166,35,0.1), transparent 70%)' }}
-      />
-
-      {/* Floating card — fare */}
-      <div className="absolute top-6 -right-2 z-20 animate-float" style={{ animationDelay: '-2s' }}>
-        <div className="bg-bm-surface border border-bm-border rounded-xl px-3 py-2 shadow-2xl">
-          <div className="text-[10px] text-bm-muted mb-0.5">Trajet trouvé</div>
-          <div className="font-display font-bold text-sm text-bm-amber">200 FCFA</div>
-        </div>
-      </div>
-
-      {/* Floating card — C'comment teaser */}
-      <div className="absolute bottom-10 -left-6 z-20 animate-float" style={{ animationDelay: '-4.5s' }}>
-        <div className="bg-bm-surface border border-bm-border rounded-xl px-3 py-2 shadow-2xl max-w-[130px]">
-          <div className="text-[10px] text-bm-muted mb-0.5">Maquis Le Wafou</div>
-          <div className="font-display font-bold text-sm text-bm-green">C'comment ? 👀</div>
-        </div>
-      </div>
-
-      {/* Phone frame */}
-      <div className="relative w-[260px] animate-phone-float">
-        <div className="bg-bm-surface border border-white/[0.07] rounded-[36px] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)]">
-          <div className="p-4">
-            {/* Chat header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-bm-gradient flex items-center justify-center font-display font-bold text-[10px] text-black flex-shrink-0">
-                  BB
-                </div>
-                <div>
-                  <div className="font-display font-bold text-[11px] leading-tight">BABIMOB</div>
-                  <div className="text-[9px] text-bm-green leading-tight">● En ligne</div>
-                </div>
-              </div>
-              <div className="w-7 h-7 rounded-full bg-bm-telegram/15 text-bm-telegram flex items-center justify-center">
-                <TgIcon className="w-3.5 h-3.5" />
+    <div className="relative mx-auto w-full max-w-[280px] sm:max-w-[300px] perspective-1000">
+      <div className="relative z-10 rounded-[3rem] border-[8px] border-beige-200 bg-white shadow-2xl overflow-hidden aspect-[9/19] animate-phone-float">
+        <div className="absolute top-0 inset-x-0 h-6 bg-beige-200 rounded-b-3xl w-1/2 mx-auto z-20" />
+        <div className="absolute inset-0 bg-[#F4F4F5] flex flex-col pt-10 px-4 pb-6">
+          <div className="flex-1 flex flex-col justify-end gap-3">
+            <div className="self-end bg-abidjan-green text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm shadow-sm max-w-[85%] animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
+              Je suis à Adjamé Liberté
+            </div>
+            <div className="self-start flex gap-2 w-full animate-in fade-in slide-in-from-left-4 duration-500 delay-700">
+              <div className="w-6 h-6 rounded-full bg-abidjan-orange flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-1 shadow-md">B</div>
+              <div className="bg-white text-beige-text px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm border border-beige-100/50">
+                <p className="font-semibold mb-1">Gare trouvée ! 📍</p>
+                <p className="text-beige-muted text-xs">Où vas-tu ? (ex: "Yopougon")</p>
               </div>
             </div>
-
-            {/* Mini map */}
-            <div className="relative bg-bm-surface-2 rounded-2xl overflow-hidden h-[88px] mb-3">
-              <div
-                aria-hidden
-                className="absolute inset-0 opacity-40"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(0deg,transparent,transparent 14px,rgba(255,255,255,0.025) 14px,rgba(255,255,255,0.025) 15px),' +
-                    'repeating-linear-gradient(90deg,transparent,transparent 14px,rgba(255,255,255,0.025) 14px,rgba(255,255,255,0.025) 15px)',
-                }}
-              />
-              <span className="absolute top-2 left-2 text-[9px] text-bm-amber font-semibold z-10">Ta position</span>
-              <div
-                className="absolute w-2.5 h-2.5 rounded-full bg-[#4a9eff] shadow-[0_0_8px_#4a9eff]"
-                style={{ top: '42%', left: '36%', transform: 'translate(-50%,-50%)' }}
-              >
-                <div className="absolute inset-[-5px] rounded-full border border-[rgba(74,158,255,0.3)] animate-ping" style={{ animationDuration: '2s' }} />
-              </div>
-              <div
-                className="absolute w-2.5 h-2.5 rounded-full bg-bm-green"
-                style={{ bottom: '26%', right: '20%', boxShadow: '0 0 8px #2edd8b' }}
-              />
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 260 88" preserveAspectRatio="xMidYMid slice" aria-hidden>
-                <path d="M 93 42 Q 150 18 208 60" fill="none" stroke="rgba(46,221,139,0.55)" strokeWidth="1.5" strokeDasharray="5 3" />
-              </svg>
+            <div className="self-end bg-abidjan-green text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm shadow-sm max-w-[85%] animate-in fade-in slide-in-from-right-4 duration-500 delay-1000">
+              Yop
             </div>
-
-            {/* Chat bubbles */}
-            <div className="space-y-2">
-              <div className="flex items-start gap-1.5">
-                <div className="w-5 h-5 rounded-full bg-bm-gradient flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-black mt-0.5">B</div>
-                <div className="bg-bm-surface-2 rounded-2xl rounded-tl-sm px-2.5 py-1.5 text-[10px] leading-relaxed">
-                  3 arrêts à proximité de toi.
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-bm-gradient rounded-2xl rounded-tr-sm px-2.5 py-1.5 text-[10px] text-black font-medium max-w-[80%]">
-                  Je veux aller à Yopougon
-                </div>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <div className="w-5 h-5 rounded-full bg-bm-gradient flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-black mt-0.5">B</div>
-                <div className="bg-bm-surface-2 rounded-2xl rounded-tl-sm px-2.5 py-1.5 text-[10px] leading-[1.6] max-w-[85%]">
-                  Gbaka Adjamé ↔ Yop<br />
-                  Arrêt Liberté — 87m<br />
-                  200 FCFA · ~18 min
-                </div>
+            <div className="self-start flex gap-2 w-full animate-in fade-in slide-in-from-left-4 duration-500 delay-[1300ms]">
+              <div className="w-6 h-6 rounded-full bg-abidjan-orange flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-1 shadow-md">B</div>
+              <div className="bg-white text-beige-text px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm border border-beige-100/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-abidjan-orange/5 rounded-full blur-xl" />
+                <p className="font-bold mb-2">🚐 Gbaka (Adjamé ↔ Yop)</p>
+                <ul className="text-xs space-y-1.5 text-beige-muted">
+                  <li className="flex justify-between border-b border-beige-50 pb-1"><span>Départ:</span> <span className="font-medium text-beige-text">Liberté</span></li>
+                  <li className="flex justify-between border-b border-beige-50 pb-1"><span>Tarif:</span> <span className="font-medium text-abidjan-orange">200 FCFA</span></li>
+                  <li className="flex justify-between"><span>Durée:</span> <span className="font-medium text-beige-text">~18 min</span></li>
+                </ul>
+                <button className="mt-3 w-full py-2 bg-beige-50 text-beige-text text-xs font-semibold rounded-lg hover:bg-beige-100 transition-colors">Ouvrir la carte 🗺️</button>
               </div>
             </div>
           </div>
         </div>
       </div>
+      {/* Decorative shadows */}
+      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-black/10 blur-xl rounded-full" />
     </div>
   );
-}
+};
 
 // ── Page ───────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
-    <>
+    <div className="bg-beige-50 text-beige-text font-sans min-h-screen selection:bg-abidjan-orange/20 selection:text-abidjan-orange">
       {/* ══ NAV ══════════════════════════════════════════════ */}
       <header className="sticky top-0 z-50">
-        <div className="bg-bm-bg/80 backdrop-blur-xl border-b border-bm-border">
-          <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/icons/icon-192.png" alt="BABIMOB" width={36} height={36} className="rounded-xl flex-shrink-0" />
-              <span className="font-display font-bold text-lg tracking-tight">BABIMOB</span>
+        <div className="bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50">
+          <div className="max-w-6xl mx-auto px-5 h-20 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-3 group">
+              <Image src="/icons/icon-192.png" alt="BABIMOB" width={42} height={42} className="rounded-xl flex-shrink-0 group-hover:scale-105 transition-transform shadow-sm" />
+              <span className="font-display font-black text-2xl tracking-tight text-beige-text">BABIMOB</span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-7 text-sm text-bm-muted">
-              <a href="#comment"    className="hover:text-bm-text transition-colors">Comment ça marche</a>
-              <a href="#transports" className="hover:text-bm-text transition-colors">Transports</a>
-              <a href="#fonctions"  className="hover:text-bm-text transition-colors">Fonctionnalités</a>
-              <a href="#ccomment"   className="hover:text-bm-amber transition-colors font-medium">C'comment</a>
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-beige-muted">
+              <a href="#comment"    className="hover:text-abidjan-orange transition-colors">Comment ça marche</a>
+              <a href="#transports" className="hover:text-abidjan-orange transition-colors">Transports</a>
+              <a href="#fonctions"  className="hover:text-abidjan-orange transition-colors">Fonctionnalités</a>
             </nav>
 
-            <div className="hidden md:flex items-center gap-2.5">
+            <div className="hidden md:flex items-center gap-3">
               <a
                 href={TG}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl bg-bm-telegram/10 text-bm-telegram border border-bm-telegram/25 hover:bg-bm-telegram/20 transition"
+                className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-full bg-abidjan-blue/10 text-abidjan-blue hover:bg-abidjan-blue/20 transition-colors"
               >
                 <TgIcon className="w-4 h-4" /> Telegram
               </a>
               <Link
                 href="/app"
-                className="text-sm font-bold px-4 py-2 rounded-xl bg-bm-gradient text-black hover:opacity-90 transition"
+                className="text-sm font-bold px-6 py-2.5 rounded-full bg-abidjan-orange text-white hover:bg-abidjan-orange/90 shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all"
               >
-                Ouvrir la carte →
+                Ouvrir la carte
               </Link>
             </div>
 
@@ -228,510 +133,196 @@ export default function LandingPage() {
       </header>
 
       {/* ══ HERO ═════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden">
-        {/* Dark map background (Glassmorphism design) */}
-        <GridMapBackground />
+      <section className="relative overflow-hidden pt-12 pb-24 md:pt-20 md:pb-32">
+        <BeigeMapBackground />
 
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-28">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-6xl mx-auto px-5 relative z-10">
+          <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* Left */}
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-bm-amber bg-bm-amber/10 border border-bm-amber/25 px-3.5 py-1.5 rounded-full mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-bm-green animate-pulse" />
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-abidjan-green bg-abidjan-green/10 border border-abidjan-green/20 px-4 py-1.5 rounded-full mb-8 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-abidjan-green animate-pulse" />
                 Disponible sur Telegram &amp; le web
               </div>
 
-              <h1 className="font-display font-bold text-5xl md:text-6xl leading-[1.03] tracking-tight">
-                Bouge à<br />
-                <span className="bg-bm-gradient bg-clip-text text-transparent">Abidjan</span><br />
-                comme un local
+              <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight mb-6 text-beige-text">
+                Bouge à <span className="text-abidjan-orange">Abidjan</span><br />
+                comme un vrai local.
               </h1>
 
-              <p className="mt-5 text-lg text-bm-muted leading-relaxed max-w-md">
-                Le premier assistant qui cartographie le transport informel d&apos;Abidjan.
-                Gbaka, woro-woro, taxi intercommunal — ton chemin et le vrai tarif en quelques secondes.
+              <p className="text-lg md:text-xl text-beige-muted leading-relaxed max-w-lg mb-10 font-medium">
+                Le premier assistant intelligent qui connaît le réseau informel. 
+                Gbaka, woro-woro, taxi : trouve ton chemin et le tarif exact en 3 secondes.
               </p>
 
-              {/* Dual CTA */}
-              <div className="mt-8 grid sm:grid-cols-2 gap-4 max-w-lg">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <a
                   href={TG}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative flex items-start gap-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] p-4 hover:bg-bm-telegram/[0.05] hover:border-bm-telegram/40 transition-all duration-300 overflow-hidden"
+                  className="group flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white border-2 border-abidjan-blue/20 text-abidjan-blue hover:border-abidjan-blue hover:bg-abidjan-blue/5 shadow-xl shadow-abidjan-blue/10 hover:-translate-y-1 transition-all"
                 >
-                  <div className="absolute inset-0 bg-bm-telegram/20 opacity-0 group-hover:opacity-100 transition-opacity blur-2xl" />
-                  <div className="shrink-0 relative z-10 w-11 h-11 rounded-xl bg-bm-telegram/20 text-bm-telegram flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-                    <TgIcon className="w-6 h-6" />
-                  </div>
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-display font-semibold text-sm text-white">Sur Telegram</span>
-                      <span className="text-[9px] bg-bm-telegram/20 border border-bm-telegram/30 text-bm-telegram px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                        recommandé
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-bm-muted group-hover:text-gray-300 transition-colors">Notifs temps réel · bons plans</p>
-                    <span className="mt-2 flex text-xs text-bm-telegram font-semibold items-center gap-1 group-hover:gap-2 transition-all">
-                      @babimobbot <span>→</span>
-                    </span>
-                  </div>
+                  <TgIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-lg">Tester le Bot</span>
                 </a>
-
                 <Link
                   href="/app"
-                  className="group relative flex items-start gap-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] p-4 hover:bg-bm-amber/[0.05] hover:border-bm-amber/40 transition-all duration-300 overflow-hidden"
+                  className="group flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-abidjan-orange text-white shadow-xl shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-1 transition-all"
                 >
-                  <div className="absolute inset-0 bg-bm-amber/20 opacity-0 group-hover:opacity-100 transition-opacity blur-2xl" />
-                  <div className="shrink-0 relative z-10 w-11 h-11 rounded-xl bg-bm-amber/20 text-bm-amber flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </div>
-                  <div className="relative z-10">
-                    <span className="font-display font-semibold text-sm text-white">Sur le web</span>
-                    <p className="mt-0.5 text-xs text-bm-muted group-hover:text-gray-300 transition-colors">Carte interactive · zéro install</p>
-                    <span className="mt-2 flex text-xs text-bm-amber font-semibold items-center gap-1 group-hover:gap-2 transition-all">
-                      Ouvrir la carte <span>→</span>
-                    </span>
-                  </div>
+                  <span className="font-bold text-lg">Carte interactive</span>
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </Link>
               </div>
 
-              {/* Stats strip */}
-              <div className="mt-8 pt-8 border-t border-bm-border flex flex-wrap gap-x-8 gap-y-3">
-                {[
-                  ['4 800+', 'Arrêts référencés'],
-                  ['490',    'Lignes actives'],
-                  ['13',     'Communes'],
-                  ['100%',   'Gratuit'],
-                ].map(([n, l]) => (
-                  <div key={l}>
-                    <div className="font-display font-bold text-xl">{n}</div>
-                    <div className="text-xs text-bm-muted mt-0.5">{l}</div>
-                  </div>
-                ))}
+              <div className="mt-12 flex items-center gap-6">
+                <div className="flex -space-x-3">
+                  {[1,2,3].map((i) => (
+                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-beige-50 bg-beige-200 flex items-center justify-center text-lg shadow-sm z-[${4-i}]`}>
+                      {i === 1 ? '👨🏾‍🦱' : i === 2 ? '👩🏾' : '🧑🏾‍🦱'}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-sm font-semibold text-beige-muted">
+                  Rejoins <span className="text-beige-text">1,500+</span> explorateurs urbains.
+                </div>
               </div>
             </div>
 
-            {/* Right — phone */}
-            <PhoneMockup />
+            {/* Right */}
+            <div className="relative animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+              {/* Decorative blobs behind phone */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-abidjan-orange/20 to-abidjan-green/20 blur-[80px] rounded-full z-0" />
+              <PhoneMockup />
+              
+              {/* Floating stats card */}
+              <div className="absolute top-10 -right-8 md:-right-12 bg-white p-4 rounded-2xl shadow-xl shadow-black/5 border border-beige-100 z-30 animate-bounce-slow">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-xl">✨</div>
+                  <div>
+                    <div className="text-sm font-black">Tarifs réels</div>
+                    <div className="text-xs text-beige-muted">Mis à jour par la commu</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ══ MARQUEE ══════════════════════════════════════════ */}
-      <div className="border-y border-bm-border bg-bm-surface overflow-hidden py-3.5">
+      <div className="border-y border-beige-200 bg-white overflow-hidden py-4 shadow-sm">
         <div className="flex items-center w-max animate-marquee">
           {[...MARQUEE, ...MARQUEE].map((item, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-2 text-sm text-bm-muted whitespace-nowrap flex-shrink-0 px-7"
+              className="inline-flex items-center gap-2.5 text-base text-beige-muted whitespace-nowrap flex-shrink-0 px-8"
             >
-              <span className="w-1 h-1 rounded-full bg-bm-amber inline-block" />
-              <span className="text-bm-text font-medium">{item.label}</span>
-              <span>{item.sub}</span>
+              <span className="w-2 h-2 rounded-full bg-abidjan-orange inline-block shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+              <span className="text-beige-text font-bold">{item.label}</span>
+              <span>— {item.sub}</span>
             </span>
           ))}
         </div>
       </div>
 
       {/* ══ COMMENT ÇA MARCHE ════════════════════════════════ */}
-      <section id="comment" className="border-t border-bm-border">
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="text-xs font-bold uppercase tracking-widest text-bm-amber mb-3">Simple comme bonjour</div>
-            <h2 className="font-display font-bold text-3xl md:text-5xl tracking-tight text-white">3 étapes. C&apos;est tout.</h2>
-            <p className="mt-4 text-bm-muted text-lg">Pas de compte. Pas de téléchargement. Juste ta position GPS.</p>
+      <section id="comment" className="py-24 md:py-32 relative">
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="text-sm font-bold uppercase tracking-widest text-abidjan-orange mb-4">Simple comme bonjour</div>
+            <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">3 étapes. C&apos;est tout.</h2>
+            <p className="text-xl text-beige-muted font-medium">Pas de compte. Pas de téléchargement. Juste ta position.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {/* Bento Block 1 - span 2 columns */}
-            <div className="md:col-span-2 group relative rounded-3xl overflow-hidden glass-card p-8 border-white/5 hover:border-white/15 transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-br from-bm-telegram/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="w-14 h-14 rounded-2xl bg-bm-telegram/20 text-bm-telegram flex items-center justify-center mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" /><circle cx="12" cy="10" r="3" /></svg>
-                  </div>
-                  <h3 className="font-display font-bold text-2xl text-white mb-3">01. Envoie ta position</h3>
-                  <p className="text-bm-muted leading-relaxed max-w-md text-base">Partage ta localisation GPS depuis Telegram en un tap, ou colle tes coordonnées Google Maps. C'est immédiat.</p>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                n: '01', t: 'Envoie ta position',
+                d: "Partage ta localisation depuis Telegram ou WhatsApp en un clic.",
+                c: 'bg-white', b: 'border-abidjan-orange/20', h: 'hover:border-abidjan-orange',
+                icon: '📍', color: 'text-abidjan-orange bg-abidjan-orange/10'
+              },
+              {
+                n: '02', t: 'Dis où tu vas',
+                d: "En nouchi ou abréviations (Yop, Zone 4), l'IA comprend ton langage.",
+                c: 'bg-white', b: 'border-abidjan-blue/20', h: 'hover:border-abidjan-blue',
+                icon: '🗣️', color: 'text-abidjan-blue bg-abidjan-blue/10'
+              },
+              {
+                n: '03', t: 'Pars en confiance',
+                d: "Reçois lignes, tarifs et arrêts. Le vrai prix du terrain garanti.",
+                c: 'bg-white', b: 'border-abidjan-green/20', h: 'hover:border-abidjan-green',
+                icon: '🚶🏾‍♂️', color: 'text-abidjan-green bg-abidjan-green/10'
+              },
+            ].map((s) => (
+              <div key={s.n} className={`group relative rounded-[2rem] p-8 border-2 ${s.c} ${s.b} ${s.h} transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-black/5`}>
+                <div className="absolute top-6 right-6 font-display text-6xl font-black text-beige-100 group-hover:scale-110 transition-transform select-none">{s.n}</div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-8 ${s.color}`}>
+                  {s.icon}
                 </div>
-                <div className="font-display text-8xl font-black bg-bm-gradient bg-clip-text text-transparent opacity-5 absolute bottom-[-10%] right-[-5%] select-none group-hover:scale-110 transition-transform duration-700">01</div>
+                <h3 className="font-display font-bold text-2xl mb-3">{s.t}</h3>
+                <p className="text-beige-muted text-lg font-medium leading-relaxed">{s.d}</p>
               </div>
-            </div>
-
-            {/* Bento Block 2 - span 1 column */}
-            <div className="md:col-span-1 group relative rounded-3xl overflow-hidden glass-card p-8 border-white/5 hover:border-white/15 transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-bl from-bm-amber/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="w-14 h-14 rounded-2xl bg-bm-amber/20 text-bm-amber flex items-center justify-center mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                  </div>
-                  <h3 className="font-display font-bold text-xl text-white mb-3">02. Dis où tu veux aller</h3>
-                  <p className="text-bm-muted leading-relaxed text-sm">En nouchi ou abréviations : "Yop", "Zone 4". BABIMOB comprend tout le monde.</p>
-                </div>
-                <div className="font-display text-8xl font-black bg-bm-amber text-transparent bg-clip-text opacity-5 absolute bottom-[-10%] right-[-10%] select-none group-hover:scale-110 transition-transform duration-700">02</div>
-              </div>
-            </div>
-
-            {/* Bento Block 3 - span 3 columns */}
-            <div className="md:col-span-3 group relative rounded-3xl overflow-hidden glass-card p-8 border-white/5 hover:border-white/15 transition-all duration-500 flex flex-col md:flex-row items-center gap-8">
-              <div className="absolute inset-0 bg-gradient-to-t from-bm-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="w-16 h-16 rounded-2xl bg-bm-green/20 text-bm-green flex items-center justify-center flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] relative z-10">
-                <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-              </div>
-              <div className="relative z-10 text-center md:text-left flex-1">
-                <h3 className="font-display font-bold text-2xl text-white mb-2">03. Pars en confiance</h3>
-                <p className="text-bm-muted leading-relaxed text-base">Tu reçois les arrêts, les lignes, le tarif terrain validé, et les coordonnées GPS cliquables sur la carte interactive.</p>
-              </div>
-              <div className="relative z-10 flex-shrink-0 mt-4 md:mt-0">
-                <Link href="/app" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-semibold hover:scale-105 active:scale-95 transition-transform">
-                  Essayer maintenant <span className="text-lg">→</span>
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ══ TRANSPORTS ═══════════════════════════════════════ */}
-      <section id="transports" className="border-t border-bm-border bg-bm-surface-2">
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
-          <div className="max-w-2xl mb-12">
-            <div className="text-xs font-semibold uppercase tracking-widest text-bm-amber mb-3">Réseau cartographié</div>
-            <h2 className="font-display font-bold text-3xl md:text-4xl tracking-tight">Tous les transports d&apos;Abidjan</h2>
-            <p className="mt-3 text-bm-muted">
-              Gbaka bondé ou taxi confort — BABIMOB connaît les tarifs réels du terrain pour chaque véhicule.
+      <section id="transports" className="py-24 md:py-32 bg-white border-y border-beige-200/50">
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="max-w-2xl mb-16">
+            <div className="text-sm font-bold uppercase tracking-widest text-abidjan-green mb-4">Réseau cartographié</div>
+            <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">Tous les transports</h2>
+            <p className="text-xl text-beige-muted font-medium">
+              Gbaka bondé ou taxi confort — BABIMOB connaît les tarifs réels pour chaque véhicule.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {TRANSPORTS.map((t) => (
-              <div
-                key={t.n}
-                className="glass-card rounded-2xl p-5 hover:border-bm-amber/35 hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="text-4xl mb-3">{t.e}</div>
-                <div className="font-display font-bold text-base mb-2">{t.n}</div>
-                <div className="inline-block bg-bm-green/10 text-bm-green text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
+              <div key={t.n} className="bg-beige-50 rounded-3xl p-6 border border-beige-200 hover:border-abidjan-green/50 hover:shadow-lg hover:-translate-y-1 transition-all">
+                <div className="text-5xl mb-6">{t.e}</div>
+                <h3 className="font-display font-bold text-xl mb-3">{t.n}</h3>
+                <div className="inline-block bg-white text-abidjan-green font-bold text-sm px-3 py-1.5 rounded-full border border-beige-200 shadow-sm mb-4">
                   {t.p}
                 </div>
-                <p className="text-xs text-bm-muted leading-relaxed">{t.d}</p>
+                <p className="text-beige-muted text-sm font-medium leading-relaxed">{t.d}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══ FONCTIONNALITÉS ══════════════════════════════════ */}
-      <section id="fonctions" className="border-t border-bm-border relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-bm-telegram/5 blur-[150px] rounded-full pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-28 relative z-10">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <div className="text-xs font-bold uppercase tracking-widest text-bm-amber mb-3">Ce qui nous différencie</div>
-            <h2 className="font-display font-bold text-3xl md:text-5xl tracking-tight text-white">Conçu pour les vrais Abidjanais</h2>
-            <p className="mt-4 text-lg text-bm-muted">Chaque détail est pensé pour la réalité du terrain — pas pour un bureau à San Francisco.</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((f) => (
-              <div
-                key={f.t}
-                className="group relative flex gap-5 rounded-3xl p-6 bg-white/[0.02] border border-white/[0.05] hover:border-bm-telegram/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-bm-telegram/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative z-10 shrink-0 w-12 h-12 rounded-2xl bg-white/[0.05] flex items-center justify-center text-2xl flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] group-hover:scale-110 transition-transform duration-300">
-                  {f.e}
-                </div>
-                <div className="relative z-10">
-                  <h3 className="font-display font-semibold text-lg text-white mb-2">{f.t}</h3>
-                  <p className="text-sm text-bm-muted leading-relaxed group-hover:text-gray-300 transition-colors">{f.d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ C'COMMENT ════════════════════════════════════════ */}
-      <section id="ccomment" className="border-t border-bm-border bg-bm-surface-2">
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-
-            {/* Left — pitch */}
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-semibold bg-bm-green/10 text-bm-green border border-bm-green/25 px-3.5 py-1.5 rounded-full mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-bm-green animate-pulse" />
-                Bientôt disponible
-              </div>
-              <h2 className="font-display font-bold text-3xl md:text-4xl tracking-tight mb-4">
-                C&apos;comment ?<br />
-                <span className="bg-bm-gradient bg-clip-text text-transparent">La découverte sociale</span><br />
-                d&apos;Abidjan
-              </h2>
-              <p className="text-bm-muted leading-relaxed mb-8">
-                BABIMOB ne t&apos;aide pas seulement à te déplacer. Il te connecte aux gens qui connaissent les bons coins.
-                Check-in dans les maquis, restaurants, marchés — demande l&apos;avis de ceux qui y sont déjà allés.
-              </p>
-
-              <div className="space-y-4">
-                {[
-                  {
-                    t: 'Check-in lieux',
-                    d: '"Je suis au Maquis La Terrasse à Cocody" — laisse une trace, construis ton profil explorateur.',
-                    c: 'text-bm-amber bg-bm-amber/10',
-                    icon: (
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                    ),
-                  },
-                  {
-                    t: 'Demande & réponds',
-                    d: '"Qui est déjà allé au Wafou ? C\'était comment ?" — les locaux répondent, pas les algos.',
-                    c: 'text-bm-coral bg-bm-coral/10',
-                    icon: (
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                    ),
-                  },
-                  {
-                    t: 'Badge Explorateur',
-                    d: 'Communes visitées, lieux découverts, avis donnés — ton profil de vrai Abidjanais.',
-                    c: 'text-bm-green bg-bm-green/10',
-                    icon: (
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                      </svg>
-                    ),
-                  },
-                ].map((item) => (
-                  <div key={item.t} className="flex gap-3 items-start">
-                    <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5 ${item.c}`}>
-                      {item.icon}
-                    </div>
-                    <div>
-                      <div className="font-display font-semibold text-sm mb-0.5">{item.t}</div>
-                      <p className="text-xs text-bm-muted leading-relaxed">{item.d}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8">
-                <a
-                  href={TG}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-bm-telegram/10 border border-bm-telegram/30 text-bm-telegram font-display font-semibold text-sm hover:bg-bm-telegram/20 transition"
-                >
-                  <TgIcon className="w-4 h-4" />
-                  Rejoindre la bêta sur Telegram
-                </a>
-              </div>
-            </div>
-
-            {/* Right — mockup conversation */}
-            <div className="relative">
-              <div
-                aria-hidden
-                className="absolute inset-0 rounded-3xl pointer-events-none"
-                style={{ background: 'radial-gradient(400px 300px at 50% 30%, rgba(46,221,139,0.08), transparent 70%)' }}
-              />
-              <div className="bg-bm-surface border border-bm-border rounded-3xl p-6 space-y-3">
-                <div className="text-xs font-semibold uppercase tracking-widest text-bm-muted mb-4">
-                  Aperçu — C&apos;comment
-                </div>
-
-                {/* Messages */}
-                {[
-                  { from: 'user', text: 'Qui est déjà allé au Maquis Moobest à Bingerville ?' },
-                  { from: 'bot',  text: '👤 Serge y était il y a 2 jours · 👤 Aya y était la semaine dernière', sub: '2 personnes ont répondu' },
-                  { from: 'user', text: 'C\'était comment le cadre ?' },
-                  { from: 'reply', author: 'Serge', text: 'Cadre très sympa, musique cool le soir. Portions généreuses. 9/10 pour moi 🔥' },
-                ].map((m, i) => (
-                  <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    {m.from === 'reply' && (
-                      <div className="w-6 h-6 rounded-full bg-bm-green/20 text-bm-green text-[9px] font-bold flex items-center justify-center flex-shrink-0 mr-2 mt-1">
-                        {(m.author ?? 'U')[0]}
-                      </div>
-                    )}
-                    <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
-                      m.from === 'user'
-                        ? 'bg-bm-gradient text-black font-medium rounded-tr-sm'
-                        : m.from === 'reply'
-                          ? 'bg-bm-green/10 border border-bm-green/20 text-bm-text rounded-tl-sm'
-                          : 'bg-bm-surface-2 text-bm-text rounded-tl-sm'
-                    }`}>
-                      {m.from === 'reply' && (
-                        <div className="text-bm-green font-semibold text-[10px] mb-0.5">{m.author}</div>
-                      )}
-                      {m.text}
-                      {m.sub && <div className="text-[10px] text-bm-muted mt-1">{m.sub}</div>}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Coming soon label */}
-                <div className="pt-3 border-t border-bm-border text-center">
-                  <span className="text-xs text-bm-muted">
-                    Inscription sur{' '}
-                    <a href={TG} target="_blank" rel="noopener noreferrer" className="text-bm-telegram hover:underline font-medium">
-                      Telegram
-                    </a>{' '}
-                    pour accès anticipé
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══ TÉMOIGNAGES ══════════════════════════════════════ */}
-      <section className="border-t border-bm-border">
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="text-xs font-semibold uppercase tracking-widest text-bm-amber mb-3">Ils en parlent</div>
-            <h2 className="font-display font-bold text-3xl md:text-4xl tracking-tight">Abidjan dit merci</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {TESTI.map((t, i) => (
-              <div
-                key={i}
-                className="rounded-2xl bg-bm-surface border border-bm-border p-6 hover:border-white/[0.12] transition flex flex-col"
-              >
-                <div className="text-bm-amber text-sm tracking-widest mb-4">★★★★★</div>
-                <p className="text-sm text-bm-muted leading-relaxed italic flex-1 mb-5">{t.q}</p>
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${t.grad} flex items-center justify-center font-display font-bold text-sm text-black flex-shrink-0`}>
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm">{t.name}</div>
-                    <div className="text-xs text-bm-muted">{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ CTA FINAL ════════════════════════════════════════ */}
-      <section className="border-t border-bm-border bg-bm-surface-2">
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
-          <div className="relative rounded-3xl border border-bm-border bg-bm-surface overflow-hidden text-center p-10 md:p-16">
-            <div
-              aria-hidden
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: 'radial-gradient(600px 280px at 50% 0%, rgba(245,166,35,0.07), transparent 60%)' }}
-            />
-            <div className="relative">
-              <div className="text-xs font-semibold uppercase tracking-widest text-bm-amber mb-4">Rejoins la communauté</div>
-              <h2 className="font-display font-bold text-3xl md:text-4xl tracking-tight mb-4">
-                Abidjan n&apos;attend pas.<br />Toi non plus.
-              </h2>
-              <p className="text-bm-muted max-w-lg mx-auto mb-8 text-base">
-                Gratuit. Zéro téléchargement. Fonctionne sur tout téléphone.
-              </p>
-              <div className="flex flex-wrap gap-3 justify-center">
-                <a
-                  href={TG}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-white font-display font-bold hover:opacity-90 transition shadow-[0_8px_24px_rgba(42,171,238,0.2)]"
-                  style={{ background: '#0a6fa8' }}
-                >
-                  <TgIcon className="w-5 h-5" /> Démarrer sur Telegram
-                </a>
-                <Link
-                  href="/app"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-bm-gradient text-black font-display font-bold hover:opacity-90 transition shadow-[0_8px_24px_rgba(245,166,35,0.2)]"
-                >
-                  <MapPinIcon className="w-5 h-5" /> Ouvrir la carte
-                </Link>
-              </div>
-              <p className="mt-5 text-xs text-bm-muted">
-                Questions ? Écris à{' '}
-                <a href="https://t.me/momochicky7" target="_blank" rel="noopener noreferrer" className="text-bm-amber hover:underline">
-                  @momochicky7
-                </a>
-              </p>
-            </div>
+      {/* ══ CTA FOOTER ═══════════════════════════════════════ */}
+      <section className="py-24 md:py-32 relative overflow-hidden">
+        <div className="absolute inset-0 bg-abidjan-gradient opacity-10" />
+        <div className="max-w-4xl mx-auto px-5 text-center relative z-10">
+          <h2 className="font-display font-black text-5xl md:text-6xl tracking-tight mb-8">
+            Prêt à dompter Abidjan ?
+          </h2>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <a href={TG} className="px-8 py-4 rounded-full bg-abidjan-blue text-white font-bold text-lg shadow-xl shadow-abidjan-blue/20 hover:scale-105 transition-transform flex items-center justify-center gap-3">
+              <TgIcon className="w-5 h-5" /> Lancer sur Telegram
+            </a>
+            <Link href="/app" className="px-8 py-4 rounded-full bg-white text-beige-text font-bold text-lg shadow-xl shadow-black/5 border-2 border-beige-200 hover:scale-105 transition-transform">
+              Ouvrir la Carte Web
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ══ FOOTER ═══════════════════════════════════════════ */}
-      <footer className="border-t border-bm-border">
-        <div className="max-w-6xl mx-auto px-5 py-10">
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-            <div className="md:col-span-2">
-              <Link href="/" className="flex items-center gap-2 mb-3">
-                <Image src="/icons/icon-192.png" alt="BABIMOB" width={32} height={32} className="rounded-lg flex-shrink-0" />
-                <span className="font-display font-bold">BABIMOB</span>
-              </Link>
-              <p className="text-sm text-bm-muted max-w-xs leading-relaxed">
-                Le transport informel d&apos;Abidjan, enfin navigable. Mobilité + découverte sociale. Sur Telegram ou sur le web.
-              </p>
-            </div>
-
-            <div>
-              <div className="font-display font-semibold text-xs uppercase tracking-widest mb-4 text-bm-muted">Produit</div>
-              <ul className="space-y-2.5">
-                {[
-                  ['#comment',    'Comment ça marche'],
-                  ['#transports', 'Transports'],
-                  ['#fonctions',  'Fonctionnalités'],
-                  ['#ccomment',   "C'comment"],
-                ].map(([h, l]) => (
-                  <li key={l}>
-                    <a href={h} className="text-sm text-bm-muted hover:text-bm-amber transition-colors">{l}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <div className="font-display font-semibold text-xs uppercase tracking-widest mb-4 text-bm-muted">Contact</div>
-              <ul className="space-y-2.5">
-                <li>
-                  <a href={TG} target="_blank" rel="noopener noreferrer" className="text-sm text-bm-muted hover:text-bm-amber transition-colors">
-                    Bot Telegram
-                  </a>
-                </li>
-                <li>
-                  <a href="https://t.me/momochicky7" target="_blank" rel="noopener noreferrer" className="text-sm text-bm-muted hover:text-bm-amber transition-colors">
-                    @momochicky7
-                  </a>
-                </li>
-                <li>
-                  <span className="text-sm text-bm-muted">Abidjan, Côte d&apos;Ivoire</span>
-                </li>
-              </ul>
-            </div>
+      <footer className="bg-white border-t border-beige-200 py-12">
+        <div className="max-w-6xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <Image src="/icons/icon-192.png" alt="BABIMOB" width={32} height={32} className="rounded-lg grayscale opacity-70" />
+            <span className="font-display font-black text-xl text-beige-muted">BABIMOB</span>
           </div>
-
-          <div className="pt-6 border-t border-bm-border flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-xs text-bm-muted">
-              © {new Date().getFullYear()} BABIMOB · Tous droits réservés · Abidjan, Côte d&apos;Ivoire
-            </span>
-            <div className="flex gap-2">
-              <span className="bg-bm-surface border border-bm-border rounded-md px-2 py-1 text-[11px] text-bm-muted inline-flex items-center gap-1">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 text-bm-amber flex-shrink-0" fill="currentColor" aria-hidden><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" /></svg>
-                Powered by Claude AI
-              </span>
-              <span className="bg-bm-surface border border-bm-border rounded-md px-2 py-1 text-[11px] text-bm-muted inline-flex items-center gap-1">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 text-bm-green flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                Données sécurisées
-              </span>
-            </div>
-          </div>
+          <p className="text-sm text-beige-muted font-medium text-center md:text-left">
+            © {new Date().getFullYear()} BABIMOB. Fait avec passion à Abidjan 🇨🇮.
+          </p>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
