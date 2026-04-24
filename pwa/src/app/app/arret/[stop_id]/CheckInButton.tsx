@@ -63,18 +63,23 @@ export default function CheckInButton({ stopId, stopName, commune }: Props) {
   }
 
   return (
-    <button
-      onClick={handleCheckin}
-      disabled={status === 'loading'}
-      className="w-full flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-4.5 rounded-[2rem] shadow-lg shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-60"
-    >
-      {status === 'loading' ? (
-        <span className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-      ) : (
-        <span className="text-xl">📍</span>
-      )}
-      <span className="uppercase tracking-tight">Je suis ici !</span>
-    </button>
+    <div className="relative group">
+      {/* Pulse ring */}
+      <div className="absolute -inset-1 bg-abidjan-orange/20 rounded-[2.2rem] animate-pulse group-hover:bg-abidjan-orange/30 transition-all" />
+      
+      <button
+        onClick={handleCheckin}
+        disabled={status === 'loading'}
+        className="relative w-full flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-4.5 rounded-[2rem] shadow-xl shadow-abidjan-orange/30 hover:shadow-abidjan-orange/50 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-60"
+      >
+        {status === 'loading' ? (
+          <span className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          <span className="text-xl">📍</span>
+        )}
+        <span className="uppercase tracking-tight">Je suis ici !</span>
+      </button>
+    </div>
   );
 }
 

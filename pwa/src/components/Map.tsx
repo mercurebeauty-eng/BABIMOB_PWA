@@ -17,6 +17,7 @@ type Props = {
   userLocation?: [number, number] | null;
   route?: [number, number][] | null;
   routeColor?: string;
+  hotspots?: { lat: number; lon: number; intensity: number }[];
 };
 
 function makeMarkerIcon(selected = false) {
@@ -45,14 +46,15 @@ export default function Map({
   className = 'absolute inset-0',
   selectedStopId = null,
   onStopClick,
-  onMapReady,
   userLocation = null,
   route = null,
   routeColor = '',
+  hotspots = [],
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const hotspotsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
 
@@ -90,8 +92,11 @@ export default function Map({
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
+    const hotspotsLayer = L.layerGroup().addTo(map);
+    
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
+    hotspotsLayerRef.current = hotspotsLayer;
 
     onMapReady?.(map);
 
@@ -99,6 +104,7 @@ export default function Map({
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;
+      hotspotsLayerRef.current = null;
       userMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,6 +114,33 @@ export default function Map({
   useEffect(() => {
     mapRef.current?.setView(center, zoom);
   }, [center, zoom]);
+
+  // ── Hotspots (Heatmap) ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = hotspotsLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    hotspots.forEach((h) => {
+      // Soft orange glow
+      const radius = 50 + h.intensity * 20;
+      L.circle([h.lat, h.lon], {
+        radius,
+        stroke: false,
+        fillColor: '#f5a623',
+        fillOpacity: Math.min(0.1 + h.intensity * 0.05, 0.4),
+      }).addTo(layer);
+      
+      // Smaller core
+      L.circle([h.lat, h.lon], {
+        radius: radius * 0.4,
+        stroke: false,
+        fillColor: '#f5a623',
+        fillOpacity: Math.min(0.2 + h.intensity * 0.1, 0.6),
+      }).addTo(layer);
+    });
+  }, [hotspots]);
 
   // ── Markers ────────────────────────────────────────────────────────────────
   useEffect(() => {

@@ -109,6 +109,16 @@ function AppPageContent() {
   const [isSearching, setIsSearching] = useState(false);
   
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
+  const [heatMode, setHeatMode] = useState(false);
+  const [hotspots, setHotspots] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (heatMode && hotspots.length === 0) {
+      import('@/lib/activity').then(mod => mod.fetchActivityHotspots()).then(data => {
+        setHotspots(data.map(h => ({ lat: h.stop_lat, lon: h.stop_lon, intensity: h.count })));
+      });
+    }
+  }, [heatMode, hotspots.length]);
 
   // Geolocation
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
@@ -240,6 +250,7 @@ function AppPageContent() {
         onStopClick={handleSelectStop}
         userLocation={userLoc}
         route={activeItinerary?.legs?.flatMap((l: any) => l.coords) || null}
+        hotspots={heatMode ? hotspots : []}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
@@ -288,6 +299,17 @@ function AppPageContent() {
         >
           <IconUser />
         </Link>
+
+        {/* Heat mode toggle */}
+        <button
+          onClick={() => setHeatMode(!heatMode)}
+          aria-label="Mode activité"
+          className={`w-14 h-14 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 ${
+            heatMode ? 'bg-abidjan-orange text-white border-abidjan-orange shadow-abidjan-orange/20' : 'bg-white/90 text-beige-muted border-beige-200/50'
+          }`}
+        >
+          <span className="text-xl">{heatMode ? '🔥' : '❄️'}</span>
+        </button>
       </div>
 
       {/* Geo error toast */}
