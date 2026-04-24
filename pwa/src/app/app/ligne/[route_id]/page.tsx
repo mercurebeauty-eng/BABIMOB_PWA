@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import RouteMapWrapperWrapper from './RouteMapWrapperWrapper';
+import RouteMapWrapper from './RouteMapWrapper';
 
 type Props = {
   params: Promise<{ route_id: string }>;
