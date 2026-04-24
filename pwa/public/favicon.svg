@@ -1,15 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f5a623"/>
-      <stop offset="100%" stop-color="#ff6b4a"/>
-    </linearGradient>
-    <linearGradient id="pin" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a0c0f"/>
-      <stop offset="100%" stop-color="#12151a"/>
-    </linearGradient>
+    <clipPath id="c"><rect width="32" height="32" rx="7"/></clipPath>
   </defs>
-  <rect width="32" height="32" rx="8" fill="url(#bg)"/>
-  <path d="M16 5C12.69 5 10 7.69 10 11c0 4.875 6 16 6 16s6-11.125 6-16c0-3.31-2.69-6-6-6z" fill="url(#pin)"/>
-  <circle cx="16" cy="11" r="2.5" fill="url(#bg)"/>
+  <!-- Blue background -->
+  <rect width="32" height="32" rx="7" fill="#1565c0"/>
+  <!-- Orange diagonal zone -->
+  <polygon points="32,10 32,32 10,32" fill="#f05d14" clip-path="url(#c)"/>
+  <!-- City silhouette -->
+  <rect x="1.5" y="13" width="3" height="9" fill="#0d47a1" clip-path="url(#c)"/>
+  <rect x="3.5" y="10" width="2.5" height="12" fill="#0d47a1" clip-path="url(#c)"/>
+  <rect x="5.5" y="14" width="2" height="8" fill="#0d47a1" clip-path="url(#c)"/>
+  <!-- Route line (orange + white stroke) -->
+  <path d="M7 24 Q12 20 24 13" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" clip-path="url(#c)"/>
+  <path d="M7 24 Q12 20 24 13" stroke="#f05d14" stroke-width="2" fill="none" stroke-linecap="round" clip-path="url(#c)"/>
+  <!-- Route endpoint dots -->
+  <circle cx="7" cy="24" r="2.5" fill="white" clip-path="url(#c)"/>
+  <circle cx="7" cy="24" r="1.5" fill="#f05d14" clip-path="url(#c)"/>
+  <circle cx="24" cy="13" r="2" fill="white" clip-path="url(#c)"/>
+  <circle cx="24" cy="13" r="1.2" fill="#f05d14" clip-path="url(#c)"/>
+  <!-- Map pin (teardrop) -->
+  <path d="M15.5 3.5 C11.5 3.5 8.5 6.5 8.5 10.5 C8.5 15.5 15.5 23 15.5 23 C15.5 23 22.5 15.5 22.5 10.5 C22.5 6.5 19.5 3.5 15.5 3.5Z" fill="white" clip-path="url(#c)"/>
+  <path d="M15.5 5 C12.3 5 9.8 7.5 9.8 10.5 C9.8 14.8 15.5 21.2 15.5 21.2 C15.5 21.2 21.2 14.8 21.2 10.5 C21.2 7.5 18.7 5 15.5 5Z" fill="#f05d14" clip-path="url(#c)"/>
+  <!-- Pin inner circle -->
+  <circle cx="15.5" cy="10.5" r="3.2" fill="white" clip-path="url(#c)"/>
+  <circle cx="15.5" cy="10.5" r="1.8" fill="#1565c0" clip-path="url(#c)"/>
 </svg>
