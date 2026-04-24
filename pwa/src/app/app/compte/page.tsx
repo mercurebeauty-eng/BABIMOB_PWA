@@ -38,7 +38,24 @@ export default async function ComptePage() {
     .limit(20);
 
   const total = checkinCount ?? 0;
-  const badge = total >= 50 ? 'Légende' : total >= 20 ? 'Explorateur Pro' : total >= 5 ? 'Explorateur' : null;
+  
+  // New Gamification System
+  const level = total >= 50 ? 4 : total >= 20 ? 3 : total >= 5 ? 2 : 1;
+  const levelNames = ['Novice', 'Explorateur', 'Guide', 'Maître'];
+  const badge = levelNames[level - 1];
+  
+  // Milestone for progress
+  const nextMilestone = level === 1 ? 5 : level === 2 ? 20 : level === 3 ? 50 : 100;
+  const progress = Math.min((total / nextMilestone) * 100, 100);
+
+  // User Archetype (Class)
+  let userClass = 'Nouvel arrivant';
+  if (total >= 5) {
+    if (topCommunes.includes('Abobo')) userClass = 'Abobo Force';
+    else if (topCommunes.includes('Cocody')) userClass = 'Citadin Chic';
+    else userClass = 'Grand Voyageur';
+  }
+
   const initiale = (user.email?.[0] ?? 'U').toUpperCase();
 
   return (
@@ -57,20 +74,33 @@ export default async function ComptePage() {
 
       <div className="max-w-3xl mx-auto w-full px-5 py-8 grid gap-6 md:grid-cols-2 relative z-10">
         
-        {/* PROFILE HEADER - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 flex flex-col sm:flex-row items-center gap-6 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
-          <div className="relative z-10 w-20 h-20 rounded-2xl bg-abidjan-gradient flex items-center justify-center flex-shrink-0 shadow-lg shadow-abidjan-orange/20">
-            <span className="text-white text-3xl font-black select-none">{initiale}</span>
+        {/* PROFILE HEADER - Gamified */}
+        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 flex flex-col sm:flex-row items-center gap-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
+          <div className="relative z-10 w-24 h-24 rounded-3xl bg-abidjan-gradient flex items-center justify-center flex-shrink-0 shadow-xl shadow-abidjan-orange/20 ring-4 ring-beige-50">
+            <span className="text-white text-4xl font-black select-none">{initiale}</span>
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-xl shadow-lg border-2 border-beige-100 flex items-center justify-center text-lg font-black text-abidjan-orange">
+              {level}
+            </div>
           </div>
           <div className="relative z-10 flex-1 text-center sm:text-left">
-            <div className="text-2xl font-black text-beige-text mb-2">{user.email}</div>
-            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-              <span className="text-xs font-bold text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100 uppercase tracking-wider">Membre BABIMOB</span>
-              {badge && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-black text-abidjan-orange bg-abidjan-orange/10 px-3 py-1.5 rounded-full border border-abidjan-orange/20 shadow-sm">
-                  🏅 {badge}
-                </span>
-              )}
+            <div className="text-2xl font-black text-beige-text mb-2 truncate max-w-xs sm:max-w-none">{user.email}</div>
+            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-4">
+              <span className="text-[10px] font-black text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100 uppercase tracking-widest">Niveau {level} · {badge}</span>
+              <span className="text-[10px] font-black text-white bg-abidjan-blue px-3 py-1.5 rounded-full border border-abidjan-blue shadow-sm uppercase tracking-widest">Archetype: {userClass}</span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="max-w-sm">
+               <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">
+                  <span>Prochain niveau</span>
+                  <span>{total} / {nextMilestone} visits</span>
+               </div>
+               <div className="h-3 bg-beige-50 rounded-full border border-beige-100 overflow-hidden">
+                  <div 
+                    className="h-full bg-abidjan-orange rounded-full transition-all duration-1000"
+                    style={{ width: `${progress}%` }}
+                  />
+               </div>
             </div>
           </div>
         </div>
@@ -83,23 +113,22 @@ export default async function ComptePage() {
                 <div className="w-10 h-10 rounded-xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-xl">
                   📍
                 </div>
-                <div className="text-sm uppercase tracking-widest text-beige-text font-black">Mes explorations</div>
+                <div className="text-sm uppercase tracking-widest text-beige-text font-black">Statistiques de voyage</div>
               </div>
-              <Link href="/app/ccomment" className="text-xs font-black text-abidjan-orange hover:text-abidjan-orange/80 transition flex items-center gap-1 uppercase tracking-widest">Voir tout <span>→</span></Link>
             </div>
             
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
                 <div className="text-4xl font-black text-beige-text">{total}</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">check-ins</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">visites</div>
               </div>
               <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
                 <div className="text-4xl font-black text-beige-text">{topCommunes.length}</div>
                 <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">communes</div>
               </div>
               <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
-                <div className="text-4xl font-black text-beige-text">{badge ? '🏅' : '—'}</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">badge</div>
+                <div className="text-4xl font-black text-beige-text">#{level}</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">rang</div>
               </div>
             </div>
 

@@ -124,12 +124,13 @@ function AppPageContent() {
   // Mock live explorers around Abidjan for visual feel
   useEffect(() => {
     const mockExplorers = [
-      { lat: 5.3484, lon: -4.0305, name: 'Jean' },
-      { lat: 5.3310, lon: -4.0210, name: 'Awa' },
-      { lat: 5.3590, lon: -3.9850, name: 'Koffi' },
-      { lat: 5.3150, lon: -4.0150, name: 'Marie' },
+      { lat: 5.3484, lon: -4.0305, name: 'Jean', level: 3, class: 'Gbaka Master' },
+      { lat: 5.3310, lon: -4.0210, name: 'Awa', level: 2, class: 'Citadine' },
+      { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4, class: 'Légende Abobo' },
+      { lat: 5.3150, lon: -4.0150, name: 'Marie', level: 1, class: 'Novice' },
     ];
-    setExplorers(mockExplorers);
+    // Simulate: Only show Level 2+ explorers for social discovery
+    setExplorers(mockExplorers.filter(e => e.level >= 2));
   }, []);
 
   // Geolocation
