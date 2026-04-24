@@ -253,25 +253,26 @@ export default function LandingPage() {
               </p>
 
               {/* Dual CTA */}
-              <div className="mt-8 grid sm:grid-cols-2 gap-3 max-w-lg">
+              <div className="mt-8 grid sm:grid-cols-2 gap-4 max-w-lg">
                 <a
                   href={TG}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-start gap-3 rounded-2xl border border-bm-border bg-bm-surface p-4 hover:border-bm-telegram/50 hover:bg-bm-telegram/[0.04] transition"
+                  className="group relative flex items-start gap-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] p-4 hover:bg-bm-telegram/[0.05] hover:border-bm-telegram/40 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="shrink-0 w-11 h-11 rounded-xl bg-bm-telegram/15 text-bm-telegram flex items-center justify-center">
+                  <div className="absolute inset-0 bg-bm-telegram/20 opacity-0 group-hover:opacity-100 transition-opacity blur-2xl" />
+                  <div className="shrink-0 relative z-10 w-11 h-11 rounded-xl bg-bm-telegram/20 text-bm-telegram flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
                     <TgIcon className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="relative z-10">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-display font-semibold text-sm">Sur Telegram</span>
-                      <span className="text-[9px] bg-bm-telegram/15 text-bm-telegram px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                      <span className="font-display font-semibold text-sm text-white">Sur Telegram</span>
+                      <span className="text-[9px] bg-bm-telegram/20 border border-bm-telegram/30 text-bm-telegram px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
                         recommandé
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-bm-muted">Notifs temps réel · bons plans</p>
-                    <span className="mt-2 flex text-xs text-bm-telegram font-medium items-center gap-1 group-hover:gap-2 transition-all">
+                    <p className="mt-0.5 text-xs text-bm-muted group-hover:text-gray-300 transition-colors">Notifs temps réel · bons plans</p>
+                    <span className="mt-2 flex text-xs text-bm-telegram font-semibold items-center gap-1 group-hover:gap-2 transition-all">
                       @babimobbot <span>→</span>
                     </span>
                   </div>
@@ -279,15 +280,19 @@ export default function LandingPage() {
 
                 <Link
                   href="/app"
-                  className="group flex items-start gap-3 rounded-2xl border border-bm-border bg-bm-surface p-4 hover:border-bm-amber/50 hover:bg-bm-amber/[0.04] transition"
+                  className="group relative flex items-start gap-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] p-4 hover:bg-bm-amber/[0.05] hover:border-bm-amber/40 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="shrink-0 w-11 h-11 rounded-xl bg-bm-amber/15 text-bm-amber flex items-center justify-center">
-                    <MapPinIcon className="w-6 h-6" />
+                  <div className="absolute inset-0 bg-bm-amber/20 opacity-0 group-hover:opacity-100 transition-opacity blur-2xl" />
+                  <div className="shrink-0 relative z-10 w-11 h-11 rounded-xl bg-bm-amber/20 text-bm-amber flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
                   </div>
-                  <div>
-                    <span className="font-display font-semibold text-sm">Sur le web</span>
-                    <p className="mt-0.5 text-xs text-bm-muted">Carte interactive · zéro install</p>
-                    <span className="mt-2 flex text-xs text-bm-amber font-medium items-center gap-1 group-hover:gap-2 transition-all">
+                  <div className="relative z-10">
+                    <span className="font-display font-semibold text-sm text-white">Sur le web</span>
+                    <p className="mt-0.5 text-xs text-bm-muted group-hover:text-gray-300 transition-colors">Carte interactive · zéro install</p>
+                    <span className="mt-2 flex text-xs text-bm-amber font-semibold items-center gap-1 group-hover:gap-2 transition-all">
                       Ouvrir la carte <span>→</span>
                     </span>
                   </div>
@@ -336,58 +341,57 @@ export default function LandingPage() {
       <section id="comment" className="border-t border-bm-border">
         <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="text-xs font-semibold uppercase tracking-widest text-bm-amber mb-3">Simple comme bonjour</div>
-            <h2 className="font-display font-bold text-3xl md:text-4xl tracking-tight">3 étapes. C&apos;est tout.</h2>
-            <p className="mt-3 text-bm-muted">Pas de compte. Pas de téléchargement. Juste ta position GPS.</p>
+            <div className="text-xs font-bold uppercase tracking-widest text-bm-amber mb-3">Simple comme bonjour</div>
+            <h2 className="font-display font-bold text-3xl md:text-5xl tracking-tight text-white">3 étapes. C&apos;est tout.</h2>
+            <p className="mt-4 text-bm-muted text-lg">Pas de compte. Pas de téléchargement. Juste ta position GPS.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
-            {[
-              {
-                n: '01',
-                t: 'Envoie ta position',
-                d: "Partage ta localisation GPS depuis Telegram en un tap, ou colle tes coordonnées Google Maps.",
-                icon: (
-                  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                ),
-              },
-              {
-                n: '02',
-                t: 'Dis où tu veux aller',
-                d: "En français, en nouchi, ou avec des abréviations — \"Yop\", \"Zone 4\", \"220 logements\" — BABIMOB te comprend.",
-                icon: (
-                  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                ),
-              },
-              {
-                n: '03',
-                t: 'Pars en confiance',
-                d: "Tu reçois les arrêts, les lignes, le tarif terrain validé, et les coordonnées GPS cliquables.",
-                icon: (
-                  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                ),
-              },
-            ].map((s) => (
-              <div
-                key={s.n}
-                className="group rounded-2xl bg-bm-surface border border-bm-border p-6 hover:border-bm-amber/40 hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="font-display text-5xl font-bold bg-bm-gradient bg-clip-text text-transparent opacity-20 leading-none mb-3 select-none">
-                  {s.n}
+            {/* Bento Block 1 - span 2 columns */}
+            <div className="md:col-span-2 group relative rounded-3xl overflow-hidden glass-card p-8 border-white/5 hover:border-white/15 transition-all duration-500">
+              <div className="absolute inset-0 bg-gradient-to-br from-bm-telegram/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-bm-telegram/20 text-bm-telegram flex items-center justify-center mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.5a8 8 0 1 1 16 0C20 17.5 12 22 12 22Z" /><circle cx="12" cy="10" r="3" /></svg>
+                  </div>
+                  <h3 className="font-display font-bold text-2xl text-white mb-3">01. Envoie ta position</h3>
+                  <p className="text-bm-muted leading-relaxed max-w-md text-base">Partage ta localisation GPS depuis Telegram en un tap, ou colle tes coordonnées Google Maps. C'est immédiat.</p>
                 </div>
-                <div className="w-11 h-11 rounded-xl bg-bm-amber/10 text-bm-amber flex items-center justify-center mb-4">
-                  {s.icon}
-                </div>
-                <h3 className="font-display font-bold text-lg mb-2">{s.t}</h3>
-                <p className="text-sm text-bm-muted leading-relaxed">{s.d}</p>
+                <div className="font-display text-8xl font-black bg-bm-gradient bg-clip-text text-transparent opacity-5 absolute bottom-[-10%] right-[-5%] select-none group-hover:scale-110 transition-transform duration-700">01</div>
               </div>
-            ))}
+            </div>
+
+            {/* Bento Block 2 - span 1 column */}
+            <div className="md:col-span-1 group relative rounded-3xl overflow-hidden glass-card p-8 border-white/5 hover:border-white/15 transition-all duration-500">
+              <div className="absolute inset-0 bg-gradient-to-bl from-bm-amber/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-bm-amber/20 text-bm-amber flex items-center justify-center mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  </div>
+                  <h3 className="font-display font-bold text-xl text-white mb-3">02. Dis où tu veux aller</h3>
+                  <p className="text-bm-muted leading-relaxed text-sm">En nouchi ou abréviations : "Yop", "Zone 4". BABIMOB comprend tout le monde.</p>
+                </div>
+                <div className="font-display text-8xl font-black bg-bm-amber text-transparent bg-clip-text opacity-5 absolute bottom-[-10%] right-[-10%] select-none group-hover:scale-110 transition-transform duration-700">02</div>
+              </div>
+            </div>
+
+            {/* Bento Block 3 - span 3 columns */}
+            <div className="md:col-span-3 group relative rounded-3xl overflow-hidden glass-card p-8 border-white/5 hover:border-white/15 transition-all duration-500 flex flex-col md:flex-row items-center gap-8">
+              <div className="absolute inset-0 bg-gradient-to-t from-bm-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="w-16 h-16 rounded-2xl bg-bm-green/20 text-bm-green flex items-center justify-center flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] relative z-10">
+                <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </div>
+              <div className="relative z-10 text-center md:text-left flex-1">
+                <h3 className="font-display font-bold text-2xl text-white mb-2">03. Pars en confiance</h3>
+                <p className="text-bm-muted leading-relaxed text-base">Tu reçois les arrêts, les lignes, le tarif terrain validé, et les coordonnées GPS cliquables sur la carte interactive.</p>
+              </div>
+              <div className="relative z-10 flex-shrink-0 mt-4 md:mt-0">
+                <Link href="/app" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-semibold hover:scale-105 active:scale-95 transition-transform">
+                  Essayer maintenant <span className="text-lg">→</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -421,27 +425,27 @@ export default function LandingPage() {
       </section>
 
       {/* ══ FONCTIONNALITÉS ══════════════════════════════════ */}
-      <section id="fonctions" className="border-t border-bm-border">
-        <div className="max-w-6xl mx-auto px-5 py-20 md:py-24">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="text-xs font-semibold uppercase tracking-widest text-bm-amber mb-3">Ce qui nous différencie</div>
-            <h2 className="font-display font-bold text-3xl md:text-4xl tracking-tight">Conçu pour les vrais Abidjanais</h2>
-            <p className="mt-3 text-bm-muted">
-              Chaque détail est pensé pour la réalité du terrain — pas pour un bureau à San Francisco.
-            </p>
+      <section id="fonctions" className="border-t border-bm-border relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-bm-telegram/5 blur-[150px] rounded-full pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-5 py-20 md:py-28 relative z-10">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="text-xs font-bold uppercase tracking-widest text-bm-amber mb-3">Ce qui nous différencie</div>
+            <h2 className="font-display font-bold text-3xl md:text-5xl tracking-tight text-white">Conçu pour les vrais Abidjanais</h2>
+            <p className="mt-4 text-lg text-bm-muted">Chaque détail est pensé pour la réalité du terrain — pas pour un bureau à San Francisco.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map((f) => (
               <div
                 key={f.t}
-                className="flex gap-4 glass-card rounded-2xl p-5 hover:border-bm-green/30 transition-all duration-300"
+                className="group relative flex gap-5 rounded-3xl p-6 bg-white/[0.02] border border-white/[0.05] hover:border-bm-telegram/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
-                <div className="shrink-0 w-10 h-10 rounded-xl bg-bm-surface-2 flex items-center justify-center text-xl flex-shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-bm-telegram/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative z-10 shrink-0 w-12 h-12 rounded-2xl bg-white/[0.05] flex items-center justify-center text-2xl flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] group-hover:scale-110 transition-transform duration-300">
                   {f.e}
                 </div>
-                <div>
-                  <h3 className="font-display font-semibold text-sm mb-1">{f.t}</h3>
-                  <p className="text-xs text-bm-muted leading-relaxed">{f.d}</p>
+                <div className="relative z-10">
+                  <h3 className="font-display font-semibold text-lg text-white mb-2">{f.t}</h3>
+                  <p className="text-sm text-bm-muted leading-relaxed group-hover:text-gray-300 transition-colors">{f.d}</p>
                 </div>
               </div>
             ))}

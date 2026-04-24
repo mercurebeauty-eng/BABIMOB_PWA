@@ -44,6 +44,10 @@ const config: Config = {
         'marquee':     'marquee 30s linear infinite',
         'float':       'float 6s ease-in-out infinite',
         'phone-float': 'phoneFloat 7s ease-in-out infinite',
+        'shimmer':     'shimmer 2.5s linear infinite',
+        'spotlight':   'spotlight 2s ease .75s 1 forwards',
+        'aurora':      'aurora 20s linear infinite',
+        'pulse-slow':  'pulseSlow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
         marquee: {
@@ -58,6 +62,22 @@ const config: Config = {
           '0%, 100%': { transform: 'translateY(0px) rotate(-1deg)' },
           '50%':      { transform: 'translateY(-8px) rotate(0.5deg)' },
         },
+        shimmer: {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' },
+        },
+        spotlight: {
+          '0%': { opacity: '0', transform: 'translate(-50%, -50%) scale(0.5)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+        },
+        aurora: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        pulseSlow: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '.5' },
+        }
       },
     }
   },
