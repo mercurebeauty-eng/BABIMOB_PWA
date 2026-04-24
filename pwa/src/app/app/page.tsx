@@ -120,12 +120,12 @@ function AppPageContent() {
     mapRef.current = map;
     const loadPois = async () => {
       const center = map.getCenter();
-      import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+      import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(supabase, center.lat, center.lng)).then(setPois);
     };
 
     map.on('moveend', loadPois);
     loadPois(); // Initial load
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -399,7 +399,7 @@ function AppPageContent() {
             // Trigger a manual moveend-like refresh
             if (mapRef.current) {
                const center = mapRef.current.getCenter();
-               import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+               import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(supabase, center.lat, center.lng)).then(setPois);
             }
           }}
           aria-label="Découvrir"

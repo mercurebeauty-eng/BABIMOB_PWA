@@ -8,10 +8,31 @@ export type POI = {
   lon: number;
   type: string;
   category: 'food' | 'shop' | 'amenity' | 'other';
+  is_sponsored?: boolean;
+  promo?: string;
+  logo_url?: string;
 };
 
-export async function fetchNearbyPOIs(lat: number, lon: number, radius = 1000): Promise<POI[]> {
-  // Overpass QL query to find shops, restaurants, and amenities
+export async function fetchNearbyPOIs(supabase: any, lat: number, lon: number, radius = 1000): Promise<POI[]> {
+  // 1. Fetch Sponsored POIs from DB
+  const { data: sponsored } = await supabase
+    .from('sponsored_places')
+    .select('*')
+    .filter('is_active', 'eq', true); // Simple filter, could be geographic RPC later
+
+  const sponsoredPOIs: POI[] = (sponsored || []).map((s: any) => ({
+    id: `sponsored-${s.id}`,
+    name: s.name,
+    lat: s.lat,
+    lon: s.lon,
+    type: s.category || 'poi',
+    category: s.category as any,
+    is_sponsored: true,
+    promo: s.promo_text,
+    logo_url: s.logo_url
+  }));
+
+  // 2. Overpass QL query to find organic shops, restaurants, and amenities
   // nwr means Node, Way, Relation. out center gets the center of ways/relations.
   const query = `
     [out:json][timeout:30];
@@ -32,8 +53,7 @@ export async function fetchNearbyPOIs(lat: number, lon: number, radius = 1000): 
 
     if (!response.ok) throw new Error('Overpass API error');
     
-    const data = await response.json();
-    return (data.elements || []).map((el: any) => {
+    const organicPOIs = (data.elements || []).map((el: any) => {
       let category: POI['category'] = 'other';
       if (el.tags.shop) category = 'shop';
       else if (el.tags.amenity?.match(/restaurant|cafe|bar|fast_food|marketplace/)) category = 'food';
@@ -51,10 +71,13 @@ export async function fetchNearbyPOIs(lat: number, lon: number, radius = 1000): 
         lon: pointLon,
         type: el.tags.shop || el.tags.amenity || el.tags.tourism || 'poi',
         category,
+        is_sponsored: false,
       };
     }).filter(Boolean) as POI[];
+
+    return [...sponsoredPOIs, ...organicPOIs];
   } catch (err) {
     console.error('Failed to fetch POIs', err);
-    return [];
+    return sponsoredPOIs; // Return at least sponsored ones if OSM fails
   }
 }

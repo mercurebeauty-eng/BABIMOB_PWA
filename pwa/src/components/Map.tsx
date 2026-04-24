@@ -195,21 +195,46 @@ export default function Map({
     layer.clearLayers();
 
     pois.forEach((p) => {
+      const isSponsored = p.is_sponsored;
       const emoji = p.category === 'food' ? '🥘' : p.category === 'shop' ? '🛍️' : '🏢';
+      
       const icon = L.divIcon({
         className: 'custom-poi-marker',
         html: `
-          <div class="flex flex-col items-center group">
-            <div class="w-8 h-8 rounded-full bg-white border-2 border-beige-200 flex items-center justify-center text-sm shadow-md transition-transform group-hover:scale-125 relative z-[50]">
-              ${emoji}
+          <div class="flex flex-col items-center group relative">
+            ${isSponsored ? `
+              <div class="absolute -inset-2 bg-abidjan-orange/20 rounded-full animate-pulse blur-md"></div>
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-abidjan-orange text-[7px] font-black text-white px-2 py-0.5 rounded-full shadow-sm z-50 whitespace-nowrap">
+                CERTIFIÉ
+              </div>
+            ` : ''}
+            
+            <div class="rounded-full bg-white border-2 flex items-center justify-center text-sm shadow-md transition-all group-hover:scale-125 relative z-[50] ${
+              isSponsored 
+                ? 'w-12 h-12 border-abidjan-orange shadow-abidjan-orange/30 p-1' 
+                : 'w-8 h-8 border-beige-200'
+            }">
+              ${isSponsored && p.logo_url ? `
+                <img src="${p.logo_url}" class="w-full h-full object-cover rounded-full" alt="${p.name}" />
+              ` : `
+                <span>${emoji}</span>
+              `}
             </div>
-            <div class="hidden group-hover:block absolute top-full mt-1 bg-white px-2 py-1 rounded-md text-[10px] font-black shadow-lg border border-beige-100 whitespace-nowrap z-50">
-              ${p.name}
+
+            <div class="hidden group-hover:block absolute top-full mt-2 bg-white px-3 py-2 rounded-2xl shadow-2xl border-2 border-beige-100 z-[100] min-w-[140px] animate-in fade-in zoom-in-95 duration-200">
+              <div class="text-[11px] font-black text-beige-text mb-0.5">${p.name}</div>
+              <div class="text-[8px] text-beige-muted font-bold uppercase tracking-widest">${p.type}</div>
+              ${p.promo ? `
+                <div class="mt-2 pt-2 border-t border-beige-50">
+                  <div class="text-[9px] font-black text-abidjan-orange uppercase mb-1">Offre Spéciale</div>
+                  <div class="text-[10px] text-beige-text leading-tight font-medium">${p.promo}</div>
+                </div>
+              ` : ''}
             </div>
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: isSponsored ? [48, 48] : [32, 32],
+        iconAnchor: isSponsored ? [24, 24] : [16, 16],
       });
 
       L.marker([p.lat, p.lon], { icon }).addTo(layer);
