@@ -62,8 +62,15 @@ export default function GridMapBackground() {
         </div>
       </div>
       
+      {/* Animated Aurora Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+        <div className="absolute top-[10%] left-[20%] w-[40vw] h-[40vw] bg-bm-telegram/20 rounded-full blur-[100px] animate-aurora mix-blend-screen" style={{ animationDuration: '25s' }} />
+        <div className="absolute top-[30%] right-[10%] w-[35vw] h-[35vw] bg-bm-green/10 rounded-full blur-[120px] animate-aurora mix-blend-screen" style={{ animationDuration: '30s', animationDirection: 'reverse' }} />
+        <div className="absolute bottom-[-10%] left-[30%] w-[50vw] h-[50vw] bg-bm-amber/15 rounded-full blur-[120px] animate-aurora mix-blend-screen" style={{ animationDuration: '35s' }} />
+      </div>
+
       {/* Global gradient overlay so content stands out */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0c111a_80%)] opacity-90" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0c111a_85%)] opacity-95" />
     </div>
   );
 }
