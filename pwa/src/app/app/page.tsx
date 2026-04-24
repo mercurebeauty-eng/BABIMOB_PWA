@@ -5,8 +5,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
-import { useRouter } from 'next/navigation';
-
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const Map = dynamic(() => import('@/components/Map'), {
