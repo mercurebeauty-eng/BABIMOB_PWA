@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import NavMobile from './NavMobile';
 
@@ -192,9 +193,7 @@ export default function LandingPage() {
         <div className="bg-bm-bg/80 backdrop-blur-xl border-b border-bm-border">
           <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5">
-              <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-bm-gradient text-black font-display font-bold text-xs flex-shrink-0">
-                BB
-              </span>
+              <Image src="/icons/icon-192.png" alt="BABIMOB" width={36} height={36} className="rounded-xl flex-shrink-0" />
               <span className="font-display font-bold text-lg tracking-tight">BABIMOB</span>
             </Link>
 
@@ -717,7 +716,7 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div className="md:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-bm-gradient text-black font-display font-bold text-xs">BB</span>
+                <Image src="/icons/icon-192.png" alt="BABIMOB" width={32} height={32} className="rounded-lg flex-shrink-0" />
                 <span className="font-display font-bold">BABIMOB</span>
               </Link>
               <p className="text-sm text-bm-muted max-w-xs leading-relaxed">

@@ -41,9 +41,8 @@ export default function SignInPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-bm-gradient flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🗺️</span>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons/icon-192.png" alt="BABIMOB" width={56} height={56} className="rounded-2xl mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900">Rejoindre BABIMOB</h1>
             <p className="text-sm text-gray-500 mt-2">Check-in, explore, partage — 100% gratuit.</p>
           </div>

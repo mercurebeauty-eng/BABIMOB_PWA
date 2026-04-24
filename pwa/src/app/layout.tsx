@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Syne } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import InstallPrompt from '@/components/InstallPrompt';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -28,7 +29,12 @@ export const metadata: Metadata = {
     title: 'BABIMOB'
   },
   icons: {
-    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
     apple: '/icons/apple-touch-icon.png'
   }
 };
@@ -46,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
       <body className="font-sans min-h-screen flex flex-col">
         {children}
+        <InstallPrompt />
         <SpeedInsights />
       </body>
     </html>
