@@ -46,6 +46,7 @@ export default function Map({
   className = 'absolute inset-0',
   selectedStopId = null,
   onStopClick,
+  onMapReady,
   userLocation = null,
   route = null,
   routeColor = '',
