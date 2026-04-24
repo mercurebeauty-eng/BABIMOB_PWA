@@ -99,6 +99,50 @@ body {
   animation: bm-slide-down 200ms ease-out;
 }
 
+/* ── Liquid glass card (dark theme) ─────────────────────────── */
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.05) inset,
+    0 -1px 0 0 rgba(0,0,0,0.2) inset,
+    0 4px 24px rgba(0,0,0,0.25);
+}
+.glass-card::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent 5%, rgba(255,255,255,0.22) 30%, rgba(255,255,255,0.28) 50%, rgba(255,255,255,0.22) 70%, transparent 95%);
+  pointer-events: none;
+  z-index: 1;
+}
+.glass-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(245,166,35,0.04) 0%, transparent 50%, rgba(46,221,139,0.03) 100%);
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.11);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.08) inset,
+    0 -1px 0 0 rgba(0,0,0,0.2) inset,
+    0 8px 32px rgba(0,0,0,0.3);
+}
+.glass-card:hover::after {
+  opacity: 1;
+}
+
 /* Safe area bottom padding utility */
 .pb-safe {
   padding-bottom: max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom)));
