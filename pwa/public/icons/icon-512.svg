@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="c"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <!-- Blue background -->
+  <rect width="512" height="512" rx="112" fill="#1565c0"/>
+  <!-- Orange diagonal zone -->
+  <polygon points="512,160 512,512 160,512" fill="#f05d14" clip-path="url(#c)"/>
+  <!-- City silhouette -->
+  <rect x="21"  y="208" width="48" height="144" fill="#0d47a1" clip-path="url(#c)"/>
+  <rect x="59"  y="160" width="40" height="192" fill="#0d47a1" clip-path="url(#c)"/>
+  <rect x="93"  y="224" width="32" height="128" fill="#0d47a1" clip-path="url(#c)"/>
+  <rect x="117" y="192" width="27" height="160" fill="#0d47a1" clip-path="url(#c)"/>
+  <!-- Route line -->
+  <path d="M112 384 Q213 315 395 213" stroke="white"   stroke-width="56" fill="none" stroke-linecap="round" clip-path="url(#c)"/>
+  <path d="M112 384 Q213 315 395 213" stroke="#f05d14" stroke-width="35" fill="none" stroke-linecap="round" clip-path="url(#c)"/>
+  <!-- Route endpoint dots -->
+  <circle cx="112" cy="384" r="40" fill="white"   clip-path="url(#c)"/>
+  <circle cx="112" cy="384" r="24" fill="#f05d14" clip-path="url(#c)"/>
+  <circle cx="395" cy="213" r="32" fill="white"   clip-path="url(#c)"/>
+  <circle cx="395" cy="213" r="19" fill="#f05d14" clip-path="url(#c)"/>
+  <!-- Map pin (teardrop, white outline) -->
+  <path d="M248 48 C181 48 130 99 130 165 C130 245 248 368 248 368 C248 368 366 245 366 165 C366 99 315 48 248 48Z" fill="white" clip-path="url(#c)"/>
+  <path d="M248 69 C192 69 152 109 152 165 C152 234 248 347 248 347 C248 347 344 234 344 165 C344 109 304 69 248 69Z" fill="#f05d14" clip-path="url(#c)"/>
+  <!-- Pin inner circle -->
+  <circle cx="248" cy="165" r="51" fill="white"   clip-path="url(#c)"/>
+  <circle cx="248" cy="165" r="29" fill="#1565c0" clip-path="url(#c)"/>
+</svg>
