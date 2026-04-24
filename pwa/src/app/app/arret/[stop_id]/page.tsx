@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import CheckInButton from './CheckInButton';
+import FavoriteButton from './FavoriteButton';
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -18,9 +19,20 @@ export default async function ArretPage({ params }: Props) {
 
   if (stopErr || !stop) notFound();
 
-  const { data: lignes } = await supabase.rpc('lignes_par_arret', {
-    p_stop_id: stopId,
-  });
+  const [{ data: lignes }, { data: favRow }] = await Promise.all([
+    supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
+    user
+      ? supabase
+          .from('user_favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('stop_id', stopId)
+          .eq('kind', 'stop')
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const isFavorited = !!favRow;
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-gray-50">
@@ -59,9 +71,20 @@ export default async function ArretPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Check-in */}
-        <div className="mb-5">
-          <CheckInButton stopId={stop.stop_id} stopName={stop.stop_name} commune={stop.commune ?? null} />
+        {/* Actions */}
+        <div className="mb-5 flex items-center gap-4">
+          <div className="flex-1">
+            <CheckInButton stopId={stop.stop_id} stopName={stop.stop_name} commune={stop.commune ?? null} />
+          </div>
+          <FavoriteButton
+            stopId={stop.stop_id}
+            stopName={stop.stop_name}
+            commune={stop.commune ?? null}
+            lat={stop.stop_lat}
+            lon={stop.stop_lon}
+            initialFavorited={isFavorited}
+            userId={user?.id ?? null}
+          />
         </div>
 
         {/* Lines section */}
