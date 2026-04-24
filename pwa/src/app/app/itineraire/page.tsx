@@ -14,6 +14,7 @@ export default function ItinerairePage() {
   const [endStop, setEndStop] = useState<Stop | null>(null);
   
   const [calculating, setCalculating] = useState(false);
+  const [wheelchair, setWheelchair] = useState(false);
   const [itineraries, setItineraries] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +30,8 @@ export default function ItinerairePage() {
     try {
       const results = await fetchItinerary({
         from: { lat: startStop.stop_lat, lon: startStop.stop_lon },
-        to: { lat: endStop.stop_lat, lon: endStop.stop_lon }
+        to: { lat: endStop.stop_lat, lon: endStop.stop_lon },
+        wheelchair,
       });
       setItineraries(results);
       if (results.length === 0) setError("Aucun itinéraire trouvé.");
@@ -82,6 +84,22 @@ export default function ItinerairePage() {
               colorClass="text-abidjan-orange"
               onChange={(val, stop) => { setEnd(val); if (stop) setEndStop(stop); }}
             />
+
+            <div className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100">
+               <div className="flex items-center gap-3">
+                  <span className="text-xl">♿</span>
+                  <div className="flex flex-col">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Accessibilité</span>
+                     <span className="text-[9px] font-bold text-beige-muted">Filtrer les trajets adaptés</span>
+                  </div>
+               </div>
+               <button
+                 onClick={() => setWheelchair(!wheelchair)}
+                 className={`w-12 h-6 rounded-full transition-all relative ${wheelchair ? 'bg-abidjan-blue' : 'bg-beige-200'}`}
+               >
+                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${wheelchair ? 'left-7' : 'left-1'}`} />
+               </button>
+            </div>
 
             {error && (
               <div className="p-4 bg-red-50 border-2 border-red-100 rounded-2xl text-xs font-bold text-red-600 uppercase tracking-widest text-center animate-in shake duration-300">
