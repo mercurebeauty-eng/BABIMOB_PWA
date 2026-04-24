@@ -200,7 +200,7 @@ export default function Map({
         className: 'custom-poi-marker',
         html: `
           <div class="flex flex-col items-center group">
-            <div class="w-8 h-8 rounded-full bg-white border-2 border-beige-200 flex items-center justify-center text-sm shadow-md transition-transform group-hover:scale-125">
+            <div class="w-8 h-8 rounded-full bg-white border-2 border-beige-200 flex items-center justify-center text-sm shadow-md transition-transform group-hover:scale-125 relative z-[50]">
               ${emoji}
             </div>
             <div class="hidden group-hover:block absolute top-full mt-1 bg-white px-2 py-1 rounded-md text-[10px] font-black shadow-lg border border-beige-100 whitespace-nowrap z-50">

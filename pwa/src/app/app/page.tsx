@@ -113,9 +113,11 @@ function AppPageContent() {
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
   const [pois, setPois] = useState<any[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
 
   // POI Discovery logic
   const handleMapReady = useCallback((map: L.Map) => {
+    mapRef.current = map;
     const loadPois = async () => {
       const center = map.getCenter();
       import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
@@ -390,6 +392,21 @@ function AppPageContent() {
         >
           <IconUser />
         </Link>
+
+        {/* Discover POIs toggle */}
+        <button
+          onClick={() => {
+            // Trigger a manual moveend-like refresh
+            if (mapRef.current) {
+               const center = mapRef.current.getCenter();
+               import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+            }
+          }}
+          aria-label="Découvrir"
+          className="w-14 h-14 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 bg-white/90 text-beige-muted border-beige-200/50"
+        >
+          <span className="text-xl">✨</span>
+        </button>
 
         {/* Heat mode toggle */}
         <button
