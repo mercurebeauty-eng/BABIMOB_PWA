@@ -38,22 +38,29 @@ export default async function ComptePage() {
     .limit(20);
 
   const total = checkinCount ?? 0;
+  const communeCount = topCommunes.length;
   
-  // New Gamification System
-  const level = total >= 50 ? 4 : total >= 20 ? 3 : total >= 5 ? 2 : 1;
-  const levelNames = ['Novice', 'Explorateur', 'Guide', 'Maître'];
+  // Harder Gamification System
+  const level = total >= 400 ? 4 : total >= 150 ? 3 : total >= 50 ? 2 : 1;
+  const levelNames = ['Novice', 'Explorateur Émergent', 'Guide Urbain', 'Maître d\'Abidjan'];
   const badge = levelNames[level - 1];
   
   // Milestone for progress
-  const nextMilestone = level === 1 ? 5 : level === 2 ? 20 : level === 3 ? 50 : 100;
+  const nextMilestone = level === 1 ? 50 : level === 2 ? 150 : level === 3 ? 400 : 1000;
   const progress = Math.min((total / nextMilestone) * 100, 100);
 
-  // User Archetype (Class)
-  let userClass = 'Nouvel arrivant';
+  // Advanced User Archetype (Class)
+  let userClass = 'Observateur';
   if (total >= 5) {
-    if (topCommunes.includes('Abobo')) userClass = 'Abobo Force';
-    else if (topCommunes.includes('Cocody')) userClass = 'Citadin Chic';
-    else userClass = 'Grand Voyageur';
+    if (communeCount <= 1 && total >= 20) {
+      userClass = 'Casanier';
+    } else if (communeCount >= 5) {
+      userClass = 'Vagabond Urbain';
+    } else if (total >= 100) {
+      userClass = 'Gbaka-Addict';
+    } else {
+      userClass = 'Explorateur';
+    }
   }
 
   const initiale = (user.email?.[0] ?? 'U').toUpperCase();

@@ -129,7 +129,7 @@ function AppPageContent() {
       { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4, class: 'Légende Abobo' },
       { lat: 5.3150, lon: -4.0150, name: 'Marie', level: 1, class: 'Novice' },
     ];
-    // Simulate: Only show Level 2+ explorers for social discovery
+    // Simulate: Only show Level 2+ explorers (50+ check-ins) for social discovery
     setExplorers(mockExplorers.filter(e => e.level >= 2));
   }, []);
 
