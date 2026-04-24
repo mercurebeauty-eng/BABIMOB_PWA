@@ -94,6 +94,7 @@ export default function AppPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [sheetTab, setSheetTab] = useState<'explorer' | 'activite'>('explorer');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Stop[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -424,35 +425,75 @@ export default function AppPage() {
                 </ul>
               </>
             ) : (
-              /* ── Empty state ── */
-              <div className="text-center py-5">
-                <div className="flex justify-center mb-4">
-                  <IconMap />
-                </div>
-                <p className="text-sm font-medium text-gray-500 mb-5 leading-relaxed">
-                  Recherche un arrêt ou utilise ta position GPS<br />pour voir les arrêts proches.
-                </p>
-                <div className="flex flex-col gap-2.5">
+              /* ── Empty state with tabs ── */
+              <>
+                {/* Tabs */}
+                <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-5">
                   <button
-                    onClick={openSearch}
-                    className="bg-bm-gradient text-black text-sm font-semibold px-6 py-3.5 rounded-2xl active:opacity-90 transition-opacity"
+                    onClick={() => setSheetTab('explorer')}
+                    className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${
+                      sheetTab === 'explorer'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500'
+                    }`}
                   >
-                    Rechercher un arrêt
+                    🗺️ Explorer
                   </button>
                   <button
-                    onClick={handleLocateMe}
-                    disabled={geoLoading}
-                    className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-semibold px-6 py-3.5 rounded-2xl disabled:opacity-60 transition-colors"
+                    onClick={() => setSheetTab('activite')}
+                    className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${
+                      sheetTab === 'activite'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500'
+                    }`}
                   >
-                    {geoLoading ? (
-                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <IconLocate />
-                    )}
-                    Arrêts proches de moi
+                    💬 Activité
                   </button>
                 </div>
-              </div>
+
+                {sheetTab === 'explorer' ? (
+                  <div className="text-center py-4">
+                    <div className="flex justify-center mb-4">
+                      <IconMap />
+                    </div>
+                    <p className="text-sm font-medium text-gray-500 mb-5 leading-relaxed">
+                      Recherche un arrêt ou utilise ta position GPS<br />pour voir les arrêts proches.
+                    </p>
+                    <div className="flex flex-col gap-2.5">
+                      <button
+                        onClick={openSearch}
+                        className="bg-bm-gradient text-black text-sm font-semibold px-6 py-3.5 rounded-2xl active:opacity-90 transition-opacity"
+                      >
+                        Rechercher un arrêt
+                      </button>
+                      <button
+                        onClick={handleLocateMe}
+                        disabled={geoLoading}
+                        className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-semibold px-6 py-3.5 rounded-2xl disabled:opacity-60 transition-colors"
+                      >
+                        {geoLoading ? (
+                          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <IconLocate />
+                        )}
+                        Arrêts proches de moi
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500 mb-4">
+                      Découvre les arrêts actifs de la communauté.
+                    </p>
+                    <Link
+                      href="/app/ccomment"
+                      className="inline-flex items-center gap-2 bg-bm-amber/10 text-bm-amber text-sm font-semibold px-5 py-3 rounded-2xl"
+                    >
+                      💬 Voir C&apos;comment
+                    </Link>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

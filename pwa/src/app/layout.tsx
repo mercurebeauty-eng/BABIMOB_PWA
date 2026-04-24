@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     title: 'BABIMOB'
   },
   icons: {
-    icon: '/icons/icon-192.png',
-    apple: '/icons/icon-192.png'
+    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
+    apple: '/icons/icon-192.svg'
   }
 };
 

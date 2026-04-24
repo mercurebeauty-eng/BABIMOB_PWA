@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import CheckInButton from './CheckInButton';
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -56,6 +57,11 @@ export default async function ArretPage({ params }: Props) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Check-in */}
+        <div className="mb-5">
+          <CheckInButton stopId={stop.stop_id} stopName={stop.stop_name} commune={stop.commune ?? null} />
         </div>
 
         {/* Lines section */}

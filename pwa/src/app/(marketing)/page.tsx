@@ -343,15 +343,57 @@ export default function LandingPage() {
 
       {/* ══ HERO ═════════════════════════════════════════════ */}
       <section className="relative overflow-hidden">
-        <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none">
+        {/* Dark map background */}
+        <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #0a0e14 0%, #0d1219 40%, #091018 100%)' }} />
           <div
-            className="absolute -top-32 right-0 w-[700px] h-[600px] rounded-full opacity-40"
-            style={{ background: 'radial-gradient(circle, rgba(245,166,35,0.14), transparent 65%)' }}
+            className="absolute inset-0 opacity-[0.06]"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(180,200,255,0.6) 59px,rgba(180,200,255,0.6) 60px),' +
+                'repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(180,200,255,0.6) 59px,rgba(180,200,255,0.6) 60px)',
+            }}
+          />
+          <svg className="absolute inset-0 w-full h-full opacity-[0.12]" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" fill="none">
+            <path d="M 0 320 Q 200 280 400 310 Q 600 340 800 300 Q 1000 260 1200 290" stroke="rgba(180,200,255,0.8)" strokeWidth="1.5" />
+            <path d="M 0 420 Q 150 380 350 400 Q 550 420 750 390 Q 950 360 1200 380" stroke="rgba(180,200,255,0.8)" strokeWidth="1.2" />
+            <path d="M 300 0 Q 350 150 320 300 Q 290 450 310 600" stroke="rgba(180,200,255,0.8)" strokeWidth="1" />
+            <path d="M 650 0 Q 680 120 660 280 Q 640 440 670 600" stroke="rgba(180,200,255,0.8)" strokeWidth="1" />
+            <path d="M 900 0 Q 920 100 890 260 Q 860 420 880 600" stroke="rgba(180,200,255,0.8)" strokeWidth="0.8" />
+            <path d="M 0 480 Q 300 510 600 490 Q 900 470 1200 500" stroke="rgba(42,171,238,0.25)" strokeWidth="4" />
+            <path d="M 0 490 Q 300 520 600 500 Q 900 480 1200 510" stroke="rgba(42,171,238,0.1)" strokeWidth="12" />
+          </svg>
+          <svg className="absolute inset-0 w-full h-full opacity-90" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice">
+            <circle cx="480" cy="240" r="3" fill="#f5a623" opacity="0.9" />
+            <circle cx="480" cy="240" r="12" fill="rgba(245,166,35,0.08)" />
+            <text x="492" y="238" fontSize="10" fill="rgba(180,190,210,0.5)" fontFamily="system-ui,sans-serif" fontWeight="500">Adjamé</text>
+            <circle cx="180" cy="280" r="3.5" fill="#f5a623" opacity="0.9" />
+            <circle cx="180" cy="280" r="16" fill="rgba(245,166,35,0.07)" />
+            <text x="196" y="278" fontSize="10" fill="rgba(180,190,210,0.5)" fontFamily="system-ui,sans-serif" fontWeight="500">Yopougon</text>
+            <circle cx="760" cy="200" r="3" fill="#2edd8b" opacity="0.8" />
+            <circle cx="760" cy="200" r="10" fill="rgba(46,221,139,0.07)" />
+            <text x="772" y="198" fontSize="10" fill="rgba(180,190,210,0.5)" fontFamily="system-ui,sans-serif" fontWeight="500">Cocody</text>
+            <circle cx="400" cy="150" r="2.5" fill="#f5a623" opacity="0.7" />
+            <text x="412" y="148" fontSize="9" fill="rgba(180,190,210,0.4)" fontFamily="system-ui,sans-serif">Abobo</text>
+            <circle cx="560" cy="310" r="3" fill="#2aabee" opacity="0.85" />
+            <circle cx="560" cy="310" r="11" fill="rgba(42,171,238,0.07)" />
+            <text x="572" y="308" fontSize="10" fill="rgba(180,190,210,0.5)" fontFamily="system-ui,sans-serif" fontWeight="500">Plateau</text>
+            <circle cx="680" cy="420" r="2.5" fill="#f5a623" opacity="0.7" />
+            <text x="692" y="418" fontSize="9" fill="rgba(180,190,210,0.4)" fontFamily="system-ui,sans-serif">Koumassi</text>
+            <circle cx="820" cy="490" r="2.5" fill="#2edd8b" opacity="0.6" />
+            <text x="832" y="488" fontSize="9" fill="rgba(180,190,210,0.35)" fontFamily="system-ui,sans-serif">Port-Bouët</text>
+            <circle cx="620" cy="380" r="2" fill="#f5a623" opacity="0.6" />
+            <text x="632" y="378" fontSize="9" fill="rgba(180,190,210,0.35)" fontFamily="system-ui,sans-serif">Marcory</text>
+          </svg>
+          <div
+            className="absolute -top-32 right-0 w-[700px] h-[600px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(245,166,35,0.09), transparent 65%)' }}
           />
           <div
-            className="absolute bottom-0 -left-20 w-[500px] h-[400px] rounded-full opacity-25"
-            style={{ background: 'radial-gradient(circle, rgba(46,221,139,0.12), transparent 65%)' }}
+            className="absolute bottom-0 -left-20 w-[500px] h-[400px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(46,221,139,0.07), transparent 65%)' }}
           />
+          <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to bottom, transparent, #0a0c0f)' }} />
         </div>
 
         <div className="max-w-6xl mx-auto px-5 py-20 md:py-28">
@@ -762,7 +804,8 @@ export default function LandingPage() {
                   href={TG}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-bm-telegram text-white font-display font-bold hover:opacity-90 transition shadow-[0_8px_24px_rgba(42,171,238,0.2)]"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-white font-display font-bold hover:opacity-90 transition shadow-[0_8px_24px_rgba(42,171,238,0.2)]"
+                  style={{ background: '#0a6fa8' }}
                 >
                   <TgIcon className="w-5 h-5" /> Démarrer sur Telegram
                 </a>
