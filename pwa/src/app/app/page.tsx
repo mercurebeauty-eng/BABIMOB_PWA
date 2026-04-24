@@ -169,13 +169,39 @@ function AppPageContent() {
       if (q.trim().length < 2) { setResults([]); return; }
       searchTimerRef.current = setTimeout(async () => {
         setIsSearching(true);
-        const { data, error } = await supabase
+        
+        // 1. Search stops by name
+        const { data: searchResults, error } = await supabase
           .from('gtfs_stops')
           .select('stop_id, stop_name, stop_lat, stop_lon, commune')
           .ilike('stop_name', `%${q}%`)
-          .limit(12);
+          .limit(10);
+          
+        // 2. Cross-reference with checkins to find "popular" ones
+        // In a real app, this would be a single optimized query or a view
+        const { data: popularData } = await supabase
+          .from('checkins')
+          .select('stop_id')
+          .in('stop_id', searchResults?.map(s => s.stop_id) || [])
+          .limit(100);
+
         setIsSearching(false);
-        if (!error && data) setResults(data as Stop[]);
+        
+        if (!error && searchResults) {
+          // Add popular flag to results
+          const popularCounts = (popularData || []).reduce((acc: any, curr: any) => {
+            acc[curr.stop_id] = (acc[curr.stop_id] || 0) + 1;
+            return acc;
+          }, {});
+
+          const enriched = searchResults.map(s => ({
+            ...s,
+            is_popular: (popularCounts[s.stop_id] || 0) > 0,
+            checkin_count: popularCounts[s.stop_id] || 0
+          })).sort((a, b) => (b.checkin_count || 0) - (a.checkin_count || 0));
+
+          setResults(enriched as any);
+        }
       }, 250);
     },
     [supabase]
@@ -351,7 +377,7 @@ function AppPageContent() {
                 ? selected.stop_name
                 : nearbyStops.length > 0
                   ? `${nearbyStops.length} arrêt${nearbyStops.length > 1 ? 's' : ''} proches`
-                  : "Où vas-tu aujourd&apos;hui ?"}
+                  : "Où vas-tu aujourd'hui ?"}
             </div>
             {selected ? (
               <button
@@ -650,8 +676,18 @@ function AppPageContent() {
                       <IconPin />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-base font-black text-beige-text group-hover:text-abidjan-orange transition-colors">{s.stop_name}</div>
-                      {s.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-[0.2em] mt-1">{s.commune}</div>}
+                      <div className="text-base font-black text-beige-text group-hover:text-abidjan-orange transition-colors">
+                        {(s as any).is_popular && <span className="mr-2">🔥</span>}
+                        {s.stop_name}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {s.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-[0.2em]">{s.commune}</div>}
+                        {(s as any).is_popular && (
+                          <div className="text-[9px] text-abidjan-orange font-black uppercase bg-abidjan-orange/10 px-1.5 py-0.5 rounded-md border border-abidjan-orange/20">
+                            Populaire
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}

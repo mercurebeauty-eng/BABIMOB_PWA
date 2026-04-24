@@ -170,8 +170,8 @@ export default async function ArretPage({ params }: Props) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="bg-abidjan-orange/10 text-abidjan-orange text-xs font-black px-3 py-1.5 rounded-xl border border-abidjan-orange/20">
-                    {l.route_id}
+                  <div className="bg-abidjan-orange/10 text-abidjan-orange text-[10px] font-black px-2.5 py-1 rounded-lg border border-abidjan-orange/20 uppercase tracking-widest">
+                    Ligne
                   </div>
                   <svg className="w-5 h-5 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />

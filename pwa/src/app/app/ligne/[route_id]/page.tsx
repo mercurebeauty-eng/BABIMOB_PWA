@@ -140,10 +140,10 @@ export default async function LignePage({ params, searchParams }: Props) {
             <div className="text-base font-black text-beige-text">{orderedStops.length} arrêts sur ce trajet</div>
           </div>
           <div
-            className="text-xs font-black px-3 py-1.5 rounded-xl flex-shrink-0 border"
+            className="text-[10px] font-black px-3 py-1.5 rounded-xl flex-shrink-0 border uppercase tracking-[0.2em]"
             style={{ background: `${colorHex}10`, color: colorHex, borderColor: `${colorHex}30` }}
           >
-            #{routeId.slice(-6)}
+            Ligne
           </div>
         </div>
 
