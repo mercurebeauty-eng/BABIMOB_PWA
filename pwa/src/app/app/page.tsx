@@ -105,7 +105,7 @@ function AppPageContent() {
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [sheetTab, setSheetTab] = useState<'explorer' | 'activite'>('explorer');
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Stop[]>([]);
+  const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
