@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
@@ -87,6 +87,14 @@ const IconList = () => (
 );
 
 export default function AppPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 bg-beige-50 animate-pulse" />}>
+      <AppPageContent />
+    </Suspense>
+  );
+}
+
+function AppPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
