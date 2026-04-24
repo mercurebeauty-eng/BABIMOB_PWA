@@ -18,6 +18,7 @@ type Props = {
   route?: [number, number][] | null;
   routeColor?: string;
   hotspots?: { lat: number; lon: number; intensity: number }[];
+  explorers?: { lat: number; lon: number; name: string }[];
 };
 
 function makeMarkerIcon(selected = false) {
@@ -51,11 +52,13 @@ export default function Map({
   route = null,
   routeColor = '',
   hotspots = [],
+  explorers = [],
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const hotspotsLayerRef = useRef<L.LayerGroup | null>(null);
+  const explorersLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
 
@@ -94,10 +97,12 @@ export default function Map({
 
     const markersLayer = L.layerGroup().addTo(map);
     const hotspotsLayer = L.layerGroup().addTo(map);
+    const explorersLayer = L.layerGroup().addTo(map);
     
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
     hotspotsLayerRef.current = hotspotsLayer;
+    explorersLayerRef.current = explorersLayer;
 
     onMapReady?.(map);
 
@@ -106,6 +111,7 @@ export default function Map({
       mapRef.current = null;
       markersLayerRef.current = null;
       hotspotsLayerRef.current = null;
+      explorersLayerRef.current = null;
       userMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,24 +130,56 @@ export default function Map({
     layer.clearLayers();
 
     hotspots.forEach((h) => {
-      // Soft orange glow
-      const radius = 50 + h.intensity * 20;
+      // 1. Large soft glow (Red-ish/Beige)
+      const outerRadius = 80 + h.intensity * 30;
       L.circle([h.lat, h.lon], {
-        radius,
+        radius: outerRadius,
         stroke: false,
-        fillColor: '#f5a623',
-        fillOpacity: Math.min(0.1 + h.intensity * 0.05, 0.4),
+        fillColor: '#ff5722',
+        fillOpacity: 0.08,
       }).addTo(layer);
       
-      // Smaller core
+      // 2. Middle glow (Orange)
       L.circle([h.lat, h.lon], {
-        radius: radius * 0.4,
+        radius: outerRadius * 0.6,
         stroke: false,
         fillColor: '#f5a623',
-        fillOpacity: Math.min(0.2 + h.intensity * 0.1, 0.6),
+        fillOpacity: 0.15,
+      }).addTo(layer);
+      
+      // 3. Hot core (Yellow)
+      L.circle([h.lat, h.lon], {
+        radius: outerRadius * 0.3,
+        stroke: false,
+        fillColor: '#ffeb3b',
+        fillOpacity: 0.3,
       }).addTo(layer);
     });
   }, [hotspots]);
+
+  // ── Explorers (Social) ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = explorersLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    explorers.forEach((exp) => {
+      const icon = L.divIcon({
+        className: 'custom-explorer-marker',
+        html: `
+          <div class="relative flex items-center justify-center">
+            <div class="absolute w-4 h-4 bg-abidjan-blue/20 rounded-full animate-ping"></div>
+            <div class="w-3 h-3 bg-abidjan-blue rounded-full border-2 border-white shadow-sm"></div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      L.marker([exp.lat, exp.lon], { icon }).addTo(layer);
+    });
+  }, [explorers]);
 
   // ── Markers ────────────────────────────────────────────────────────────────
   useEffect(() => {

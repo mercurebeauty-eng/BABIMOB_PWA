@@ -111,6 +111,7 @@ function AppPageContent() {
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
   const [heatMode, setHeatMode] = useState(false);
   const [hotspots, setHotspots] = useState<any[]>([]);
+  const [explorers, setExplorers] = useState<any[]>([]);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -119,6 +120,17 @@ function AppPageContent() {
       });
     }
   }, [heatMode, hotspots.length]);
+
+  // Mock live explorers around Abidjan for visual feel
+  useEffect(() => {
+    const mockExplorers = [
+      { lat: 5.3484, lon: -4.0305, name: 'Jean' },
+      { lat: 5.3310, lon: -4.0210, name: 'Awa' },
+      { lat: 5.3590, lon: -3.9850, name: 'Koffi' },
+      { lat: 5.3150, lon: -4.0150, name: 'Marie' },
+    ];
+    setExplorers(mockExplorers);
+  }, []);
 
   // Geolocation
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
@@ -314,6 +326,7 @@ function AppPageContent() {
         userLocation={userLoc}
         route={activeItinerary?.legs?.flatMap((l: any) => l.coords) || null}
         hotspots={heatMode ? hotspots : []}
+        explorers={explorers}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
