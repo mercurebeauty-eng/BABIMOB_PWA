@@ -84,24 +84,31 @@ export default async function ArretPage({ params }: Props) {
 
         <ul className="space-y-2">
           {lignes?.map((l: any) => (
-            <li
-              key={`${l.route_id}-${l.direction_id ?? 0}`}
-              className="bg-white rounded-2xl border border-gray-100 hover:border-bm-amber/40 hover:shadow-sm transition p-4 flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <div className="font-semibold text-sm text-gray-900 truncate">
-                  {l.route_long_name}
+            <li key={`${l.route_id}-${l.direction_id ?? 0}`}>
+              <Link
+                href={`/app/ligne/${encodeURIComponent(l.route_id)}${l.direction_id === 1 ? '?dir=1' : ''}`}
+                className="bg-white rounded-2xl border border-gray-100 hover:border-bm-amber/40 hover:shadow-sm transition p-4 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm text-gray-900 truncate">
+                    {l.route_long_name}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {l.agency_id}
+                    {l.trip_headsign && (
+                      <span className="ml-1">· Direction : {l.trip_headsign}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {l.agency_id}
-                  {l.trip_headsign && (
-                    <span className="ml-1">· Direction : {l.trip_headsign}</span>
-                  )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="bg-bm-amber/10 text-bm-amber text-xs font-bold px-2.5 py-1 rounded-lg">
+                    {l.route_id}
+                  </div>
+                  <svg className="w-4 h-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-              </div>
-              <div className="flex-shrink-0 bg-bm-amber/10 text-bm-amber text-xs font-bold px-2.5 py-1 rounded-lg">
-                {l.route_id}
-              </div>
+              </Link>
             </li>
           ))}
         </ul>
