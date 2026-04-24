@@ -1,9 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
+import RouteMapWrapperWrapper from './RouteMapWrapperWrapper';
 
 type Props = {
   params: Promise<{ route_id: string }>;
@@ -118,7 +116,7 @@ export default async function LignePage({ params, searchParams }: Props) {
 
       {/* Map */}
       <div className="overflow-hidden bg-gray-100">
-        <RouteMap
+        <RouteMapWrapper
           shape={(shapePoints ?? []) as { shape_pt_lat: number; shape_pt_lon: number }[]}
           stops={orderedStops}
           routeColor={routeColor}
