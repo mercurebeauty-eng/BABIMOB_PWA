@@ -169,16 +169,31 @@ function AppPageContent() {
       if (q.trim().length < 2) { setResults([]); return; }
       searchTimerRef.current = setTimeout(async () => {
         setIsSearching(true);
+        const words = q.trim().split(/\s+/).filter(w => w.length >= 2);
         
-        // 1. Search stops by name
-        const { data: searchResults, error } = await supabase
+        // 1. Search stops with multi-word logic
+        let stopsQuery = supabase
           .from('gtfs_stops')
-          .select('stop_id, stop_name, stop_lat, stop_lon, commune')
-          .ilike('stop_name', `%${q}%`)
-          .limit(10);
+          .select('stop_id, stop_name, stop_lat, stop_lon, commune');
+        
+        // Apply filter for each word (AND logic across words, OR across fields)
+        words.forEach(word => {
+          stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`);
+        });
+        
+        // 2. Also search routes (bus lines)
+        let routesQuery = supabase
+          .from('gtfs_routes')
+          .select('route_id, route_short_name, route_long_name, route_color, agency_id')
+          .or(`route_short_name.ilike.%${q}%,route_long_name.ilike.%${q}%`)
+          .limit(3);
+
+        const [{ data: searchResults, error: stopError }, { data: routeResults }] = await Promise.all([
+          stopsQuery.limit(15),
+          routesQuery
+        ]);
           
-        // 2. Cross-reference with checkins to find "popular" ones
-        // In a real app, this would be a single optimized query or a view
+        // 3. Cross-reference with checkins for popularity
         const { data: popularData } = await supabase
           .from('checkins')
           .select('stop_id')
@@ -187,20 +202,34 @@ function AppPageContent() {
 
         setIsSearching(false);
         
-        if (!error && searchResults) {
-          // Add popular flag to results
+        if (!stopError && searchResults) {
           const popularCounts = (popularData || []).reduce((acc: any, curr: any) => {
             acc[curr.stop_id] = (acc[curr.stop_id] || 0) + 1;
             return acc;
           }, {});
 
-          const enriched = searchResults.map(s => ({
+          const enrichedStops = searchResults.map(s => ({
             ...s,
+            type: 'stop',
             is_popular: (popularCounts[s.stop_id] || 0) > 0,
             checkin_count: popularCounts[s.stop_id] || 0
-          })).sort((a, b) => (b.checkin_count || 0) - (a.checkin_count || 0));
+          }));
 
-          setResults(enriched as any);
+          const enrichedRoutes = (routeResults || []).map(r => ({
+            ...r,
+            type: 'route',
+            stop_id: r.route_id, // for key
+            stop_name: r.route_long_name || r.route_short_name,
+            commune: r.agency_id
+          }));
+
+          // Merge and Sort: Routes first, then popular stops, then others
+          const final = [
+            ...enrichedRoutes,
+            ...enrichedStops.sort((a, b) => (b.checkin_count || 0) - (a.checkin_count || 0))
+          ];
+
+          setResults(final as any);
         }
       }, 250);
     },
@@ -214,6 +243,14 @@ function AppPageContent() {
     setQuery('');
     setResults([]);
   }, []);
+
+  const handleSelectResult = useCallback((item: any) => {
+    if (item.type === 'route') {
+      router.push(`/app/ligne/${encodeURIComponent(item.route_id)}`);
+    } else {
+      handleSelectStop(item);
+    }
+  }, [handleSelectStop, router]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
@@ -667,22 +704,27 @@ function AppPageContent() {
               <ul className="space-y-3">
                 {results.map((s) => (
                   <li
-                    key={s.stop_id}
-                    onClick={() => handleSelectStop(s)}
+                    key={`${s.type}-${s.stop_id}`}
+                    onClick={() => handleSelectResult(s)}
                     className="flex items-center gap-4 bg-white rounded-3xl p-5 border-2 border-beige-100 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
                     role="button"
                   >
                     <div className="w-12 h-12 rounded-2xl bg-beige-50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      <IconPin />
+                      {s.type === 'route' ? (
+                        <span className="text-xl">🚌</span>
+                      ) : (
+                        <IconPin />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-base font-black text-beige-text group-hover:text-abidjan-orange transition-colors">
-                        {(s as any).is_popular && <span className="mr-2">🔥</span>}
+                        {s.type === 'route' && <span className="text-[10px] bg-abidjan-orange/10 text-abidjan-orange px-2 py-0.5 rounded-md mr-2 uppercase tracking-widest">Ligne</span>}
+                        {s.type === 'stop' && (s as any).is_popular && <span className="mr-2">🔥</span>}
                         {s.stop_name}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         {s.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-[0.2em]">{s.commune}</div>}
-                        {(s as any).is_popular && (
+                        {s.type === 'stop' && (s as any).is_popular && (
                           <div className="text-[9px] text-abidjan-orange font-black uppercase bg-abidjan-orange/10 px-1.5 py-0.5 rounded-md border border-abidjan-orange/20">
                             Populaire
                           </div>
