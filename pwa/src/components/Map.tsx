@@ -47,6 +47,8 @@ export default function Map({
   onStopClick,
   onMapReady,
   userLocation = null,
+  route = null,
+  routeColor = '',
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
