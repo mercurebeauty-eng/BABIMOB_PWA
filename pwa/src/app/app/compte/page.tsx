@@ -14,21 +14,37 @@ export default async function ComptePage() {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
-  const { data: communesData } = await supabase
+  const { data: checkinsDetail } = await supabase
     .from('checkins')
-    .select('commune')
+    .select('commune, stop_name')
     .eq('user_id', user.id)
-    .not('commune', 'is', null)
-    .limit(50);
+    .limit(100);
 
   const communeFreq: Record<string, number> = {};
-  communesData?.forEach((r: { commune: string | null }) => {
+  const categoryFreq: Record<string, number> = {
+    gastronome: 0,
+    shopping: 0,
+    culture: 0,
+    transport: 0,
+  };
+
+  checkinsDetail?.forEach((r) => {
     if (r.commune) communeFreq[r.commune] = (communeFreq[r.commune] ?? 0) + 1;
+    
+    const name = (r.stop_name || '').toLowerCase();
+    if (name.match(/maquis|resto|restaurant|bar|café|maquis/)) categoryFreq.gastronome++;
+    if (name.match(/marché|mall|magasin|boutique|supermarché|shopping/)) categoryFreq.shopping++;
+    if (name.match(/musée|cinéma|théâtre|école|université|faculté/)) categoryFreq.culture++;
+    if (name.match(/gare|arrêt|station|gbaka|woro/)) categoryFreq.transport++;
   });
+
   const topCommunes = Object.entries(communeFreq)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([c]) => c);
+  
+  const topCategory = Object.entries(categoryFreq)
+    .sort((a, b) => b[1] - a[1])[0][0];
 
   const { data: favorites } = await supabase
     .from('user_favorites')
@@ -54,10 +70,16 @@ export default async function ComptePage() {
   if (total >= 5) {
     if (communeCount <= 1 && total >= 20) {
       userClass = 'Casanier';
+    } else if (categoryFreq.gastronome > 0 && topCategory === 'gastronome') {
+      userClass = 'Epicurien / Gastronome';
+    } else if (categoryFreq.shopping > 0 && topCategory === 'shopping') {
+      userClass = 'Shopping Addict';
+    } else if (categoryFreq.culture > 0 && topCategory === 'culture') {
+      userClass = 'Culturel / Étudiant';
     } else if (communeCount >= 5) {
       userClass = 'Vagabond Urbain';
-    } else if (total >= 100) {
-      userClass = 'Gbaka-Addict';
+    } else if (categoryFreq.transport > 2) {
+      userClass = 'Gbaka Lover';
     } else {
       userClass = 'Explorateur';
     }
