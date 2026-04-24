@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
@@ -88,6 +90,7 @@ const IconList = () => (
 
 export default function AppPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -98,12 +101,28 @@ export default function AppPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Stop[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  
+  const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
 
   // Geolocation
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
   const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Parse Itinerary from URL
+  useEffect(() => {
+    const itiParam = searchParams.get('iti');
+    if (itiParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(itiParam));
+        setActiveItinerary(parsed);
+        setSheetExpanded(true);
+      } catch (e) {
+        console.error("Failed to parse itinerary", e);
+      }
+    }
+  }, [searchParams]);
 
   // Auto-dismiss geo error after 5 s
   useEffect(() => {
@@ -214,6 +233,7 @@ export default function AppPage() {
         selectedStopId={selected?.stop_id ?? null}
         onStopClick={handleSelectStop}
         userLocation={userLoc}
+        route={activeItinerary?.legs?.flatMap((l: any) => l.coords) || null}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
@@ -327,7 +347,63 @@ export default function AppPage() {
         {/* Expanded content */}
         {sheetExpanded && (
           <div className="px-6 pt-4 pb-12 overflow-y-auto max-h-[70vh]">
-            {selected ? (
+            {activeItinerary ? (
+               /* ── Itinerary steps ── */
+               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex items-center justify-between mb-8">
+                     <div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-abidjan-orange font-black mb-1">Trajet calculé</div>
+                        <h2 className="text-2xl font-black text-beige-text tracking-tight">C&apos;est parti !</h2>
+                     </div>
+                     <button 
+                        onClick={() => setActiveItinerary(null)} 
+                        className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
+                     >
+                        <IconX size="w-5 h-5" />
+                     </button>
+                  </div>
+
+                  <div className="space-y-0">
+                     {activeItinerary.legs.map((leg: any, idx: number) => (
+                        <div key={idx} className="flex gap-6">
+                           <div className="flex flex-col items-center flex-shrink-0">
+                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shadow-sm ${
+                                 leg.mode === 'WALK' ? 'bg-beige-50 text-beige-text' : 'bg-abidjan-orange/10 text-abidjan-orange'
+                              }`}>
+                                 {leg.mode === 'WALK' ? '🚶' : '🚐'}
+                              </div>
+                              {idx < activeItinerary.legs.length - 1 && (
+                                 <div className="w-1 flex-1 bg-beige-100 my-2 rounded-full" />
+                              )}
+                           </div>
+                           <div className="flex-1 pb-8 min-w-0">
+                              <div className="text-sm font-black text-beige-text leading-tight mb-1">
+                                 {leg.mode === 'WALK' ? 'Marcher' : `Prendre ${leg.route?.longName || 'la ligne'}`}
+                              </div>
+                              <div className="text-xs font-bold text-beige-muted truncate">
+                                 Vers <span className="text-beige-text">{leg.to.name}</span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-3">
+                                 <span className="text-[10px] font-black text-beige-muted uppercase tracking-widest bg-beige-50 px-2 py-1 rounded-md border border-beige-100">
+                                    {Math.round(leg.duration/60)} min
+                                 </span>
+                                 <span className="text-[10px] font-black text-beige-muted uppercase tracking-widest">
+                                    {Math.round(leg.distance)} m
+                                 </span>
+                              </div>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+
+                  <button 
+                     onClick={() => router.push('/app/itineraire')}
+                     className="w-full mt-4 bg-beige-50 hover:bg-beige-100 text-beige-muted font-black py-4 rounded-[1.5rem] text-xs uppercase tracking-widest transition-all"
+                  >
+                     Nouvelle recherche
+                  </button>
+               </div>
+            ) : selected ? (
               /* ── Stop detail ── */
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="flex items-start justify-between gap-4 mb-8">

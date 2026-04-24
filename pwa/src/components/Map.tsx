@@ -15,6 +15,8 @@ type Props = {
   onStopClick?: (stop: Stop) => void;
   onMapReady?: (map: L.Map) => void;
   userLocation?: [number, number] | null;
+  route?: [number, number][] | null;
+  routeColor?: string;
 };
 
 function makeMarkerIcon(selected = false) {
@@ -161,6 +163,32 @@ export default function Map({
 
     userMarkerRef.current = marker;
   }, [userLocation]);
+
+  // ── Route polyline ────────────────────────────────────────────────────────
+  const routeLayerRef = useRef<L.Polyline | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (routeLayerRef.current) {
+      routeLayerRef.current.remove();
+      routeLayerRef.current = null;
+    }
+
+    if (!route || route.length === 0) return;
+
+    const polyline = L.polyline(route, {
+      color: routeColor || '#f5a623',
+      weight: 5,
+      opacity: 0.8,
+      lineJoin: 'round',
+    }).addTo(map);
+
+    routeLayerRef.current = polyline;
+
+    // Optional: fit bounds to route
+    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+  }, [route, routeColor]);
 
   return <div ref={containerRef} className={className} />;
 }
