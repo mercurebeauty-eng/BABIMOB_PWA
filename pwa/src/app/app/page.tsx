@@ -112,6 +112,18 @@ function AppPageContent() {
   const [heatMode, setHeatMode] = useState(false);
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
+  const [pois, setPois] = useState<any[]>([]);
+
+  // POI Discovery logic
+  const handleMapReady = useCallback((map: L.Map) => {
+    const loadPois = async () => {
+      const center = map.getCenter();
+      import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+    };
+
+    map.on('moveend', loadPois);
+    loadPois(); // Initial load
+  }, []);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -324,10 +336,12 @@ function AppPageContent() {
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
         onStopClick={handleSelectStop}
+        onMapReady={handleMapReady}
         userLocation={userLoc}
         route={activeItinerary?.legs?.flatMap((l: any) => l.coords) || null}
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}
+        pois={pois}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
