@@ -136,6 +136,8 @@ export default async function PlacePage({ params }: Props) {
              placeId={place.id} 
              placeName={place.name} 
              commune={place.commune ?? null} 
+             lat={place.lat}
+             lon={place.lon}
            />
         </div>
 

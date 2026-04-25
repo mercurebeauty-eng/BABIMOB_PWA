@@ -77,16 +77,18 @@ export default function FavoriteButton({
       onClick={toggle}
       disabled={isPending}
       aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-      className={`flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-60 ${
-        favorited ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-bm-amber'
+      className={`w-full flex items-center justify-center gap-3 py-4 rounded-[1.5rem] border-2 font-black transition-all active:scale-[0.97] uppercase tracking-widest text-xs ${
+        favorited 
+          ? 'bg-red-50 border-red-200 text-red-600 shadow-lg shadow-red-500/10' 
+          : 'bg-white border-beige-200 text-beige-muted hover:border-abidjan-orange/30 hover:text-abidjan-orange'
       }`}
     >
       <svg
-        className="w-5 h-5"
+        className={`w-5 h-5 transition-transform ${favorited ? 'scale-110' : 'group-hover:scale-110'}`}
         viewBox="0 0 24 24"
         fill={favorited ? 'currentColor' : 'none'}
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2.5"
       >
         <path
           d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
@@ -94,7 +96,7 @@ export default function FavoriteButton({
           strokeLinejoin="round"
         />
       </svg>
-      {favorited ? 'Sauvegardé' : 'Sauvegarder'}
+      {favorited ? 'Enregistré dans mes lieux' : 'Sauvegarder cet arrêt'}
     </button>
   );
 }
