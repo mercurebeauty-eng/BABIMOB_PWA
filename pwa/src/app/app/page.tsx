@@ -348,6 +348,7 @@ function AppPageContent() {
         zoom={zoom}
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
+        selectedPoiId={selectedPoi?.id ?? null}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheetExpanded(true); }}
         onMapReady={handleMapReady}

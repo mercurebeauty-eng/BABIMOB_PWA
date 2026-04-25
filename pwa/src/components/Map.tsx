@@ -19,6 +19,7 @@ type Props = {
   zoom?: number;
   className?: string;
   selectedStopId?: string | null;
+  selectedPoiId?: string | null;
   onStopClick?: (stop: any) => void;
   onPoiClick?: (poi: POI) => void;
   onMapReady?: (map: L.Map) => void;
@@ -56,6 +57,7 @@ export default function Map({
   zoom = 12,
   className = 'absolute inset-0',
   selectedStopId = null,
+  selectedPoiId = null,
   onStopClick,
   onMapReady,
   userLocation = null,
@@ -215,6 +217,7 @@ export default function Map({
       const emoji = p.logo_emoji ?? '🏢';
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
+      const isSelected = selectedPoiId === p.id;
 
       const circleSize = isElite ? 40 : isPro ? 32 : 24;
       const emojiSize = isElite ? 22 : isPro ? 17 : 14;
@@ -226,13 +229,14 @@ export default function Map({
         : '';
       
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
+      const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
       const html = `
-        <div class="bm-poi-container">
+        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
           <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
             <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
           </div>
-          <span class="bm-poi-label-under ${labelClass}">${p.name}</span>
+          <span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>
         </div>
       `;
 
