@@ -18,6 +18,20 @@ export default function ItinerairePage() {
   const [itineraries, setItineraries] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Parse toStop from URL
+  useEffect(() => {
+    const toParam = new URLSearchParams(window.location.search).get('toStop');
+    if (toParam) {
+      try {
+        const stop = JSON.parse(decodeURIComponent(toParam));
+        setEnd(stop.stop_name);
+        setEndStop(stop);
+      } catch (err) {
+        console.error("Failed to parse toStop", err);
+      }
+    }
+  }, []);
+
   const handleCalculate = async () => {
     if (!startStop || !endStop) {
       setError("Sélectionne des arrêts valides dans les suggestions.");

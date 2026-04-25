@@ -19,7 +19,8 @@ type Props = {
   zoom?: number;
   className?: string;
   selectedStopId?: string | null;
-  onStopClick?: (stop: Stop) => void;
+  onStopClick?: (stop: any) => void;
+  onPoiClick?: (poi: POI) => void;
   onMapReady?: (map: L.Map) => void;
   userLocation?: [number, number] | null;
   route?: [number, number][] | null;
@@ -28,7 +29,6 @@ type Props = {
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
   pois?: POI[];
-  onPoiClick?: (poi: POI) => void;
 };
 
 function makeMarkerIcon(selected = false) {
@@ -217,18 +217,15 @@ export default function Map({
       let html: string;
 
       if (p.sponsor_tier === 'elite') {
-        // Marqueur animé pulsant
         html = `
           <div style="position:relative;display:flex;align-items:center;justify-content:center;width:48px;height:48px;">
             <div class="poi-elite-ring" style="position:absolute;width:40px;height:40px;border-radius:50%;background:${color};opacity:0.4;"></div>
             <div style="width:38px;height:38px;background:${color};border-radius:12px;border:2.5px solid white;box-shadow:0 4px 14px ${color}55;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;z-index:1;">${emoji}</div>
           </div>`;
       } else if (p.sponsor_tier === 'pro' || p.has_campaign) {
-        // Marqueur coloré Pro
         html = `
           <div style="width:32px;height:32px;background:white;border-radius:10px;border:2.5px solid ${color};box-shadow:0 2px 10px ${color}40;display:flex;align-items:center;justify-content:center;font-size:16px;">${emoji}</div>`;
       } else {
-        // Marqueur basique OSM / gratuit
         html = `
           <div style="width:24px;height:24px;background:white;border-radius:6px;border:1.5px solid #D9C8AC;box-shadow:0 1px 4px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0.85;">${emoji}</div>`;
       }

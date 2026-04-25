@@ -108,25 +108,32 @@ function AppPageContent() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [heatMode, setHeatMode] = useState(false);
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
-  const [pois, setPois] = useState<any[]>([]);
-  const mapRef = useRef<L.Map | null>(null);
+  const [pois, setPois] = useState<POI[]>([]);
+  const mapRef = useRef<any>(null);
+
+  const handleGetDirections = useCallback((poi: POI) => {
+    router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
+      stop_name: poi.name,
+      stop_lat: poi.lat,
+      stop_lon: poi.lon,
+    }))}`);
+  }, [router]);
 
   // POI Discovery logic
-  const handleMapReady = useCallback((map: L.Map) => {
+  const handleMapReady = useCallback((map: any) => {
     mapRef.current = map;
-    const loadPois = async () => {
+    const loadPois = () => {
       const center = map.getCenter();
       import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
     };
 
     map.on('moveend', loadPois);
-    loadPois(); // Initial load
+    loadPois();
   }, []);
 
   useEffect(() => {
@@ -340,7 +347,7 @@ function AppPageContent() {
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
         onStopClick={handleSelectStop}
-        onPoiClick={(poi) => { setSelectedPoi(poi); setSheetExpanded(true); }}
+        onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheetExpanded(true); }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
         legs={activeItinerary?.legs?.map((l: any) => ({
@@ -584,6 +591,12 @@ function AppPageContent() {
                         <span>📞</span> Appeler
                       </a>
                     )}
+                    <button
+                      onClick={() => handleGetDirections(selectedPoi)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-black py-3.5 rounded-2xl text-sm active:scale-95 transition-all hover:border-abidjan-orange/30 hover:text-abidjan-orange"
+                    >
+                      <span>🚀</span> S'y rendre
+                    </button>
                   </div>
                   {!selectedPoi.place_id && (
                     <div className="text-center text-[10px] text-beige-muted font-bold uppercase tracking-widest pt-2">
