@@ -34,7 +34,7 @@ export default async function ComptePage() {
 
   const { data: checkinsDetail } = await supabase
     .from('checkins')
-    .select('id, created_at, commune, stop_name, notes, place_id, stop_id')
+    .select('commune, place_name')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(300);
@@ -71,9 +71,9 @@ export default async function ComptePage() {
 
   checkinsDetail?.forEach((r) => {
     if (r.commune) communeFreq[r.commune] = (communeFreq[r.commune] ?? 0) + 1;
-    
-    const name = (r.stop_name || '').toLowerCase();
-    if (name.match(/maquis|resto|restaurant|bar|café|maquis/)) categoryFreq.gastronome++;
+
+    const name = (r.place_name || '').toLowerCase();
+    if (name.match(/maquis|resto|restaurant|bar|café/)) categoryFreq.gastronome++;
     if (name.match(/marché|mall|magasin|boutique|supermarché|shopping/)) categoryFreq.shopping++;
     if (name.match(/musée|cinéma|théâtre|école|université|faculté/)) categoryFreq.culture++;
     if (name.match(/gare|arrêt|station|gbaka|woro/)) categoryFreq.transport++;
@@ -263,7 +263,7 @@ export default async function ComptePage() {
             
             {total === 0 && (
               <p className="text-sm text-beige-muted font-medium text-center mt-2 py-6 bg-beige-50 rounded-3xl border border-beige-100 border-dashed">
-                Fais ton premier check-in sur un arrêt pour commencer à explorer ! 📍
+                Visite un lieu sur la carte pour commencer à explorer ! 🗺️
               </p>
             )}
           </div>

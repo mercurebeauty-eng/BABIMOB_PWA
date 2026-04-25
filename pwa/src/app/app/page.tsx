@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import CheckInButtonPlace from '@/components/CheckInButtonPlace';
+import PoiCheckInButton from '@/components/PoiCheckInButton';
 import BroadcastButton from '@/components/BroadcastButton';
 
 const Map = dynamic(() => import('@/components/Map'), {
@@ -117,6 +117,8 @@ function AppPageContent() {
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
   const [pois, setPois] = useState<POI[]>([]);
+  const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
+  const [poiNearestStop, setPoiNearestStop] = useState<{ stop_name: string; distance_m: number } | null>(null);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
 
@@ -128,18 +130,32 @@ function AppPageContent() {
     }))}`);
   }, [router]);
 
-  // POI Discovery logic
+  // POI Discovery logic — also fetches check-in counts after each POI load
   const handleMapReady = useCallback((map: any) => {
     mapRef.current = map;
-    const loadPois = () => {
+    const loadPois = async () => {
       const b = map.getBounds();
-      import('@/lib/poi').then(mod =>
-        mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast())
-      ).then(setPois);
+      const mod = await import('@/lib/poi');
+      const fetchedPois = await mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast());
+      setPois(fetchedPois);
+
+      if (fetchedPois.length > 0) {
+        const since = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data } = await supabase
+          .from('checkins')
+          .select('place_id')
+          .in('place_id', fetchedPois.map(p => p.id))
+          .gte('created_at', since);
+        if (data) {
+          const counts: Record<string, number> = {};
+          data.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
+          setPoiCheckins(counts);
+        }
+      }
     };
     map.on('moveend', loadPois);
     loadPois();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -203,6 +219,23 @@ function AppPageContent() {
     loadData();
   }, [supabase]);
 
+  // Nearest stop to selected POI — for Phase 2 distance display
+  useEffect(() => {
+    if (!selectedPoi) { setPoiNearestStop(null); return; }
+    supabase.rpc('arrets_proches', {
+      p_lat: selectedPoi.lat,
+      p_lon: selectedPoi.lon,
+      p_radius_m: 1000,
+      p_limit: 1,
+    }).then(({ data }) => {
+      if (data && data.length > 0) {
+        setPoiNearestStop({ stop_name: data[0].stop_name, distance_m: data[0].distance_m });
+      } else {
+        setPoiNearestStop(null);
+      }
+    });
+  }, [selectedPoi, supabase]);
+
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
     : userLoc ?? ABIDJAN_CENTER;
@@ -244,47 +277,44 @@ function AppPageContent() {
           .or(`route_short_name.ilike.%${q}%,route_long_name.ilike.%${q}%`)
           .limit(3);
 
-        const [{ data: searchResults, error: stopError }, { data: routeResults }] = await Promise.all([
-          stopsQuery.limit(15),
-          routesQuery
-        ]);
-          
-        // 3. Cross-reference with checkins for popularity
-        const { data: popularData } = await supabase
-          .from('checkins')
-          .select('stop_id')
-          .in('stop_id', searchResults?.map(s => s.stop_id) || [])
-          .limit(100);
+        // 3. Search places (Supabase POIs + community spots)
+        const placesQuery = supabase
+          .from('places')
+          .select('id, name, lat, lon, category, commune, logo_emoji, cover_color, is_sponsored, sponsor_tier, has_campaign')
+          .or(`name.ilike.%${q}%,commune.ilike.%${q}%`)
+          .limit(5);
+
+        const [
+          { data: searchResults, error: stopError },
+          { data: routeResults },
+          { data: placeResults },
+        ] = await Promise.all([stopsQuery.limit(15), routesQuery, placesQuery]);
 
         setIsSearching(false);
-        
-        if (!stopError && searchResults) {
-          const popularCounts = (popularData || []).reduce((acc: any, curr: any) => {
-            acc[curr.stop_id] = (acc[curr.stop_id] || 0) + 1;
-            return acc;
-          }, {});
 
+        if (!stopError && searchResults) {
           const enrichedStops = searchResults.map(s => ({
             ...s,
             type: 'stop',
-            is_popular: (popularCounts[s.stop_id] || 0) > 0,
-            checkin_count: popularCounts[s.stop_id] || 0
           }));
 
           const enrichedRoutes = (routeResults || []).map(r => ({
             ...r,
             type: 'route',
-            stop_id: r.route_id, // for key
+            stop_id: r.route_id,
             stop_name: r.route_long_name || r.route_short_name,
-            commune: r.agency_id
+            commune: r.agency_id,
           }));
 
-          // Merge and Sort: Routes first, then popular stops, then others
-          const final = [
-            ...enrichedRoutes,
-            ...enrichedStops.sort((a, b) => (b.checkin_count || 0) - (a.checkin_count || 0))
-          ];
+          const enrichedPlaces = (placeResults || []).map(p => ({
+            ...p,
+            type: 'place',
+            stop_id: `place-${p.id}`,
+            stop_name: p.name,
+          }));
 
+          // Merge: routes first, then places, then stops
+          const final = [...enrichedRoutes, ...enrichedPlaces, ...enrichedStops];
           setResults(final as any);
         }
       }, 250);
@@ -303,6 +333,28 @@ function AppPageContent() {
   const handleSelectResult = useCallback((item: any) => {
     if (item.type === 'route') {
       router.push(`/app/ligne/${encodeURIComponent(item.route_id)}`);
+    } else if (item.type === 'place') {
+      const poi: POI = {
+        id: `sp-${item.id}`,
+        place_id: item.id,
+        name: item.name,
+        lat: item.lat,
+        lon: item.lon,
+        category: item.category ?? 'other',
+        logo_emoji: item.logo_emoji ?? '🏢',
+        cover_color: item.cover_color ?? '#FF7A00',
+        is_sponsored: item.is_sponsored ?? false,
+        sponsor_tier: item.sponsor_tier ?? null,
+        has_campaign: item.has_campaign ?? false,
+        commune: item.commune,
+        source: 'supabase',
+      };
+      setSelectedPoi(poi);
+      setSelected(null);
+      setSheetExpanded(true);
+      setSearchOpen(false);
+      setQuery('');
+      setResults([]);
     } else {
       handleSelectStop(item);
     }
@@ -379,6 +431,7 @@ function AppPageContent() {
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}
         pois={pois}
+        poiCheckins={poiCheckins}
         broadcasts={broadcasts}
       />
 
@@ -392,7 +445,7 @@ function AppPageContent() {
         >
           <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
           <span className="text-sm font-bold text-beige-muted flex-1 truncate">
-            {selected ? selected.stop_name : "Rechercher un arrêt…"}
+            {selected ? selected.stop_name : "Arrêt, quartier ou lieu…"}
           </span>
           {selected && (
             <button
@@ -596,6 +649,28 @@ function AppPageContent() {
                   <p className="text-sm text-beige-muted font-medium leading-relaxed mb-5">{selectedPoi.description}</p>
                 )}
 
+                {/* Nearest stop indicator */}
+                {poiNearestStop && (
+                  <div className="flex items-center gap-2 mb-4 bg-abidjan-blue/8 border border-abidjan-blue/20 rounded-2xl px-4 py-3">
+                    <span className="text-sm">📍</span>
+                    <span className="text-[11px] font-bold text-beige-muted flex-1 truncate">{poiNearestStop.stop_name}</span>
+                    <span className="text-[11px] font-black text-abidjan-blue bg-abidjan-blue/10 px-2 py-0.5 rounded-lg flex-shrink-0">
+                      {formatDistance(poiNearestStop.distance_m)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Check-in button */}
+                <div className="mb-3">
+                  <PoiCheckInButton
+                    placeId={selectedPoi.id}
+                    placeName={selectedPoi.name}
+                    commune={selectedPoi.commune}
+                    lat={selectedPoi.lat}
+                    lon={selectedPoi.lon}
+                  />
+                </div>
+
                 <div className="flex flex-col gap-3">
                   {selectedPoi.place_id && (
                     <CheckInButtonPlace 
@@ -727,7 +802,7 @@ function AppPageContent() {
                     className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
                   >
                     <IconList />
-                    VOIR LES LIGNES &amp; CHECK-IN
+                    VOIR LES LIGNES
                   </button>
 
                   <Link
@@ -890,7 +965,7 @@ function AppPageContent() {
               type="text"
               value={query}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Rechercher un arrêt…"
+              placeholder="Arrêt, quartier ou lieu…"
               className="flex-1 text-lg font-black outline-none text-beige-text placeholder-beige-200 bg-transparent"
             />
             {isSearching ? (
@@ -916,26 +991,21 @@ function AppPageContent() {
                     className="flex items-center gap-4 bg-white rounded-3xl p-5 border-2 border-beige-100 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
                     role="button"
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-beige-50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      {s.type === 'route' ? (
-                        <span className="text-xl">🚌</span>
-                      ) : (
-                        <IconPin />
-                      )}
+                    <div className="w-12 h-12 rounded-2xl bg-beige-50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform text-xl">
+                      {s.type === 'route' ? '🚌' : s.type === 'place' ? (s.logo_emoji ?? '🏢') : <IconPin />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-base font-black text-beige-text group-hover:text-abidjan-orange transition-colors">
-                        {s.type === 'route' && <span className="text-[10px] bg-abidjan-orange/10 text-abidjan-orange px-2 py-0.5 rounded-md mr-2 uppercase tracking-widest">Ligne</span>}
-                        {s.type === 'stop' && (s as any).is_popular && <span className="mr-2">🔥</span>}
+                        {s.type === 'route' && (
+                          <span className="text-[10px] bg-abidjan-orange/10 text-abidjan-orange px-2 py-0.5 rounded-md mr-2 uppercase tracking-widest">Ligne</span>
+                        )}
+                        {s.type === 'place' && (
+                          <span className="text-[10px] bg-abidjan-green/10 text-abidjan-green px-2 py-0.5 rounded-md mr-2 uppercase tracking-widest">Lieu</span>
+                        )}
                         {s.stop_name}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         {s.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-[0.2em]">{s.commune}</div>}
-                        {s.type === 'stop' && (s as any).is_popular && (
-                          <div className="text-[9px] text-abidjan-orange font-black uppercase bg-abidjan-orange/10 px-1.5 py-0.5 rounded-md border border-abidjan-orange/20">
-                            Populaire
-                          </div>
-                        )}
                       </div>
                     </div>
                   </li>
@@ -944,7 +1014,7 @@ function AppPageContent() {
             ) : query.trim().length >= 2 && !isSearching ? (
               <div className="flex flex-col items-center py-20 gap-6">
                 <div className="text-6xl">🔍</div>
-                <p className="text-base font-bold text-beige-muted uppercase tracking-widest">Aucun arrêt trouvé</p>
+                <p className="text-base font-bold text-beige-muted uppercase tracking-widest">Aucun résultat trouvé</p>
               </div>
             ) : (
               <div className="space-y-8">

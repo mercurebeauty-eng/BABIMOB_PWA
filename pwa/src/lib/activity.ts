@@ -1,43 +1,41 @@
 import { createClient } from '@/lib/supabase/client';
 
 export type ActivityHotspot = {
-  stop_id: string;
-  stop_name: string;
-  stop_lat: number;
-  stop_lon: number;
+  place_id: string;
+  place_name: string;
+  lat: number;
+  lon: number;
   count: number;
 };
 
-/**
- * Fetch activity hotspots based on checkins from the last 24 hours.
- */
+// Fetch activity hotspots based on place check-ins from the last 24 hours.
+// lat/lon are stored directly on each check-in row (no join needed).
 export async function fetchActivityHotspots(): Promise<ActivityHotspot[]> {
   const supabase = createClient();
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  // Simple aggregation query
-  // Note: Depending on your Supabase version, you might need a RPC or just count
   const { data, error } = await supabase
     .from('checkins')
-    .select('stop_id, gtfs_stops(stop_name, stop_lat, stop_lon)')
-    .gt('created_at', yesterday);
+    .select('place_id, place_name, lat, lon')
+    .gt('created_at', yesterday)
+    .not('lat', 'is', null)
+    .not('lon', 'is', null);
 
   if (error || !data) return [];
 
-  // Manual aggregation for demonstration
-  const counts: Record<string, { count: number; stop: any }> = {};
+  const counts: Record<string, { count: number; name: string; lat: number; lon: number }> = {};
   data.forEach((c: any) => {
-    if (!counts[c.stop_id]) {
-      counts[c.stop_id] = { count: 0, stop: c.gtfs_stops };
+    if (!counts[c.place_id]) {
+      counts[c.place_id] = { count: 0, name: c.place_name, lat: c.lat, lon: c.lon };
     }
-    counts[c.stop_id].count++;
+    counts[c.place_id].count++;
   });
 
   return Object.entries(counts).map(([id, val]) => ({
-    stop_id: id,
-    stop_name: val.stop.stop_name,
-    stop_lat: val.stop.stop_lat,
-    stop_lon: val.stop.stop_lon,
+    place_id: id,
+    place_name: val.name,
+    lat: val.lat,
+    lon: val.lon,
     count: val.count,
   }));
 }

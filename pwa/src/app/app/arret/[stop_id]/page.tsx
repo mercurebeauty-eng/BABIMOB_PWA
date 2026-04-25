@@ -1,19 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import CheckInButton from './CheckInButton';
 import FavoriteButton from './FavoriteButton';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 type Props = { params: Promise<{ stop_id: string }> };
-
-function timeAgo(iso: string): string {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1)  return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
-  if (mins < 1440) return `il y a ${Math.floor(mins / 60)} h`;
-  return `il y a ${Math.floor(mins / 1440)} j`;
-}
 
 export default async function ArretPage({ params }: Props) {
   const supabase = await createClient();
@@ -30,11 +21,7 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [
-    { data: lignes }, 
-    { data: favRow }, 
-    { data: recentCheckins }
-  ] = await Promise.all([
+  const [{ data: lignes }, { data: favRow }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
       ? supabase
@@ -46,21 +33,14 @@ export default async function ArretPage({ params }: Props) {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from('checkins')
-      .select('id, user_id, created_at')
-      .eq('stop_id', stopId)
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
-      .limit(3)
   ]);
-  
+
   const isFavorited = !!favRow;
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
       <BeigeMapBackground />
-      
+
       {/* Top nav */}
       <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
         <Link
@@ -105,34 +85,6 @@ export default async function ArretPage({ params }: Props) {
             initialFavorited={isFavorited}
             userId={user?.id ?? null}
           />
-        </div>
-
-        {/* Social - Qui est déjà allé ? */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 mb-8">
-           <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display font-black text-xl">C&apos;comment ici ?</h2>
-              <button className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-abidjan-blue/10 text-abidjan-blue rounded-full border border-abidjan-blue/20">
-                 Qui est déjà allé ?
-              </button>
-           </div>
-           
-           {(!recentCheckins || recentCheckins.length === 0) ? (
-             <p className="text-sm text-beige-muted font-medium bg-beige-50 rounded-2xl p-4 border border-beige-100 border-dashed text-center">
-                Personne n&apos;est passé par ici récemment. Sois le premier !
-             </p>
-           ) : (
-             <div className="space-y-4">
-                {recentCheckins.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
-                     <div className="w-8 h-8 rounded-full bg-beige-100 flex items-center justify-center text-sm shadow-inner">👤</div>
-                     <div className="flex-1">
-                        <div className="text-xs font-black text-beige-text">Un explorateur était ici</div>
-                        <div className="text-[10px] text-beige-muted font-bold">{timeAgo(c.created_at)}</div>
-                     </div>
-                  </div>
-                ))}
-             </div>
-           )}
         </div>
 
         {/* Lines section */}

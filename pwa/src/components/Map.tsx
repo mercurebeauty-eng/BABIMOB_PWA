@@ -11,6 +11,8 @@ const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 const SVG_LAYERS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
 const SVG_GPS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
 const SVG_COMPASS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`;
+// Person silhouette for check-in presence indicator
+const SVG_PERSON = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21a8 8 0 10-16 0h16z"/></svg>`;
 
 type ItineraryLeg = {
   coords: [number, number][];
@@ -35,6 +37,7 @@ type Props = {
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
   pois?: POI[];
+  poiCheckins?: Record<string, number>;
   broadcasts?: { id: string; display_name: string; avatar_emoji: string; broadcast_text: string; broadcast_lat: number; broadcast_lon: number }[];
 };
 
@@ -73,6 +76,7 @@ export default function Map({
   hotspots = [],
   explorers = [],
   pois = [],
+  poiCheckins = {},
   broadcasts = [],
   onPoiClick,
 }: Props) {
@@ -86,11 +90,13 @@ export default function Map({
   const broadcastsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
-  // Ref so Leaflet control closures always access the latest userLocation
+  // Refs so Leaflet control closures always see latest values
   const userLocationRef = useRef(userLocation);
+  const poiCheckinsRef = useRef(poiCheckins);
 
   useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
   useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
+  useEffect(() => { poiCheckinsRef.current = poiCheckins; }, [poiCheckins]);
 
   // ── Init (once) ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -296,8 +302,15 @@ export default function Map({
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
       const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
+      // Person presence indicator (check-in visitors this week)
+      const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
+      const presenceHtml = checkinCount > 0
+        ? `<div class="bm-poi-presence">${SVG_PERSON}${checkinCount > 1 ? `<span class="bm-poi-presence-count">${checkinCount > 9 ? '9+' : checkinCount}</span>` : ''}</div>`
+        : '';
+
       const html = `
         <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
+          ${presenceHtml}
           <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
             <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
           </div>
@@ -320,7 +333,7 @@ export default function Map({
       marker.on('click', () => onPoiClickRef.current?.(p));
       marker.addTo(layer);
     });
-  }, [pois]);
+  }, [pois, poiCheckins]);
 
   // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
   useEffect(() => {
@@ -437,7 +450,7 @@ export default function Map({
       iconAnchor: [6, 6],
     });
 
-    // Lower zIndexOffset so the GPS dot doesn't mask interactive POIs/stops
+    // Lower zIndexOffset so the GPS dot doesn't mask interactive POIs and stops
     const marker = L.marker(userLocation, { icon, zIndexOffset: 200 })
       .bindPopup('<div class="bm-popup"><strong>Ma position</strong></div>', {
         className: 'bm-popup-wrapper',

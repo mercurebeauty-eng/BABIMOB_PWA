@@ -10,7 +10,7 @@ export default async function CcommentPage() {
 
   const { data: feed } = await supabase
     .from('checkins')
-    .select('id, stop_name, commune, created_at, display_name, avatar_emoji')
+    .select('id, place_name, commune, created_at, display_name, avatar_emoji')
     .eq('is_public', true)
     .order('created_at', { ascending: false })
     .limit(30);
@@ -18,7 +18,7 @@ export default async function CcommentPage() {
   const { data: mine } = user
     ? await supabase
         .from('checkins')
-        .select('id, stop_name, commune, created_at, display_name, avatar_emoji')
+        .select('id, place_name, commune, created_at, display_name, avatar_emoji')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(3)
@@ -61,12 +61,12 @@ export default async function CcommentPage() {
         {/* Pitch Card */}
         <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-abidjan-orange/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-          <div className="text-4xl mb-6">💬</div>
+          <div className="text-4xl mb-6">🗺️</div>
           <h1 className="font-display font-black text-3xl mb-4 tracking-tight">
             C&apos;est comment Abidjan ?
           </h1>
           <p className="text-base text-beige-muted font-medium leading-relaxed mb-8">
-            Dis à la communauté où tu es. Découvre les lieux chauds et deviens une{' '}
+            Marque les lieux que tu as visités. Découvre où bouge la communauté et deviens une{' '}
             <strong className="text-abidjan-orange">Légende</strong> de la cité.
           </p>
           {!user && (
@@ -83,7 +83,7 @@ export default async function CcommentPage() {
         {user && myCheckins.length > 0 && (
           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8">
             <div className="flex items-center justify-between mb-8">
-              <div className="text-xs uppercase tracking-widest text-abidjan-orange font-black">Mon historique</div>
+              <div className="text-xs uppercase tracking-widest text-abidjan-orange font-black">Mes visites récentes</div>
               <Link href="/app/compte" className="text-xs font-black text-beige-muted hover:text-abidjan-orange transition-colors uppercase tracking-widest">
                 Voir profil →
               </Link>
@@ -95,7 +95,7 @@ export default async function CcommentPage() {
                     {c.avatar_emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-black text-beige-text truncate">{c.stop_name}</div>
+                    <div className="text-sm font-black text-beige-text truncate">{c.place_name}</div>
                     {c.commune && (
                       <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{c.commune}</div>
                     )}
