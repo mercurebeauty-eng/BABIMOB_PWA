@@ -284,6 +284,27 @@ export default async function ComptePage() {
             </div>
           </div>
         </div>
+
+        {/* ADMIN SECTION - Only if Admin */}
+        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-abidjan-orange/5 border-2 border-abidjan-orange/20 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/40">
+           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+              <div className="flex items-center gap-5">
+                 <div className="w-14 h-14 rounded-2xl bg-white text-abidjan-orange flex items-center justify-center text-2xl border-2 border-abidjan-orange/20 shadow-md">
+                    👑
+                 </div>
+                 <div className="text-center sm:text-left">
+                    <div className="text-lg font-black text-beige-text">Console Administration</div>
+                    <div className="text-sm text-beige-muted font-medium mt-1">Gérer les établissements et partenaires Babimob.</div>
+                 </div>
+              </div>
+              <Link 
+                href="/app/admin/places"
+                className="bg-abidjan-orange text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-abidjan-orange/20 active:scale-95 transition-all"
+              >
+                Accéder →
+              </Link>
+           </div>
+        </div>
       </div>
     </div>
   );
