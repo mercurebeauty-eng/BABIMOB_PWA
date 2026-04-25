@@ -8,6 +8,7 @@ import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
+import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import BroadcastButton from '@/components/BroadcastButton';
 
 const Map = dynamic(() => import('@/components/Map'), {
@@ -696,12 +697,22 @@ function AppPageContent() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedPoi(null)}
-                    className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200 flex-shrink-0"
-                  >
-                    <IconX size="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <PoiFavoriteButton
+                      placeId={selectedPoi.place_id ?? selectedPoi.id}
+                      placeName={selectedPoi.name}
+                      commune={selectedPoi.commune}
+                      lat={selectedPoi.lat}
+                      lon={selectedPoi.lon}
+                      userId={profile?.id ?? null}
+                    />
+                    <button
+                      onClick={() => setSelectedPoi(null)}
+                      className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
+                    >
+                      <IconX size="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {selectedPoi.has_campaign && selectedPoi.campaign_label && (

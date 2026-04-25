@@ -247,12 +247,23 @@ export default async function ComptePage() {
              </div>
              <Link href="/app/itineraire" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
            </div>
-           
+
            <div className="space-y-2">
               {favorites?.map(f => (
-                 <Link key={f.id} href={f.kind === 'stop' ? `/app/arret/${f.stop_id}` : `/app`} className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100 hover:border-abidjan-orange/30 transition-all">
+                 <Link
+                   key={f.id}
+                   href={
+                     f.kind === 'stop' && f.stop_id ? `/app/arret/${encodeURIComponent(f.stop_id)}`
+                     : f.kind === 'place' && f.stop_id ? `/app/place/${encodeURIComponent(f.stop_id)}`
+                     : f.kind === 'route' && f.route_id ? `/app/ligne/${encodeURIComponent(f.route_id)}`
+                     : '/app'
+                   }
+                   className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100 hover:border-abidjan-orange/30 transition-all"
+                 >
                     <span className="text-[11px] font-black text-beige-text">{f.label}</span>
-                    <span className="text-[8px] font-black uppercase text-beige-muted border border-beige-200 px-2 py-0.5 rounded-full">{f.kind === 'stop' ? 'Arrêt' : 'Ligne'}</span>
+                    <span className="text-[8px] font-black uppercase text-beige-muted border border-beige-200 px-2 py-0.5 rounded-full">
+                      {f.kind === 'stop' ? 'Arrêt' : f.kind === 'place' ? 'Lieu' : 'Ligne'}
+                    </span>
                  </Link>
               ))}
               {(!favorites || favorites.length === 0) && (
