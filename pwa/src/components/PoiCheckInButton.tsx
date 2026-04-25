@@ -22,11 +22,14 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setStatus('idle'); return; }
 
+      // Can check-in again after 6 hours
+      const sixHoursAgo = new Date(Date.now() - 6 * 3600000).toISOString();
       const { data } = await supabase
         .from('checkins')
         .select('id')
         .eq('user_id', user.id)
         .eq('place_id', placeId)
+        .gt('created_at', sixHoursAgo)
         .maybeSingle();
 
       if (data) {
@@ -46,61 +49,80 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
     checkAlready();
   }, [placeId, supabase]);
 
+  function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371e3; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
   async function handleCheckin() {
     setStatus('loading');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setStatus('error'); return; }
 
-    let { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, avatar_emoji')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (!profile) {
-      const raw = user.email?.split('@')[0] ?? 'Explorateur';
-      const defaultName = raw
-        .replace(/[._-]/g, ' ')
-        .split(' ')
-        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-      const { data: created } = await supabase
-        .from('profiles')
-        .insert({ id: user.id, display_name: defaultName, avatar_emoji: '🧭' })
-        .select('display_name, avatar_emoji')
-        .single();
-      profile = created;
+    // 1. GEOFENCE CHECK: Verify user is actually at the place
+    if (!navigator.geolocation) {
+       alert("Désolé, ton appareil ne supporte pas la géolocalisation.");
+       setStatus('idle');
+       return;
     }
 
-    const { error } = await supabase.from('checkins').insert({
-      user_id: user.id,
-      place_id: placeId,
-      place_name: placeName,
-      commune: commune ?? null,
-      lat: lat ?? null,
-      lon: lon ?? null,
-      is_public: true,
-      display_name: profile?.display_name ?? 'Explorateur',
-      avatar_emoji: profile?.avatar_emoji ?? '🧭',
-    });
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+       const userLat = pos.coords.latitude;
+       const userLon = pos.coords.longitude;
 
-    if (error) {
-      // Unique constraint violation = already visited
-      if (error.code === '23505') { setStatus('already'); return; }
-      setStatus('error');
-      return;
-    }
+       if (lat && lon) {
+          const dist = getDistance(userLat, userLon, lat, lon);
+          if (dist > 150) { // 150m for Abidjan precision margin
+             alert("Tu es trop loin pour valider cette visite ! Rapproche-toi un peu.");
+             setStatus('idle');
+             return;
+          }
+       }
 
-    const since = new Date(Date.now() - 7 * 86400000).toISOString();
-    const { count } = await supabase
-      .from('checkins')
-      .select('*', { count: 'exact', head: true })
-      .eq('place_id', placeId)
-      .eq('is_public', true)
-      .gte('created_at', since);
+       // 2. PROCEED WITH CHECKIN
+       let { data: profile } = await supabase
+         .from('profiles')
+         .select('display_name, avatar_emoji')
+         .eq('id', user.id)
+         .maybeSingle();
 
-    setRecentCount(count ?? 0);
-    setStatus('done');
+       if (!profile) {
+         const raw = user.email?.split('@')[0] ?? 'Explorateur';
+         const defaultName = raw.replace(/[._-]/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+         const { data: created } = await supabase.from('profiles').insert({ id: user.id, display_name: defaultName, avatar_emoji: '🧭' }).select('display_name, avatar_emoji').single();
+         profile = created;
+       }
+
+       const { error } = await supabase.from('checkins').insert({
+         user_id: user.id,
+         place_id: placeId,
+         place_name: placeName,
+         commune: commune ?? null,
+         lat: lat ?? null,
+         lon: lon ?? null,
+         is_public: true,
+         display_name: profile?.display_name ?? 'Explorateur',
+         avatar_emoji: profile?.avatar_emoji ?? '🧭',
+         points_earned: 10,
+       });
+
+       if (error) { setStatus('error'); return; }
+
+       const since = new Date(Date.now() - 7 * 86400000).toISOString();
+       const { count } = await supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('place_id', placeId).eq('is_public', true).gte('created_at', since);
+       setRecentCount(count ?? 0);
+       setStatus('done');
+
+    }, (err) => {
+       alert("Erreur GPS : Impossible de vérifier ta position.");
+       setStatus('idle');
+    }, { enableHighAccuracy: true });
   }
 
   if (status === 'checking') {

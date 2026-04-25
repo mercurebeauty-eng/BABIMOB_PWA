@@ -6,14 +6,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-app: #ffffff;
+  --bg-card: #ffffff;
+  --bg-beige: #fcfcf9;
+  --text-main: #2D2721;
+  --text-muted: #6b7280;
+  --border-main: #e5e7eb;
+}
+
+[data-theme='dark'] {
+  --bg-app: #0c0e12;
+  --bg-card: #16191f;
+  --bg-beige: #0f1116;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --border-main: #2a2f3a;
+}
+
 html, body {
   height: 100%;
 }
 
 body {
   -webkit-font-smoothing: antialiased;
-  background: #ffffff;
-  color: #111827;
+  background: var(--bg-app);
+  color: var(--text-main);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Scrollbar discret (contexte clair) */
@@ -340,6 +359,29 @@ body {
   line-height: 1;
 }
 
+/* Live Pulse Aura (Orange for active spots) */
+@keyframes bm-poi-live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(245, 166, 35, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
+}
+
+.bm-poi-live-pulse {
+  animation: bm-poi-live-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  border-color: #f5a623 !important;
+}
+
+/* Marquee for Live Ticker */
+@keyframes marquee-slow {
+  0%   { transform: translateX(100vw); }
+  100% { transform: translateX(-200%); }
+}
+
+.animate-marquee-slow {
+  animation: marquee-slow 30s linear infinite;
+  white-space: nowrap;
+}
+
 /* Leaflet Overrides for POI markers */
 .leaflet-div-icon {
   background: transparent !important;
@@ -349,9 +391,11 @@ body {
 /* Respect prefers-reduced-motion — pause all decorative animations */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
+  .animate-marquee-slow,
   .animate-float,
   .animate-phone-float,
-  .bm-poi-elite-pulse {
+  .bm-poi-elite-pulse,
+  .bm-poi-live-pulse {
     animation: none !important;
   }
   .bm-search-overlay {

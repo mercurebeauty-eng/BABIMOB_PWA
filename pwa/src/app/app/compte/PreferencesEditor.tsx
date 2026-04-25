@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 export const ALL_TRANSIT_MODES = ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
@@ -12,8 +12,27 @@ type Props = {
 
 export default function PreferencesEditor({ userId, initialPreferences }: Props) {
   const supabase = createClient();
-  const [prefs, setPrefs] = useState<string[]>(initialPreferences);
+  const [prefs, setPrefs] = useState<string[]>(
+    initialPreferences.length > 0 ? initialPreferences : ALL_TRANSIT_MODES
+  );
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  
+  // Theme logic
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as 'dark') || 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const toggleMode = async (mode: string) => {
     const isSelected = prefs.includes(mode);
@@ -77,6 +96,31 @@ export default function PreferencesEditor({ userId, initialPreferences }: Props)
                Désactive les transports que tu refuses d&apos;emprunter. Babimob t&apos;avertira en cas d&apos;incompatibilité.
             </p>
          )}
+      </div>
+
+      <div className="mt-8 pt-8 border-t border-beige-100">
+         <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-4">Mode Nuit</div>
+         <button
+           onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+           className={`w-full flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${
+             theme === 'dark' 
+               ? 'bg-abidjan-blue text-white border-abidjan-blue shadow-lg shadow-abidjan-blue/20' 
+               : 'bg-white border-beige-200 text-beige-text hover:border-abidjan-blue/30 shadow-sm'
+           }`}
+         >
+           <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${theme === 'dark' ? 'bg-white/10' : 'bg-abidjan-blue/10'}`}>
+                {theme === 'dark' ? '🌙' : '☀️'}
+              </div>
+              <div className="flex flex-col items-start">
+                 <span className="text-xs font-black uppercase tracking-widest">{theme === 'dark' ? 'Mode Sombre Actif' : 'Mode Clair Actif'}</span>
+                 <span className={`text-[9px] font-bold ${theme === 'dark' ? 'text-white/60' : 'text-beige-muted'}`}>Plus reposant pour les yeux</span>
+              </div>
+           </div>
+           <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-all ${theme === 'dark' ? 'bg-white/20' : 'bg-beige-200'}`}>
+              <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${theme === 'dark' ? 'translate-x-4' : ''}`} />
+           </div>
+         </button>
       </div>
     </>
   );

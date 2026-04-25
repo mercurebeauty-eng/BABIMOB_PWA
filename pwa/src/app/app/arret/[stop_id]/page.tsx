@@ -91,63 +91,17 @@ export default async function ArretPage({ params }: Props) {
           />
         </div>
 
-        {/* Lines section */}
-        <div className="flex items-center justify-between mb-4 px-2">
-          <h2 className="font-display font-black text-xl uppercase tracking-tight">Lignes passantes</h2>
-          {lignes && (
-            <span className="text-xs font-black text-beige-muted uppercase tracking-widest">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
-          )}
+        {/* Lines section header */}
+        <div className="flex flex-col gap-4 mb-4 px-2">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-black text-xl uppercase tracking-tight">Lignes passantes</h2>
+            {lignes && (
+              <span className="text-xs font-black text-beige-muted uppercase tracking-widest">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
         </div>
 
-        {(!lignes || lignes.length === 0) && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-10 flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-beige-50 flex items-center justify-center text-3xl">🚌</div>
-            <div className="text-sm text-beige-muted font-bold uppercase tracking-widest">Aucune ligne trouvée ici.</div>
-          </div>
-        )}
-
-        <ul className="space-y-3">
-          {lignes?.map((l: any) => {
-            // Check if the user banned this mode. (Assumes agency_id loosely reflects the mode)
-            // SOTRA or generic lines might not strictly match, so we dim only if agency_id directly matches a banned mode
-            const activeModes = prefs.map((p: string) => p.toLowerCase());
-            const agency = (l.agency_id || '').toLowerCase();
-            const isBanned = ['gbaka', 'woro-woro', 'taxi', 'saloni'].some(m => agency.includes(m) && !activeModes.includes(m));
-
-            return (
-            <li key={`${l.route_id}-${l.direction_id ?? 0}`} className={isBanned ? 'opacity-50 grayscale' : ''}>
-              <Link
-                href={`/app/ligne/${encodeURIComponent(l.route_id)}${l.direction_id === 1 ? '?dir=1' : ''}`}
-                className="bg-white rounded-[2rem] border-2 border-beige-200 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all p-5 flex items-center justify-between gap-4 relative overflow-hidden"
-              >
-                <div className="min-w-0 z-10">
-                  <div className="font-black text-base text-beige-text truncate">
-                    {l.route_long_name}
-                  </div>
-                  <div className="text-xs font-bold text-beige-muted mt-1 uppercase tracking-wide">
-                    {l.agency_id}
-                    {l.trip_headsign && (
-                      <span className="ml-1 opacity-60">· {l.trip_headsign}</span>
-                    )}
-                  </div>
-                  {isBanned && (
-                     <div className="text-[9px] font-black uppercase text-red-500 tracking-widest mt-2 bg-red-50 inline-block px-2 py-0.5 rounded-md border border-red-100">
-                        Incompatible avec vos préférences
-                     </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0 z-10">
-                  <div className="bg-abidjan-orange/10 text-abidjan-orange text-[10px] font-black px-2.5 py-1 rounded-lg border border-abidjan-orange/20 uppercase tracking-widest">
-                    Ligne
-                  </div>
-                  <svg className="w-5 h-5 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </Link>
-            </li>
-          )})}
-        </ul>
+        <StopLinesList lines={lignes || []} preferredModes={prefs} />
       </div>
     </div>
   );
