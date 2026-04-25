@@ -325,7 +325,11 @@ function AppPageContent() {
         selectedStopId={selected?.stop_id ?? null}
         onStopClick={handleSelectStop}
         userLocation={userLoc}
-        route={activeItinerary?.legs?.flatMap((l: any) => l.coords) || null}
+        legs={activeItinerary?.legs?.map((l: any) => ({
+          coords: l.coords ?? [],
+          mode: l.mode,
+          routeColor: l.route?.color,
+        })) || null}
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}
       />
