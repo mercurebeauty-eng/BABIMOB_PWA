@@ -673,10 +673,10 @@ function AppPageContent() {
 
                 <div className="flex flex-col gap-3">
                   {selectedPoi.place_id && (
-                    <CheckInButtonPlace 
-                      placeId={selectedPoi.place_id} 
-                      placeName={selectedPoi.name} 
-                      commune={selectedPoi.commune ?? null} 
+                    <PoiCheckInButton
+                      placeId={selectedPoi.place_id}
+                      placeName={selectedPoi.name}
+                      commune={selectedPoi.commune ?? null}
                     />
                   )}
                   {selectedPoi.place_id && (
