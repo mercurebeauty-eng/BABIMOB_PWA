@@ -148,14 +148,11 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
                    </div>
                 </div>
               ))}
-              {visits.length === 0 && (
-                <div className="text-center py-12">
-                   <span className="text-4xl block mb-4 grayscale">🏜️</span>
-                   <p className="text-sm font-bold text-beige-muted">Aucune visite enregistrée encore. Sors explorer Abidjan !</p>
                 </div>
               )}
            </div>
         </div>
+      </div>
       )}
 
       {activeTab === 'reseau' && (
