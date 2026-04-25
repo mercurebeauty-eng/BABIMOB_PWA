@@ -108,14 +108,14 @@ export default async function ArretPage({ params }: Props) {
 
         <ul className="space-y-3">
           {lignes?.map((l: any) => {
+            // Check if the user banned this mode. (Assumes agency_id loosely reflects the mode)
+            // SOTRA or generic lines might not strictly match, so we dim only if agency_id directly matches a banned mode
+            const activeModes = prefs.map((p: string) => p.toLowerCase());
             const agency = (l.agency_id || '').toLowerCase();
-            // Find if this line belongs to a known mode category
-            const lineMode = ['gbaka', 'woro-woro', 'taxi', 'saloni'].find(m => agency.includes(m));
-            // If it belongs to a known mode AND that mode is NOT in the user's active preferences → banned
-            const isBanned = lineMode !== undefined && !prefs.map((p: string) => p.toLowerCase()).includes(lineMode);
+            const isBanned = ['gbaka', 'woro-woro', 'taxi', 'saloni'].some(m => agency.includes(m) && !activeModes.includes(m));
 
             return (
-            <li key={`${l.route_id}-${l.direction_id ?? 0}`} className={`transition-all duration-300 ${isBanned ? 'opacity-40 grayscale' : ''}`}>
+            <li key={`${l.route_id}-${l.direction_id ?? 0}`} className={isBanned ? 'opacity-50 grayscale' : ''}>
               <Link
                 href={`/app/ligne/${encodeURIComponent(l.route_id)}${l.direction_id === 1 ? '?dir=1' : ''}`}
                 className="bg-white rounded-[2rem] border-2 border-beige-200 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all p-5 flex items-center justify-between gap-4 relative overflow-hidden"
