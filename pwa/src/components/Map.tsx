@@ -26,6 +26,7 @@ type Props = {
   legs?: ItineraryLeg[] | null;
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
+  pois?: { id: string; lat: number; lon: number; name: string; category: string }[];
 };
 
 function makeMarkerIcon(selected = false) {
@@ -61,6 +62,7 @@ export default function Map({
   legs = null,
   hotspots = [],
   explorers = [],
+  pois = [],
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -68,6 +70,7 @@ export default function Map({
   const hotspotsLayerRef = useRef<L.LayerGroup | null>(null);
   const explorersLayerRef = useRef<L.LayerGroup | null>(null);
   const legsLayerRef = useRef<L.LayerGroup | null>(null);
+  const poisLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
 
@@ -108,12 +111,14 @@ export default function Map({
     const hotspotsLayer = L.layerGroup().addTo(map);
     const explorersLayer = L.layerGroup().addTo(map);
     const legsLayer = L.layerGroup().addTo(map);
+    const poisLayer = L.layerGroup().addTo(map);
 
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
     hotspotsLayerRef.current = hotspotsLayer;
     explorersLayerRef.current = explorersLayer;
     legsLayerRef.current = legsLayer;
+    poisLayerRef.current = poisLayer;
 
     onMapReady?.(map);
 
@@ -124,6 +129,7 @@ export default function Map({
       hotspotsLayerRef.current = null;
       explorersLayerRef.current = null;
       legsLayerRef.current = null;
+      poisLayerRef.current = null;
       userMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +198,35 @@ export default function Map({
       L.marker([exp.lat, exp.lon], { icon }).addTo(layer);
     });
   }, [explorers]);
+
+  // ── POIs (Points of Interest) ──────────────────────────────────────────────
+  useEffect(() => {
+    const layer = poisLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    pois.forEach((p) => {
+      const emoji = p.category === 'food' ? '🥘' : p.category === 'shop' ? '🛍️' : '🏢';
+      const icon = L.divIcon({
+        className: 'custom-poi-marker',
+        html: `
+          <div class="flex flex-col items-center group">
+            <div class="w-8 h-8 rounded-full bg-white border-2 border-beige-200 flex items-center justify-center text-sm shadow-md transition-transform group-hover:scale-125 relative z-[50]">
+              ${emoji}
+            </div>
+            <div class="hidden group-hover:block absolute top-full mt-1 bg-white px-2 py-1 rounded-md text-[10px] font-black shadow-lg border border-beige-100 whitespace-nowrap z-50">
+              ${p.name}
+            </div>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+
+      L.marker([p.lat, p.lon], { icon }).addTo(layer);
+    });
+  }, [pois]);
 
   // ── Markers ────────────────────────────────────────────────────────────────
   useEffect(() => {

@@ -112,6 +112,20 @@ function AppPageContent() {
   const [heatMode, setHeatMode] = useState(false);
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
+  const [pois, setPois] = useState<any[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
+
+  // POI Discovery logic
+  const handleMapReady = useCallback((map: L.Map) => {
+    mapRef.current = map;
+    const loadPois = async () => {
+      const center = map.getCenter();
+      import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+    };
+
+    map.on('moveend', loadPois);
+    loadPois(); // Initial load
+  }, []);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -129,7 +143,7 @@ function AppPageContent() {
       { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4, class: 'Légende Abobo' },
       { lat: 5.3150, lon: -4.0150, name: 'Marie', level: 1, class: 'Novice' },
     ];
-    // Simulate: Only show Level 2+ explorers for social discovery
+    // Simulate: Only show Level 2+ explorers (50+ check-ins) for social discovery
     setExplorers(mockExplorers.filter(e => e.level >= 2));
   }, []);
 
@@ -324,6 +338,7 @@ function AppPageContent() {
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
         onStopClick={handleSelectStop}
+        onMapReady={handleMapReady}
         userLocation={userLoc}
         legs={activeItinerary?.legs?.map((l: any) => ({
           coords: l.coords ?? [],
@@ -332,6 +347,7 @@ function AppPageContent() {
         })) || null}
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}
+        pois={pois}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
@@ -380,6 +396,21 @@ function AppPageContent() {
         >
           <IconUser />
         </Link>
+
+        {/* Discover POIs toggle */}
+        <button
+          onClick={() => {
+            // Trigger a manual moveend-like refresh
+            if (mapRef.current) {
+               const center = mapRef.current.getCenter();
+               import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+            }
+          }}
+          aria-label="Découvrir"
+          className="w-14 h-14 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 bg-white/90 text-beige-muted border-beige-200/50"
+        >
+          <span className="text-xl">✨</span>
+        </button>
 
         {/* Heat mode toggle */}
         <button

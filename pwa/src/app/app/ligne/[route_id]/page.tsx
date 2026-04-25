@@ -41,20 +41,27 @@ export default async function LignePage({ params, searchParams }: Props) {
   const routeId = decodeURIComponent(route_id);
 
   const [{ data: route }, { data: trips }] = await Promise.all([
-    supabase.from('gtfs_routes').select('*').eq('route_id', routeId).maybeSingle(),
+    supabase.from('gtfs_routes').select('*, route_desc').eq('route_id', routeId).maybeSingle(),
     supabase
       .from('gtfs_trips')
-      .select('trip_id, direction_id, trip_headsign, shape_id')
+      .select('trip_id, direction_id, trip_headsign, shape_id, wheelchair_accessible')
       .eq('route_id', routeId),
   ]);
 
   if (!route || !trips || trips.length === 0) notFound();
 
   // One representative trip per direction
-  const dirMap = new Map<number, { trip_id: string; trip_headsign: string | null; shape_id: string | null }>();
+  const dirMap = new Map<number, { trip_id: string; trip_headsign: string | null; shape_id: string | null; wheelchair: number | null }>();
   for (const t of trips) {
     const d = t.direction_id ?? 0;
-    if (!dirMap.has(d)) dirMap.set(d, { trip_id: t.trip_id, trip_headsign: t.trip_headsign, shape_id: t.shape_id });
+    if (!dirMap.has(d)) {
+      dirMap.set(d, { 
+        trip_id: t.trip_id, 
+        trip_headsign: t.trip_headsign, 
+        shape_id: t.shape_id,
+        wheelchair: t.wheelchair_accessible 
+      });
+    }
   }
 
   const currentTrip = dirMap.get(direction) ?? [...dirMap.values()][0];
@@ -128,22 +135,44 @@ export default async function LignePage({ params, searchParams }: Props) {
 
       <div className="max-w-2xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
         {/* Route info card */}
-        <div className="bg-white rounded-3xl border-2 border-beige-200 shadow-xl shadow-black/5 p-6 flex items-center gap-4">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-inner"
-            style={{ background: `${colorHex}15`, border: `1px solid ${colorHex}30` }}
-          >
-            {typeEmoji}
+        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 space-y-6">
+          <div className="flex items-start gap-6">
+            <div
+              className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl flex-shrink-0 shadow-inner"
+              style={{ background: `${colorHex}15`, border: `1px solid ${colorHex}30` }}
+            >
+              {typeEmoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="text-[10px] text-beige-muted font-black uppercase tracking-widest">{route.agency_id}</div>
+                {currentTrip.wheelchair === 1 && (
+                  <span className="text-[10px] bg-abidjan-blue/10 text-abidjan-blue px-2 py-0.5 rounded-md font-black uppercase flex items-center gap-1">
+                    ♿ Accessible
+                  </span>
+                )}
+              </div>
+              <div className="text-xl font-black text-beige-text leading-tight">{route.route_long_name}</div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mb-1">{route.agency_id}</div>
-            <div className="text-base font-black text-beige-text">{orderedStops.length} arrêts sur ce trajet</div>
-          </div>
-          <div
-            className="text-[10px] font-black px-3 py-1.5 rounded-xl flex-shrink-0 border uppercase tracking-[0.2em]"
-            style={{ background: `${colorHex}10`, color: colorHex, borderColor: `${colorHex}30` }}
-          >
-            Ligne
+
+          {route.route_desc && (
+            <div className="p-5 rounded-3xl bg-beige-50 border border-beige-100 italic text-sm text-beige-muted leading-relaxed">
+              &ldquo;{route.route_desc}&rdquo;
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+               <div className="w-8 h-8 rounded-lg bg-beige-50 flex items-center justify-center text-sm">📍</div>
+               <div className="text-xs font-black text-beige-text">{orderedStops.length} arrêts</div>
+            </div>
+            <div
+              className="text-[10px] font-black px-4 py-2 rounded-xl flex-shrink-0 border uppercase tracking-[0.2em]"
+              style={{ background: `${colorHex}10`, color: colorHex, borderColor: `${colorHex}30` }}
+            >
+              Ligne {route.route_short_name || ''}
+            </div>
           </div>
         </div>
 
