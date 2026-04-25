@@ -2,13 +2,11 @@
 --  BABIMOB_PWA — Migration v5.0.0 — Social Check-in & Places Directory
 --
 --  À exécuter APRÈS migration_babimob_v4.sql dans l'éditeur SQL Supabase.
---  Ajoute : profiles, places, place_offers, checkins (v2)
+--  Entièrement idempotente : peut être relancée sans erreur si déjà appliquée.
 -- ════════════════════════════════════════════════════════════════════════
 
 -- ────────────────────────────────────────────────────────────────────────
 -- 1. PROFILES
---    Profil public lié à auth.users (display_name + avatar_emoji)
---    Créé automatiquement au premier check-in si absent.
 -- ────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS profiles (
   id           UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -18,14 +16,13 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+DROP TRIGGER IF EXISTS trg_profiles_touch ON profiles;
 CREATE TRIGGER trg_profiles_touch
   BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
 -- ────────────────────────────────────────────────────────────────────────
 -- 2. PLACES
---    Annuaire des lieux : partenaires sponsorisés + établissements vérifiés
---    complété par l'API Overpass (OSM) côté client pour les lieux non inscrits.
 -- ────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS places (
   id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -56,18 +53,18 @@ CREATE TABLE IF NOT EXISTS places (
   updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_places_commune   ON places (commune);
-CREATE INDEX idx_places_category  ON places (category);
-CREATE INDEX idx_places_sponsored ON places (is_sponsored, sponsor_tier);
-CREATE INDEX idx_places_name_trgm ON places USING gin (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_places_commune   ON places (commune);
+CREATE INDEX IF NOT EXISTS idx_places_category  ON places (category);
+CREATE INDEX IF NOT EXISTS idx_places_sponsored ON places (is_sponsored, sponsor_tier);
+CREATE INDEX IF NOT EXISTS idx_places_name_trgm ON places USING gin (name gin_trgm_ops);
 
+DROP TRIGGER IF EXISTS trg_places_touch ON places;
 CREATE TRIGGER trg_places_touch
   BEFORE UPDATE ON places
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
 -- ────────────────────────────────────────────────────────────────────────
 -- 3. PLACE_OFFERS
---    Offres liées aux lieux (campagnes, menus du jour, promotions).
 -- ────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS place_offers (
   id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -81,17 +78,13 @@ CREATE TABLE IF NOT EXISTS place_offers (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_offers_place  ON place_offers (place_id);
-CREATE INDEX idx_offers_active ON place_offers (is_active, valid_until);
+CREATE INDEX IF NOT EXISTS idx_offers_place  ON place_offers (place_id);
+CREATE INDEX IF NOT EXISTS idx_offers_active ON place_offers (is_active, valid_until);
 
 -- ────────────────────────────────────────────────────────────────────────
 -- 4. CHECKINS v2
---    Lié aux lieux (place_id) et non plus aux arrêts GTFS.
---    Contrainte UNIQUE (user_id, place_id) → 1 seule visite par lieu par user.
---    lat/lon stockés pour alimenter la heatmap sans join supplémentaire.
---
---    ⚠ Si une table checkins existe déjà avec l'ancien schéma (stop_id),
---      exécuter d'abord : DROP TABLE IF EXISTS checkins;
+--    UNIQUE (user_id, place_id) → 1 seule visite par lieu par user.
+--    lat/lon stockés pour la heatmap sans join supplémentaire.
 -- ────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS checkins (
   id           UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -108,60 +101,62 @@ CREATE TABLE IF NOT EXISTS checkins (
   CONSTRAINT checkins_unique_user_place UNIQUE (user_id, place_id)
 );
 
-CREATE INDEX idx_checkins_user   ON checkins (user_id, created_at DESC);
-CREATE INDEX idx_checkins_place  ON checkins (place_id);
-CREATE INDEX idx_checkins_public ON checkins (is_public, created_at DESC);
-CREATE INDEX idx_checkins_recent ON checkins (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_checkins_user   ON checkins (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_checkins_place  ON checkins (place_id);
+CREATE INDEX IF NOT EXISTS idx_checkins_public ON checkins (is_public, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_checkins_recent ON checkins (created_at DESC);
 
 -- ────────────────────────────────────────────────────────────────────────
 -- 5. RLS — Row-Level Security
 -- ────────────────────────────────────────────────────────────────────────
 
--- Profiles : chaque user ne voit et ne modifie que le sien
+-- profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profiles_self_select" ON profiles;
+DROP POLICY IF EXISTS "profiles_self_insert" ON profiles;
+DROP POLICY IF EXISTS "profiles_self_update" ON profiles;
 CREATE POLICY "profiles_self_select" ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "profiles_self_insert" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "profiles_self_update" ON profiles FOR UPDATE USING (auth.uid() = id);
 
--- Places : lecture publique / écriture service_role uniquement (back-office)
+-- places
 ALTER TABLE places ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "places_public_read" ON places;
 CREATE POLICY "places_public_read" ON places FOR SELECT USING (TRUE);
 
--- Place Offers : lecture publique, uniquement si actif et non expiré
+-- place_offers
 ALTER TABLE place_offers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "offers_public_read" ON place_offers;
 CREATE POLICY "offers_public_read" ON place_offers
   FOR SELECT USING (is_active AND (valid_until IS NULL OR valid_until > NOW()));
 
--- Checkins : check-ins publics lisibles par tous / CRUD sur les siens
+-- checkins
 ALTER TABLE checkins ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "checkins_public_read"  ON checkins;
+DROP POLICY IF EXISTS "checkins_self_insert"  ON checkins;
+DROP POLICY IF EXISTS "checkins_self_delete"  ON checkins;
 CREATE POLICY "checkins_public_read"
   ON checkins FOR SELECT
   USING (is_public = TRUE OR auth.uid() = user_id);
-
 CREATE POLICY "checkins_self_insert"
   ON checkins FOR INSERT
   WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "checkins_self_delete"
   ON checkins FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ────────────────────────────────────────────────────────────────────────
--- 6. REALTIME — Activer les événements INSERT sur checkins pour le feed live
+-- 6. REALTIME — Activer le feed live C'comment (ignore si déjà ajouté)
 -- ────────────────────────────────────────────────────────────────────────
-ALTER PUBLICATION supabase_realtime ADD TABLE checkins;
-
--- ────────────────────────────────────────────────────────────────────────
--- 7. NOTE SUR user_favorites
---    Dans migration_v4, user_favorites.user_id référence users(id) (bot Telegram).
---    La PWA utilise auth.uid() → le RLS est suffisant pour l'isolation,
---    mais la FK ne peut pas pointer vers auth.users en même temps.
---    Solution recommandée pour plus tard : recréer la table avec
---    REFERENCES auth.users(id) ou supprimer la FK et garder le RLS seul.
--- ────────────────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE checkins;
+EXCEPTION WHEN duplicate_object THEN
+  NULL; -- déjà dans la publication, on ignore
+END;
+$$;
 
 -- ════════════════════════════════════════════════════════════════════════
---  Fin de la migration v5.
 --  Vérification rapide après exécution :
 --    SELECT table_name FROM information_schema.tables
 --    WHERE table_schema = 'public'
