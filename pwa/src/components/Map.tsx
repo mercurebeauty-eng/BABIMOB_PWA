@@ -229,24 +229,22 @@ export default function Map({
     layer.clearLayers();
 
     hotspots.forEach((h) => {
-      const outerRadius = 80 + h.intensity * 30;
+      const isHot = h.intensity >= 3;
+      const outerColor = isHot ? '#FF3300' : '#4A90E2'; // Red vs Blue
+      const innerColor = isHot ? '#FF0000' : '#0058e6';
+      
+      const outerRadius = 120 + h.intensity * 25;
       L.circle([h.lat, h.lon], {
         radius: outerRadius,
         stroke: false,
-        fillColor: '#ff5722',
-        fillOpacity: 0.08,
+        fillColor: outerColor,
+        fillOpacity: 0.2,
       }).addTo(layer);
       L.circle([h.lat, h.lon], {
-        radius: outerRadius * 0.6,
+        radius: outerRadius * 0.4,
         stroke: false,
-        fillColor: '#f5a623',
-        fillOpacity: 0.15,
-      }).addTo(layer);
-      L.circle([h.lat, h.lon], {
-        radius: outerRadius * 0.3,
-        stroke: false,
-        fillColor: '#ffeb3b',
-        fillOpacity: 0.3,
+        fillColor: innerColor,
+        fillOpacity: 0.4,
       }).addTo(layer);
     });
   }, [hotspots]);
