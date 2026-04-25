@@ -30,6 +30,7 @@ type Props = {
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
   pois?: POI[];
+  broadcasts?: { id: string; display_name: string; avatar_emoji: string; broadcast_text: string; broadcast_lat: number; broadcast_lon: number }[];
 };
 
 function makeMarkerIcon(selected = false) {
@@ -67,6 +68,7 @@ export default function Map({
   hotspots = [],
   explorers = [],
   pois = [],
+  broadcasts = [],
   onPoiClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -76,6 +78,7 @@ export default function Map({
   const explorersLayerRef = useRef<L.LayerGroup | null>(null);
   const legsLayerRef = useRef<L.LayerGroup | null>(null);
   const poisLayerRef = useRef<L.LayerGroup | null>(null);
+  const broadcastsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
 
@@ -117,6 +120,7 @@ export default function Map({
     const explorersLayer = L.layerGroup().addTo(map);
     const legsLayer = L.layerGroup().addTo(map);
     const poisLayer = L.layerGroup().addTo(map);
+    const broadcastsLayer = L.layerGroup().addTo(map);
 
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
@@ -124,6 +128,7 @@ export default function Map({
     explorersLayerRef.current = explorersLayer;
     legsLayerRef.current = legsLayer;
     poisLayerRef.current = poisLayer;
+    broadcastsLayerRef.current = broadcastsLayer;
 
     onMapReady?.(map);
 
@@ -135,6 +140,7 @@ export default function Map({
       explorersLayerRef.current = null;
       legsLayerRef.current = null;
       poisLayerRef.current = null;
+      broadcastsLayerRef.current = null;
       userMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,6 +262,40 @@ export default function Map({
       marker.addTo(layer);
     });
   }, [pois]);
+
+  // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
+  useEffect(() => {
+    const layer = broadcastsLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    broadcasts.forEach((bc) => {
+      if (!bc.broadcast_lat || !bc.broadcast_lon) return;
+
+      const html = `
+        <div class="relative group cursor-pointer animate-in zoom-in duration-500">
+          <div class="absolute -top-12 -left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-4 py-2 rounded-2xl shadow-xl border-2 border-abidjan-orange/20 flex items-center gap-3">
+             <div class="w-8 h-8 rounded-xl bg-abidjan-orange/10 flex items-center justify-center text-lg">${bc.avatar_emoji}</div>
+             <div class="flex flex-col">
+                <span class="text-[9px] font-black text-abidjan-orange uppercase tracking-widest">${bc.display_name}</span>
+                <span class="text-[11px] font-black text-beige-text">${bc.broadcast_text}</span>
+             </div>
+             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-abidjan-orange/20 rotate-45"></div>
+          </div>
+          <div class="w-4 h-4 bg-abidjan-orange rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+
+      L.marker([bc.broadcast_lat, bc.broadcast_lon], { icon, zIndexOffset: 2000 }).addTo(layer);
+    });
+  }, [broadcasts]);
 
   // ── Markers ────────────────────────────────────────────────────────────────
   useEffect(() => {

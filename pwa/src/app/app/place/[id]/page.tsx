@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
+import CheckInButtonPlace from '@/components/CheckInButtonPlace';
+import PlaceSocialSections from '@/components/PlaceSocialSections';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -21,8 +23,15 @@ function formatDist(m: number) {
 export default async function PlacePage({ params }: Props) {
   const supabase = await createClient();
   const { id } = await params;
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: place }, { data: offers }] = await Promise.all([
+  const [
+    { data: place }, 
+    { data: offers },
+    { data: checkins },
+    { data: advice },
+    { data: userProfile }
+  ] = await Promise.all([
     supabase.from('places').select('*').eq('id', id).maybeSingle(),
     supabase
       .from('place_offers')
@@ -30,6 +39,21 @@ export default async function PlacePage({ params }: Props) {
       .eq('place_id', id)
       .eq('is_active', true)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('checkins')
+      .select('id, created_at, display_name, avatar_emoji, is_public')
+      .eq('place_id', id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('place_advice')
+      .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
+      .eq('place_id', id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    user 
+      ? supabase.from('profiles').select('is_verified_explorer').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
   if (!place) notFound();
@@ -104,6 +128,15 @@ export default async function PlacePage({ params }: Props) {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Action Check-in */}
+        <div className="max-w-md mx-auto w-full">
+           <CheckInButtonPlace 
+             placeId={place.id} 
+             placeName={place.name} 
+             commune={place.commune ?? null} 
+           />
         </div>
 
         {/* Campagne active */}
@@ -227,6 +260,15 @@ export default async function PlacePage({ params }: Props) {
             </div>
           </div>
         )}
+
+        {/* Sections Sociales (Traces et Q&A) */}
+        <PlaceSocialSections 
+          placeId={id} 
+          initialCheckins={checkins || []} 
+          initialAdvice={(advice as any[]) || []}
+          userId={user?.id || null}
+          isVerifiedExplorer={!!userProfile?.is_verified_explorer}
+        />
 
         {/* CTA inscription commerçant */}
         {!sponsoredActive && (

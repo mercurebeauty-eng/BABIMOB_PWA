@@ -46,7 +46,7 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, onSucc
     const { error } = await supabase.from('checkins').insert({
       user_id: user.id,
       place_id: placeId,
-      stop_name: placeName, // We reuse stop_name for display consistency in simple lists
+      stop_name: placeName,
       commune,
       is_public: true,
       display_name: profile?.display_name ?? 'Explorateur',
@@ -54,18 +54,20 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, onSucc
     });
 
     if (error) { 
-      console.error(error);
-      setStatus('error'); 
+      if (error.message.includes('moins de 24h')) {
+        alert("Vous avez déjà visité ce lieu aujourd'hui ! Revenez demain.");
+      } else {
+        console.error(error);
+        alert("Erreur lors du check-in. Réessaye plus tard.");
+      }
+      setStatus('idle'); 
       return; 
     }
 
-    const since = new Date(Date.now() - 7 * 86400000).toISOString();
     const { count } = await supabase
       .from('checkins')
       .select('*', { count: 'exact', head: true })
-      .eq('place_id', placeId)
-      .eq('is_public', true)
-      .gte('created_at', since);
+      .eq('place_id', placeId);
 
     setRecentCount(count ?? 0);
     setStatus('done');

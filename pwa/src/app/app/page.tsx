@@ -8,6 +8,7 @@ import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CheckInButtonPlace from '@/components/CheckInButtonPlace';
+import BroadcastButton from '@/components/BroadcastButton';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -103,6 +104,7 @@ function AppPageContent() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [sheetTab, setSheetTab] = useState<'explorer' | 'activite'>('explorer');
@@ -115,6 +117,7 @@ function AppPageContent() {
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
   const [pois, setPois] = useState<POI[]>([]);
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
 
   const handleGetDirections = useCallback((poi: POI) => {
@@ -178,12 +181,27 @@ function AppPageContent() {
     }
   }, [searchParams]);
 
-  // Auto-dismiss geo error after 5 s
+  // Fetch Profile & Broadcasts
   useEffect(() => {
-    if (!geoError) return;
-    const t = setTimeout(() => setGeoError(null), 5000);
-    return () => clearTimeout(t);
-  }, [geoError]);
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(data);
+      }
+
+      // Fetch active broadcasts (last 4 hours)
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+      const { data: bc } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, sub_tier')
+        .not('last_broadcast_at', 'is', null)
+        .gt('last_broadcast_at', fourHoursAgo);
+      
+      if (bc) setBroadcasts(bc);
+    }
+    loadData();
+  }, [supabase]);
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
@@ -361,6 +379,7 @@ function AppPageContent() {
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}
         pois={pois}
+        broadcasts={broadcasts}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
@@ -460,6 +479,13 @@ function AppPageContent() {
             <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
             <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
           </button>
+
+          {/* Broadcast (Pro) */}
+          {profile && (
+            <div className="flex-shrink-0">
+               <BroadcastButton userId={profile.id} currentTier={profile.sub_tier} />
+            </div>
+          )}
 
         </div>
       </div>
