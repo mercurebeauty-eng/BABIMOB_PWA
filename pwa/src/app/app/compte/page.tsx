@@ -278,13 +278,17 @@ export default async function ComptePage() {
                           ? `/app/arret/${encodeURIComponent(fav.stop_id)}`
                           : fav.kind === 'route' && fav.route_id
                           ? `/app/ligne/${encodeURIComponent(fav.route_id)}`
+                          : fav.kind === 'place' && fav.stop_id
+                          ? `/app/place/${encodeURIComponent(fav.stop_id)}`
                           : '/app'
                       }
                       className="flex items-center gap-4 bg-beige-50 hover:bg-white border border-beige-100 hover:border-red-500/30 rounded-2xl px-4 py-3.5 transition-all shadow-sm"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-black text-beige-text truncate">{fav.label}</div>
-                        <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{fav.kind === 'stop' ? 'Arrêt' : 'Ligne'}</div>
+                        <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">
+                          {fav.kind === 'stop' ? 'Arrêt' : fav.kind === 'place' ? 'Lieu' : 'Ligne'}
+                        </div>
                       </div>
                       <svg className="w-4 h-4 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </Link>
