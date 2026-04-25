@@ -6,17 +6,25 @@ import type { Stop } from '@/lib/types';
 
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 
+type ItineraryLeg = {
+  coords: [number, number][];
+  mode: string;
+  routeColor?: string;
+};
+
 type Props = {
   stops?: Stop[];
   center?: [number, number];
   zoom?: number;
   className?: string;
   selectedStopId?: string | null;
-  onStopClick?: (stop: Stop) => void;
+  onStopClick?: (stop: any) => void;
+  onPoiClick?: (poi: any) => void;
   onMapReady?: (map: L.Map) => void;
   userLocation?: [number, number] | null;
   route?: [number, number][] | null;
   routeColor?: string;
+  legs?: ItineraryLeg[] | null;
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
   pois?: { id: string; lat: number; lon: number; name: string; category: string }[];
@@ -52,6 +60,7 @@ export default function Map({
   userLocation = null,
   route = null,
   routeColor = '',
+  legs = null,
   hotspots = [],
   explorers = [],
   pois = [],
@@ -61,6 +70,7 @@ export default function Map({
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const hotspotsLayerRef = useRef<L.LayerGroup | null>(null);
   const explorersLayerRef = useRef<L.LayerGroup | null>(null);
+  const legsLayerRef = useRef<L.LayerGroup | null>(null);
   const poisLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
@@ -101,12 +111,14 @@ export default function Map({
     const markersLayer = L.layerGroup().addTo(map);
     const hotspotsLayer = L.layerGroup().addTo(map);
     const explorersLayer = L.layerGroup().addTo(map);
+    const legsLayer = L.layerGroup().addTo(map);
     const poisLayer = L.layerGroup().addTo(map);
-    
+
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
     hotspotsLayerRef.current = hotspotsLayer;
     explorersLayerRef.current = explorersLayer;
+    legsLayerRef.current = legsLayer;
     poisLayerRef.current = poisLayer;
 
     onMapReady?.(map);
@@ -117,6 +129,7 @@ export default function Map({
       markersLayerRef.current = null;
       hotspotsLayerRef.current = null;
       explorersLayerRef.current = null;
+      legsLayerRef.current = null;
       poisLayerRef.current = null;
       userMarkerRef.current = null;
     };
@@ -237,7 +250,9 @@ export default function Map({
         iconAnchor: isSponsored ? [24, 24] : [16, 16],
       });
 
-      L.marker([p.lat, p.lon], { icon }).addTo(layer);
+      L.marker([p.lat, p.lon], { icon })
+        .on('click', () => onPoiClick?.(p))
+        .addTo(layer);
     });
   }, [pois]);
 
@@ -297,6 +312,58 @@ export default function Map({
 
     userMarkerRef.current = marker;
   }, [userLocation]);
+
+  // ── Multi-leg itinerary ───────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = legsLayerRef.current;
+    const map = mapRef.current;
+    if (!layer || !map) return;
+
+    layer.clearLayers();
+    if (!legs || legs.length === 0) return;
+
+    const allCoords: [number, number][] = [];
+
+    legs.forEach((leg) => {
+      if (!leg.coords || leg.coords.length === 0) return;
+      allCoords.push(...leg.coords);
+
+      const isWalk = leg.mode === 'WALK';
+      const color = isWalk
+        ? '#8a93a2'
+        : leg.routeColor
+        ? `#${leg.routeColor}`
+        : '#FF7A00';
+
+      L.polyline(leg.coords, {
+        color,
+        weight: isWalk ? 3 : 6,
+        opacity: isWalk ? 0.55 : 0.9,
+        dashArray: isWalk ? '6 10' : undefined,
+        lineJoin: 'round',
+        lineCap: 'round',
+      }).addTo(layer);
+    });
+
+    const dot = (color: string) =>
+      L.divIcon({
+        className: '',
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+
+    const firstCoord = legs[0]?.coords?.[0];
+    const lastLeg = legs[legs.length - 1];
+    const lastCoord = lastLeg?.coords?.[lastLeg.coords.length - 1];
+
+    if (firstCoord) L.marker(firstCoord, { icon: dot('#00A651'), zIndexOffset: 500 }).addTo(layer);
+    if (lastCoord) L.marker(lastCoord, { icon: dot('#FF7A00'), zIndexOffset: 500 }).addTo(layer);
+
+    if (allCoords.length > 0) {
+      map.fitBounds(L.latLngBounds(allCoords), { padding: [60, 60] });
+    }
+  }, [legs]);
 
   // ── Route polyline ────────────────────────────────────────────────────────
   const routeLayerRef = useRef<L.Polyline | null>(null);

@@ -15,12 +15,36 @@ export default function CheckInButton({ stopId, stopName, commune }: Props) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setStatus('error'); return; }
 
+    // Get or create profile
+    let { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_emoji')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      const raw = user.email?.split('@')[0] ?? 'Explorateur';
+      const defaultName = raw
+        .replace(/[._-]/g, ' ')
+        .split(' ')
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+      const { data: created } = await supabase
+        .from('profiles')
+        .insert({ id: user.id, display_name: defaultName, avatar_emoji: '🧭' })
+        .select('display_name, avatar_emoji')
+        .single();
+      profile = created;
+    }
+
     const { error } = await supabase.from('checkins').insert({
       user_id: user.id,
       stop_id: stopId,
       stop_name: stopName,
       commune,
       is_public: true,
+      display_name: profile?.display_name ?? 'Explorateur',
+      avatar_emoji: profile?.avatar_emoji ?? '🧭',
     });
 
     if (error) { setStatus('error'); return; }
