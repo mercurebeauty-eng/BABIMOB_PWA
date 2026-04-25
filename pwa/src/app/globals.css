@@ -169,11 +169,91 @@ body {
   backface-visibility: hidden;
 }
 
+/* ── POI Bubbles (Google/Snap Style) ─────────────────────────── */
+.bm-poi-bubble {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: white;
+  border-radius: 40px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  border: 1px solid rgba(0,0,0,0.06);
+  white-space: nowrap;
+  pointer-events: auto;
+  transition: transform 120ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+}
+
+.bm-poi-bubble:hover {
+  transform: scale(1.08) translateY(-2px);
+  z-index: 1000 !important;
+}
+
+.bm-poi-emoji {
+  font-size: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bm-poi-label {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2D2721; /* beige-text */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+/* Pro style */
+.bm-poi-bubble-pro {
+  border: 1.5px solid #FF7A00;
+  box-shadow: 0 4px 14px rgba(255, 122, 0, 0.22);
+}
+
+.bm-poi-bubble-pro .bm-poi-label {
+  color: #FF7A00;
+}
+
+/* Elite style */
+.bm-poi-bubble-elite {
+  border: 2px solid #FF7A00;
+  box-shadow: 0 6px 20px rgba(255, 122, 0, 0.3);
+  padding: 5px 12px;
+}
+
+.bm-poi-bubble-elite .bm-poi-label {
+  font-size: 12px;
+  color: #FF7A00;
+  font-weight: 800;
+}
+
+/* Elite Pulse Aura */
+@keyframes bm-poi-elite-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.45); }
+  70%  { box-shadow: 0 0 0 15px rgba(255, 122, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0); }
+}
+
+.bm-poi-elite-pulse {
+  animation: bm-poi-elite-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Leaflet Overrides for POI markers */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Respect prefers-reduced-motion — pause all decorative animations */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
   .animate-float,
-  .animate-phone-float {
+  .animate-phone-float,
+  .bm-poi-elite-pulse {
     animation: none !important;
   }
   .bm-search-overlay {

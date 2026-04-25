@@ -213,30 +213,34 @@ export default function Map({
 
     pois.forEach((p) => {
       const emoji = p.logo_emoji ?? '🏢';
-      const color = p.cover_color ?? '#8a93a2';
-      let html: string;
+      const isElite = p.sponsor_tier === 'elite';
+      const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
 
-      if (p.sponsor_tier === 'elite') {
-        html = `
-          <div style="position:relative;display:flex;align-items:center;justify-content:center;width:48px;height:48px;">
-            <div class="poi-elite-ring" style="position:absolute;width:40px;height:40px;border-radius:50%;background:${color};opacity:0.4;"></div>
-            <div style="width:38px;height:38px;background:${color};border-radius:12px;border:2.5px solid white;box-shadow:0 4px 14px ${color}55;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;z-index:1;">${emoji}</div>
-          </div>`;
-      } else if (p.sponsor_tier === 'pro' || p.has_campaign) {
-        html = `
-          <div style="width:32px;height:32px;background:white;border-radius:10px;border:2.5px solid ${color};box-shadow:0 2px 10px ${color}40;display:flex;align-items:center;justify-content:center;font-size:16px;">${emoji}</div>`;
-      } else {
-        html = `
-          <div style="width:24px;height:24px;background:white;border-radius:6px;border:1.5px solid #D9C8AC;box-shadow:0 1px 4px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0.85;">${emoji}</div>`;
-      }
+      const extraClass = isElite
+        ? 'bm-poi-bubble-elite bm-poi-elite-pulse'
+        : isPro
+        ? 'bm-poi-bubble-pro'
+        : '';
 
-      const size: [number, number] = p.sponsor_tier === 'elite' ? [48, 48] : p.sponsor_tier === 'pro' || p.has_campaign ? [32, 32] : [24, 24];
-      const anchor: [number, number] = [size[0] / 2, size[1] / 2];
+      const html = `
+        <div class="bm-poi-bubble ${extraClass}">
+          <span class="bm-poi-emoji">${emoji}</span>
+          <span class="bm-poi-label">${p.name}</span>
+        </div>
+      `;
 
-      const icon = L.divIcon({ className: '', html, iconSize: size, iconAnchor: anchor });
+      // We use a small offset so the anchor is roughly in the center-top of the bubble
+      // But since it's a dynamic width bubble, centering precisely is easier with CSS
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0], // CSS will handle centering or we can just leave as is
+      });
+
       const marker = L.marker([p.lat, p.lon], {
         icon,
-        zIndexOffset: p.sponsor_tier === 'elite' ? 200 : p.sponsor_tier === 'pro' ? 100 : 0,
+        zIndexOffset: isElite ? 1000 : isPro ? 500 : 100,
       });
 
       marker.on('click', () => onPoiClickRef.current?.(p));
