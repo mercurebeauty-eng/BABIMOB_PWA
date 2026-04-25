@@ -216,26 +216,31 @@ export default function Map({
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
 
+      const circleSize = isElite ? 40 : isPro ? 32 : 24;
+      const emojiSize = isElite ? 22 : isPro ? 17 : 14;
+
       const extraClass = isElite
-        ? 'bm-poi-bubble-elite bm-poi-elite-pulse'
+        ? 'bm-poi-circle-elite bm-poi-elite-pulse'
         : isPro
-        ? 'bm-poi-bubble-pro'
+        ? 'bm-poi-circle-pro'
         : '';
+      
+      const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
 
       const html = `
-        <div class="bm-poi-bubble ${extraClass}">
-          <span class="bm-poi-emoji">${emoji}</span>
-          <span class="bm-poi-label">${p.name}</span>
+        <div class="bm-poi-container">
+          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
+            <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
+          </div>
+          <span class="bm-poi-label-under ${labelClass}">${p.name}</span>
         </div>
       `;
 
-      // We use a small offset so the anchor is roughly in the center-top of the bubble
-      // But since it's a dynamic width bubble, centering precisely is easier with CSS
       const icon = L.divIcon({
         className: '',
         html,
         iconSize: [0, 0],
-        iconAnchor: [0, 0], // CSS will handle centering or we can just leave as is
+        iconAnchor: [0, 0],
       });
 
       const marker = L.marker([p.lat, p.lon], {
