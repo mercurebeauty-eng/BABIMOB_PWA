@@ -7,6 +7,11 @@ import type { POI } from '@/lib/poi';
 
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 
+// Inline SVG icons — no external dependency
+const SVG_LAYERS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
+const SVG_GPS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
+const SVG_COMPASS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`;
+
 type ItineraryLeg = {
   coords: [number, number][];
   mode: string;
@@ -81,8 +86,11 @@ export default function Map({
   const broadcastsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
+  // Ref so Leaflet control closures always access the latest userLocation
+  const userLocationRef = useRef(userLocation);
 
   useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
+  useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
 
   // ── Init (once) ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -102,8 +110,9 @@ export default function Map({
       zoomControl: false,
     });
 
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    // Voyager tiles — richer colours than Carto Light, closer to Google Maps aesthetic
+    const baseLayer = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -112,8 +121,63 @@ export default function Map({
       }
     ).addTo(map);
 
+    // Satellite layer (Esri World Imagery) — loaded on demand
+    const satLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: 'Tiles &copy; Esri', maxZoom: 20 }
+    );
+
     // Zoom control bottom-right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Glassmorphism nav toolbar (layer toggle + GPS + compass)
+    const NavControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd() {
+        const c = L.DomUtil.create('div', 'bm-nav-toolbar');
+        L.DomEvent.disableClickPropagation(c);
+        L.DomEvent.disableScrollPropagation(c);
+
+        // Satellite toggle
+        const layerBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        layerBtn.title = 'Vue satellite';
+        layerBtn.innerHTML = SVG_LAYERS;
+        let isSat = false;
+        L.DomEvent.on(layerBtn, 'click', () => {
+          isSat = !isSat;
+          if (isSat) {
+            map.removeLayer(baseLayer);
+            satLayer.addTo(map);
+            layerBtn.classList.add('bm-map-btn--active');
+          } else {
+            map.removeLayer(satLayer);
+            baseLayer.addTo(map);
+            layerBtn.classList.remove('bm-map-btn--active');
+          }
+        });
+
+        // GPS — soft-center on user position
+        const gpsBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        gpsBtn.title = 'Ma position';
+        gpsBtn.innerHTML = SVG_GPS;
+        L.DomEvent.on(gpsBtn, 'click', () => {
+          const loc = userLocationRef.current;
+          if (loc) map.flyTo(loc, 16, { duration: 1.2 });
+        });
+
+        // Compass — reset to Abidjan overview
+        const compassBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        compassBtn.title = 'Vue Abidjan';
+        compassBtn.innerHTML = SVG_COMPASS;
+        L.DomEvent.on(compassBtn, 'click', () => {
+          map.flyTo(ABIDJAN_CENTER, 12, { duration: 1.2 });
+        });
+
+        return c;
+      },
+    });
+
+    new NavControl().addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
     const hotspotsLayer = L.layerGroup().addTo(map);
@@ -159,7 +223,6 @@ export default function Map({
     layer.clearLayers();
 
     hotspots.forEach((h) => {
-      // 1. Large soft glow (Red-ish/Beige)
       const outerRadius = 80 + h.intensity * 30;
       L.circle([h.lat, h.lon], {
         radius: outerRadius,
@@ -167,16 +230,12 @@ export default function Map({
         fillColor: '#ff5722',
         fillOpacity: 0.08,
       }).addTo(layer);
-      
-      // 2. Middle glow (Orange)
       L.circle([h.lat, h.lon], {
         radius: outerRadius * 0.6,
         stroke: false,
         fillColor: '#f5a623',
         fillOpacity: 0.15,
       }).addTo(layer);
-      
-      // 3. Hot core (Yellow)
       L.circle([h.lat, h.lon], {
         radius: outerRadius * 0.3,
         stroke: false,
@@ -233,7 +292,7 @@ export default function Map({
         : isPro
         ? 'bm-poi-circle-pro'
         : '';
-      
+
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
       const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
@@ -374,11 +433,12 @@ export default function Map({
     const icon = L.divIcon({
       className: '',
       html: '<div class="bm-user-marker"></div>',
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
     });
 
-    const marker = L.marker(userLocation, { icon, zIndexOffset: 1000 })
+    // Lower zIndexOffset so the GPS dot doesn't mask interactive POIs/stops
+    const marker = L.marker(userLocation, { icon, zIndexOffset: 200 })
       .bindPopup('<div class="bm-popup"><strong>Ma position</strong></div>', {
         className: 'bm-popup-wrapper',
         offset: [0, -4],
@@ -462,7 +522,6 @@ export default function Map({
 
     routeLayerRef.current = polyline;
 
-    // Optional: fit bounds to route
     map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
   }, [route, routeColor]);
 
