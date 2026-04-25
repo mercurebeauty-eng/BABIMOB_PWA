@@ -33,10 +33,6 @@ CREATE TABLE IF NOT EXISTS places (
   name                TEXT        NOT NULL,
   lat                 DOUBLE PRECISION NOT NULL,
   lon                 DOUBLE PRECISION NOT NULL,
-  geom                geography(Point, 4326)
-                      GENERATED ALWAYS AS (
-                        ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography
-                      ) STORED,
   category            TEXT        NOT NULL DEFAULT 'other'
                       CHECK (category IN ('food','shop','service','health','entertainment','other')),
   subcategory         TEXT,
@@ -60,7 +56,6 @@ CREATE TABLE IF NOT EXISTS places (
   updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_places_geom      ON places USING GIST (geom);
 CREATE INDEX idx_places_commune   ON places (commune);
 CREATE INDEX idx_places_category  ON places (category);
 CREATE INDEX idx_places_sponsored ON places (is_sponsored, sponsor_tier);
