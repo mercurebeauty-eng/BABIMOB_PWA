@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 import ProfileEditor from './ProfileEditor';
+import PreferencesEditor from './PreferencesEditor';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import ProfileSocialTabs from '@/components/ProfileSocialTabs';
 
@@ -318,16 +319,10 @@ export default async function ComptePage() {
               <div className="text-sm uppercase tracking-widest text-beige-text font-black">Préférences</div>
             </div>
 
-            <div className="flex flex-wrap gap-2 flex-1">
-              {['🚐 Gbaka', '🚖 Woro-woro', '🚕 Taxi', '🛺 Saloni'].map((t) => (
-                <button key={t} className="text-xs font-black bg-beige-50 border-2 border-beige-100 hover:border-abidjan-orange hover:bg-abidjan-orange/10 hover:text-abidjan-orange text-beige-muted px-4 py-2.5 rounded-2xl transition-all shadow-sm">
-                  {t}
-                </button>
-              ))}
-            </div>
-            <div className="mt-6 p-4 bg-beige-50 rounded-2xl border border-beige-100 border-dashed">
-               <p className="text-[10px] text-beige-muted font-bold uppercase tracking-widest leading-relaxed">Le mode personnalisation sera bientôt actif pour tes calculs d&apos;itinéraires.</p>
-            </div>
+            <PreferencesEditor 
+              userId={user.id} 
+              initialPreferences={profile?.preferred_transit_modes || []} 
+            />
           </div>
         </div>
 
