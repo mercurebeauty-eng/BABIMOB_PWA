@@ -21,7 +21,7 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: lignes }, { data: favRow }] = await Promise.all([
+  const [{ data: lignes }, { data: favRow }, { data: profile }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
       ? supabase
@@ -33,9 +33,13 @@ export default async function ArretPage({ params }: Props) {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    user
+      ? supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).maybeSingle()
+      : Promise.resolve({ data: null })
   ]);
 
   const isFavorited = !!favRow;
+  const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
@@ -103,13 +107,20 @@ export default async function ArretPage({ params }: Props) {
         )}
 
         <ul className="space-y-3">
-          {lignes?.map((l: any) => (
-            <li key={`${l.route_id}-${l.direction_id ?? 0}`}>
+          {lignes?.map((l: any) => {
+            // Check if the user banned this mode. (Assumes agency_id loosely reflects the mode)
+            // SOTRA or generic lines might not strictly match, so we dim only if agency_id directly matches a banned mode
+            const activeModes = prefs.map((p: string) => p.toLowerCase());
+            const agency = (l.agency_id || '').toLowerCase();
+            const isBanned = ['gbaka', 'woro-woro', 'taxi', 'saloni'].some(m => agency.includes(m) && !activeModes.includes(m));
+
+            return (
+            <li key={`${l.route_id}-${l.direction_id ?? 0}`} className={isBanned ? 'opacity-50 grayscale' : ''}>
               <Link
                 href={`/app/ligne/${encodeURIComponent(l.route_id)}${l.direction_id === 1 ? '?dir=1' : ''}`}
-                className="bg-white rounded-[2rem] border-2 border-beige-200 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all p-5 flex items-center justify-between gap-4"
+                className="bg-white rounded-[2rem] border-2 border-beige-200 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all p-5 flex items-center justify-between gap-4 relative overflow-hidden"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 z-10">
                   <div className="font-black text-base text-beige-text truncate">
                     {l.route_long_name}
                   </div>
@@ -119,8 +130,13 @@ export default async function ArretPage({ params }: Props) {
                       <span className="ml-1 opacity-60">· {l.trip_headsign}</span>
                     )}
                   </div>
+                  {isBanned && (
+                     <div className="text-[9px] font-black uppercase text-red-500 tracking-widest mt-2 bg-red-50 inline-block px-2 py-0.5 rounded-md border border-red-100">
+                        Incompatible avec vos préférences
+                     </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-3 flex-shrink-0 z-10">
                   <div className="bg-abidjan-orange/10 text-abidjan-orange text-[10px] font-black px-2.5 py-1 rounded-lg border border-abidjan-orange/20 uppercase tracking-widest">
                     Ligne
                   </div>
@@ -130,7 +146,7 @@ export default async function ArretPage({ params }: Props) {
                 </div>
               </Link>
             </li>
-          ))}
+          )})}
         </ul>
       </div>
     </div>

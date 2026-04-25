@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import LocationInput from './LocationInput';
 import { fetchItinerary } from '@/lib/otp';
+import { createClient } from '@/lib/supabase/client';
 import type { Stop } from '@/lib/types';
 
 export default function ItinerairePage() {
@@ -17,6 +18,9 @@ export default function ItinerairePage() {
   const [wheelchair, setWheelchair] = useState(false);
   const [itineraries, setItineraries] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  const [prefs, setPrefs] = useState<string[]>([]);
+  const supabase = createClient();
 
   // Parse toStop from URL
   useEffect(() => {
@@ -30,7 +34,21 @@ export default function ItinerairePage() {
         console.error("Failed to parse toStop", err);
       }
     }
-  }, []);
+
+    const loadPrefs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).single();
+        if (data && data.preferred_transit_modes) {
+           setPrefs(data.preferred_transit_modes);
+        } else {
+           // By default all are enabled
+           setPrefs(['Gbaka', 'Woro-woro', 'Taxi', 'Saloni']);
+        }
+      }
+    };
+    loadPrefs();
+  }, [supabase]);
 
   const handleCalculate = async () => {
     if (!startStop || !endStop) {
@@ -137,7 +155,12 @@ export default function ItinerairePage() {
 
           {/* Results List */}
           <div className="mt-8 space-y-4 pb-12">
-            {itineraries.map((iti, idx) => (
+            {itineraries.map((iti, idx) => {
+              const hasTransit = iti.legs.some((leg: any) => leg.mode === 'BUS' || leg.mode === 'TRANSIT');
+              const userBannedTransit = prefs.length > 0 && prefs.length < 4; // User disabled at least one mode
+              const showWarning = hasTransit && userBannedTransit;
+
+              return (
               <div key={idx} className="bg-white rounded-[2rem] border-2 border-beige-200 shadow-lg p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
@@ -168,6 +191,15 @@ export default function ItinerairePage() {
                   ))}
                 </div>
 
+                {showWarning && (
+                   <div className="mt-4 p-3 bg-abidjan-orange/10 border border-abidjan-orange/30 rounded-xl flex gap-3 items-start">
+                     <span className="text-sm">⚠️</span>
+                     <p className="text-[10px] uppercase tracking-widest font-black text-abidjan-orange leading-tight">
+                        Ce trajet inclut des transports en commun. Assure-toi que cela correspond à tes préférences ({prefs.join(', ')}).
+                     </p>
+                   </div>
+                )}
+
                 <div className="mt-6 pt-6 border-t border-beige-50">
                   <Link 
                     href={`/app?iti=${encodeURIComponent(JSON.stringify(iti))}`}
@@ -177,7 +209,7 @@ export default function ItinerairePage() {
                   </Link>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </div>
