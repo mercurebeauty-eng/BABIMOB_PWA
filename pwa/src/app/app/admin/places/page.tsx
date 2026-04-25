@@ -148,7 +148,7 @@ export default function AdminPlacesPage() {
   if (loading) return <div className="p-8 text-center bg-beige-50 min-h-screen font-sans">Chargement...</div>;
 
   return (
-    <div className="min-h-screen bg-beige-50 pb-20 font-sans">
+    <div className="h-full overflow-y-auto bg-beige-50 pb-20 font-sans">
       <header className="bg-white border-b border-beige-200 px-6 py-6 sticky top-0 z-20 flex items-center justify-between">
         <Link href="/app/compte" className="p-2 -ml-2 text-beige-muted hover:text-abidjan-orange">
            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m15 18-6-6 6-6" /></svg>

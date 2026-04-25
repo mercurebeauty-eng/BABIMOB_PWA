@@ -295,3 +295,8 @@ body {
     transition: none !important;
   }
 }
+
+/* Utils & Leaflet Polish */
+.leaflet-control-attribution {
+  display: none !important;
+}
