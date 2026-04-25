@@ -74,8 +74,8 @@ export default async function ArretPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Favorite action */}
-        <div className="mb-8">
+        {/* Actions - Favoris uniquement */}
+        <div className="mb-8 max-w-sm mx-auto">
           <FavoriteButton
             stopId={stop.stop_id}
             stopName={stop.stop_name}

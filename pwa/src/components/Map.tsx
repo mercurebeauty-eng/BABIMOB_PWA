@@ -26,6 +26,7 @@ type Props = {
   zoom?: number;
   className?: string;
   selectedStopId?: string | null;
+  selectedPoiId?: string | null;
   onStopClick?: (stop: any) => void;
   onPoiClick?: (poi: POI) => void;
   onMapReady?: (map: L.Map) => void;
@@ -36,8 +37,8 @@ type Props = {
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
   pois?: POI[];
-  // place_id (poi.id) → recent check-in count for this week
   poiCheckins?: Record<string, number>;
+  broadcasts?: { id: string; display_name: string; avatar_emoji: string; broadcast_text: string; broadcast_lat: number; broadcast_lon: number }[];
 };
 
 function makeMarkerIcon(selected = false) {
@@ -65,6 +66,7 @@ export default function Map({
   zoom = 12,
   className = 'absolute inset-0',
   selectedStopId = null,
+  selectedPoiId = null,
   onStopClick,
   onMapReady,
   userLocation = null,
@@ -75,6 +77,7 @@ export default function Map({
   explorers = [],
   pois = [],
   poiCheckins = {},
+  broadcasts = [],
   onPoiClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -84,6 +87,7 @@ export default function Map({
   const explorersLayerRef = useRef<L.LayerGroup | null>(null);
   const legsLayerRef = useRef<L.LayerGroup | null>(null);
   const poisLayerRef = useRef<L.LayerGroup | null>(null);
+  const broadcastsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
   // Refs so Leaflet control closures always see latest values
@@ -186,6 +190,7 @@ export default function Map({
     const explorersLayer = L.layerGroup().addTo(map);
     const legsLayer = L.layerGroup().addTo(map);
     const poisLayer = L.layerGroup().addTo(map);
+    const broadcastsLayer = L.layerGroup().addTo(map);
 
     mapRef.current = map;
     markersLayerRef.current = markersLayer;
@@ -193,6 +198,7 @@ export default function Map({
     explorersLayerRef.current = explorersLayer;
     legsLayerRef.current = legsLayer;
     poisLayerRef.current = poisLayer;
+    broadcastsLayerRef.current = broadcastsLayer;
 
     onMapReady?.(map);
 
@@ -204,6 +210,7 @@ export default function Map({
       explorersLayerRef.current = null;
       legsLayerRef.current = null;
       poisLayerRef.current = null;
+      broadcastsLayerRef.current = null;
       userMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -281,6 +288,7 @@ export default function Map({
       const emoji = p.logo_emoji ?? '🏢';
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
+      const isSelected = selectedPoiId === p.id;
 
       const circleSize = isElite ? 40 : isPro ? 32 : 24;
       const emojiSize = isElite ? 22 : isPro ? 17 : 14;
@@ -292,6 +300,7 @@ export default function Map({
         : '';
 
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
+      const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
       // Person presence indicator (check-in visitors this week)
       const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
@@ -300,12 +309,12 @@ export default function Map({
         : '';
 
       const html = `
-        <div class="bm-poi-container">
+        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
           ${presenceHtml}
           <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
             <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
           </div>
-          <span class="bm-poi-label-under ${labelClass}">${p.name}</span>
+          <span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>
         </div>
       `;
 
@@ -325,6 +334,74 @@ export default function Map({
       marker.addTo(layer);
     });
   }, [pois, poiCheckins]);
+
+  // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
+  useEffect(() => {
+    const layer = broadcastsLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    broadcasts.forEach((bc) => {
+      if (!bc.broadcast_lat || !bc.broadcast_lon) return;
+
+      const html = `
+        <div class="relative group cursor-pointer animate-in zoom-in duration-500">
+          <div class="absolute -top-12 -left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-4 py-2 rounded-2xl shadow-xl border-2 border-abidjan-orange/20 flex items-center gap-3">
+             <div class="w-8 h-8 rounded-xl bg-abidjan-orange/10 flex items-center justify-center text-lg">${bc.avatar_emoji}</div>
+             <div class="flex flex-col">
+                <span class="text-[9px] font-black text-abidjan-orange uppercase tracking-widest">${bc.display_name}</span>
+                <span class="text-[11px] font-black text-beige-text">${bc.broadcast_text}</span>
+             </div>
+             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-abidjan-orange/20 rotate-45"></div>
+          </div>
+          <div class="w-4 h-4 bg-abidjan-orange rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+
+      L.marker([bc.broadcast_lat, bc.broadcast_lon], { icon, zIndexOffset: 2000 }).addTo(layer);
+    });
+  }, [broadcasts]);
+
+  // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
+  useEffect(() => {
+    const layer = broadcastsLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    broadcasts.forEach((bc) => {
+      if (!bc.broadcast_lat || !bc.broadcast_lon) return;
+
+      const html = `
+        <div class="relative group cursor-pointer animate-in zoom-in duration-500">
+          <div class="absolute -top-12 -left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-4 py-2 rounded-2xl shadow-xl border-2 border-abidjan-orange/20 flex items-center gap-3">
+             <div class="w-8 h-8 rounded-xl bg-abidjan-orange/10 flex items-center justify-center text-lg">${bc.avatar_emoji}</div>
+             <div class="flex flex-col">
+                <span class="text-[9px] font-black text-abidjan-orange uppercase tracking-widest">${bc.display_name}</span>
+                <span class="text-[11px] font-black text-beige-text">${bc.broadcast_text}</span>
+             </div>
+             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-abidjan-orange/20 rotate-45"></div>
+          </div>
+          <div class="w-4 h-4 bg-abidjan-orange rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+
+      L.marker([bc.broadcast_lat, bc.broadcast_lon], { icon, zIndexOffset: 2000 }).addTo(layer);
+    });
+  }, [broadcasts]);
 
   // ── Markers ────────────────────────────────────────────────────────────────
   useEffect(() => {

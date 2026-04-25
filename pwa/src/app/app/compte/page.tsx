@@ -4,6 +4,7 @@ import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 import ProfileEditor from './ProfileEditor';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
+import ProfileSocialTabs from '@/components/ProfileSocialTabs';
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -12,9 +13,19 @@ export default async function ComptePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, avatar_emoji')
+    .select('*')
     .eq('id', user.id)
     .maybeSingle();
+
+  const { data: badges } = await supabase
+    .from('user_badges')
+    .select('badge_key, awarded_at')
+    .eq('user_id', user.id);
+
+  const { data: following } = await supabase
+    .from('follows')
+    .select('id, profiles:following_id(id, display_name, avatar_emoji, is_verified_explorer)')
+    .eq('follower_id', user.id);
 
   const { count: checkinCount } = await supabase
     .from('checkins')
@@ -25,7 +36,30 @@ export default async function ComptePage() {
     .from('checkins')
     .select('commune, place_name')
     .eq('user_id', user.id)
-    .limit(100);
+    .order('created_at', { ascending: false })
+    .limit(300);
+
+  // Pour la Heatmap, on a besoin des coordonnées.
+  // On va chercher les positions des places et arrêts concernés
+  const placeIds = [...new Set(checkinsDetail?.map(c => c.place_id).filter(Boolean))];
+  const stopIds  = [...new Set(checkinsDetail?.map(c => c.stop_id).filter(Boolean))];
+
+  const [{ data: placesCoords }, { data: stopsCoords }] = await Promise.all([
+    supabase.from('places').select('id, lat, lon').in('id', placeIds),
+    supabase.from('arrets').select('stop_id, stop_lat, stop_lon').in('stop_id', stopIds),
+  ]);
+
+  const heatmapData = checkinsDetail?.map(c => {
+    if (c.place_id) {
+       const p = placesCoords?.find(pc => pc.id === c.place_id);
+       return p ? { lat: p.lat, lon: p.lon } : null;
+    }
+    if (c.stop_id) {
+       const s = stopsCoords?.find(sc => sc.stop_id === c.stop_id);
+       return s ? { lat: s.stop_lat, lon: s.stop_lon } : null;
+    }
+    return null;
+  }).filter(Boolean);
 
   const communeFreq: Record<string, number> = {};
   const categoryFreq: Record<string, number> = {
@@ -61,16 +95,17 @@ export default async function ComptePage() {
     .limit(20);
 
   const total = checkinCount ?? 0;
+  const totalPoints = profile?.total_points ?? 0;
   const communeCount = topCommunes.length;
   
-  // Harder Gamification System
-  const level = total >= 400 ? 4 : total >= 150 ? 3 : total >= 50 ? 2 : 1;
+  // Level based on a mix of points and visits
+  const levelScore = (total * 2) + Math.floor(totalPoints / 5);
+  const level = levelScore >= 1000 ? 4 : levelScore >= 400 ? 3 : levelScore >= 100 ? 2 : 1;
   const levelNames = ['Novice', 'Explorateur Émergent', 'Guide Urbain', 'Maître d\'Abidjan'];
   const badge = levelNames[level - 1];
   
-  // Milestone for progress
-  const nextMilestone = level === 1 ? 50 : level === 2 ? 150 : level === 3 ? 400 : 1000;
-  const progress = Math.min((total / nextMilestone) * 100, 100);
+  const nextMilestone = level === 1 ? 100 : level === 2 ? 400 : level === 3 ? 1000 : 5000;
+  const progress = Math.min((levelScore / nextMilestone) * 100, 100);
 
   // Advanced User Archetype (Class)
   let userClass = 'Observateur';
@@ -120,7 +155,12 @@ export default async function ComptePage() {
             </div>
           </div>
           <div className="relative z-10 flex-1 text-center sm:text-left">
-            <div className="text-2xl font-black text-beige-text mb-1 truncate max-w-xs sm:max-w-none">{displayName}</div>
+            <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+               <div className="text-2xl font-black text-beige-text truncate max-w-xs sm:max-w-none">{displayName}</div>
+               {profile?.is_verified_explorer && (
+                  <span className="w-5 h-5 bg-abidjan-blue text-white rounded-full flex items-center justify-center text-[10px] shadow-sm shadow-abidjan-blue/30" title="Explorateur Vérifié">✓</span>
+               )}
+            </div>
             <div className="text-sm text-beige-muted font-medium mb-3 truncate">{user.email}</div>
             <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-4">
               <span className="text-[10px] font-black text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100 uppercase tracking-widest">Niveau {level} · {badge}</span>
@@ -129,9 +169,13 @@ export default async function ComptePage() {
             
             {/* Progress Bar */}
             <div className="max-w-sm">
-               <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">
-                  <span>Prochain niveau</span>
-                  <span>{total} / {nextMilestone} visits</span>
+               <div className="flex justify-between items-end mb-2">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-beige-muted">
+                    Score: <span className="text-abidjan-orange">{totalPoints} b-pts</span>
+                  </div>
+                  <div className="text-[9px] font-black uppercase text-beige-muted">
+                    {levelScore} / {nextMilestone} xp
+                  </div>
                </div>
                <div className="h-3 bg-beige-50 rounded-full border border-beige-100 overflow-hidden">
                   <div 
@@ -142,6 +186,42 @@ export default async function ComptePage() {
             </div>
           </div>
         </div>
+
+        {/* BADGES GALLERY */}
+        <div className="md:col-span-2 bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
+           <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-xl">🏆</div>
+              <h3 className="text-sm font-black uppercase tracking-widest text-beige-text">Ma Galerie de Badges</h3>
+           </div>
+           
+           <div className="flex flex-wrap gap-4">
+              {[
+                { key: 'conqueror', label: 'Conquérant', emoji: '🗺️', desc: '5 communes visitées' },
+                { key: 'night_owl', label: 'Oiseau de Nuit', emoji: '🦉', desc: 'Sortie après 22h' },
+                { key: 'early_bird', label: 'Lève-tôt', emoji: '🥐', desc: 'Actif aux aurores' },
+                { key: 'guide', label: 'Guide Local', emoji: '💬', desc: 'Donne des avis utiles' }
+              ].map((b) => {
+                const unlocked = badges?.some(ub => ub.badge_key === b.key);
+                return (
+                  <div key={b.key} className={`flex-1 min-w-[140px] p-4 rounded-3xl border-2 transition-all ${unlocked ? 'bg-purple-50 border-purple-200 ring-2 ring-purple-100 shadow-md' : 'bg-beige-50/50 border-beige-100 grayscale opacity-40'}`}>
+                    <div className="text-3xl mb-2">{b.emoji}</div>
+                    <div className="text-[10px] font-black uppercase tracking-tight text-beige-text">{b.label}</div>
+                    <div className="text-[9px] font-bold text-beige-muted mt-1 leading-tight">{b.desc}</div>
+                    {unlocked && <div className="text-[8px] font-black text-purple-500 uppercase mt-2">DÉBLOQUÉ ✅</div>}
+                  </div>
+                );
+              })}
+           </div>
+        </div>
+
+        {/* SOCIAL TABS - Span 2 */}
+        <ProfileSocialTabs 
+          userId={user.id} 
+          initialVisits={(checkinsDetail as any[]) || []}
+          initialFollowing={(following as any[]) || []}
+          heatmapData={(heatmapData as any[]) || []}
+          currentTier={profile?.sub_tier || 'free'}
+        />
 
         {/* EXPLORATIONS - Span 2 */}
         <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-blue/30">
@@ -233,8 +313,7 @@ export default async function ComptePage() {
           </div>
         </div>
 
-        {/* PROFILE EDITOR - Span 1 */}
-        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30 flex flex-col">
+        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-xl">✏️</div>
             <div className="text-sm uppercase tracking-widest text-beige-text font-black">Mon profil</div>
@@ -243,6 +322,9 @@ export default async function ComptePage() {
             userId={user.id}
             initialName={displayName}
             initialEmoji={avatarEmoji}
+            initialPhone={profile?.phone_number || ''}
+            initialConsent={profile?.phone_marketing_consent}
+            initialVisibility={profile?.is_public_visits}
           />
         </div>
 
@@ -267,22 +349,26 @@ export default async function ComptePage() {
           </div>
         </div>
 
-        {/* PRIVACY - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-beige-50 text-beige-text flex items-center justify-center text-2xl border border-beige-100 shadow-inner">
-                👁️‍🗨️
+
+        {/* ADMIN SECTION - Only if Admin */}
+        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-abidjan-orange/5 border-2 border-abidjan-orange/20 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/40">
+           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+              <div className="flex items-center gap-5">
+                 <div className="w-14 h-14 rounded-2xl bg-white text-abidjan-orange flex items-center justify-center text-2xl border-2 border-abidjan-orange/20 shadow-md">
+                    👑
+                 </div>
+                 <div className="text-center sm:text-left">
+                    <div className="text-lg font-black text-beige-text">Console Administration</div>
+                    <div className="text-sm text-beige-muted font-medium mt-1">Gérer les établissements et partenaires Babimob.</div>
+                 </div>
               </div>
-              <div className="text-center sm:text-left">
-                <div className="text-lg font-black text-beige-text">Visibilité Publique</div>
-                <div className="text-sm text-beige-muted font-medium mt-1">Tes check-ins sont visibles par les autres explorateurs.</div>
-              </div>
-            </div>
-            <div className="w-16 h-9 bg-abidjan-orange rounded-full flex items-center px-1.5 cursor-pointer shadow-lg shadow-abidjan-orange/30 hover:scale-105 transition-all group-active:scale-95">
-              <div className="w-6 h-6 bg-white rounded-full shadow-md translate-x-7 transition-transform" />
-            </div>
-          </div>
+              <Link 
+                href="/app/admin/places"
+                className="bg-abidjan-orange text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-abidjan-orange/20 active:scale-95 transition-all"
+              >
+                Accéder →
+              </Link>
+           </div>
         </div>
       </div>
     </div>

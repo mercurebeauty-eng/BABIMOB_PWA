@@ -8,6 +8,7 @@ import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
+import BroadcastButton from '@/components/BroadcastButton';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -103,6 +104,7 @@ function AppPageContent() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [sheetTab, setSheetTab] = useState<'explorer' | 'activite'>('explorer');
@@ -117,6 +119,7 @@ function AppPageContent() {
   const [pois, setPois] = useState<POI[]>([]);
   const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
   const [poiNearestStop, setPoiNearestStop] = useState<{ stop_name: string; distance_m: number } | null>(null);
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
 
   const handleGetDirections = useCallback((poi: POI) => {
@@ -194,12 +197,27 @@ function AppPageContent() {
     }
   }, [searchParams]);
 
-  // Auto-dismiss geo error after 5 s
+  // Fetch Profile & Broadcasts
   useEffect(() => {
-    if (!geoError) return;
-    const t = setTimeout(() => setGeoError(null), 5000);
-    return () => clearTimeout(t);
-  }, [geoError]);
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(data);
+      }
+
+      // Fetch active broadcasts (last 4 hours)
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+      const { data: bc } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, sub_tier')
+        .not('last_broadcast_at', 'is', null)
+        .gt('last_broadcast_at', fourHoursAgo);
+      
+      if (bc) setBroadcasts(bc);
+    }
+    loadData();
+  }, [supabase]);
 
   // Nearest stop to selected POI — for Phase 2 distance display
   useEffect(() => {
@@ -400,6 +418,7 @@ function AppPageContent() {
         zoom={zoom}
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
+        selectedPoiId={selectedPoi?.id ?? null}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheetExpanded(true); }}
         onMapReady={handleMapReady}
@@ -413,6 +432,7 @@ function AppPageContent() {
         explorers={explorers}
         pois={pois}
         poiCheckins={poiCheckins}
+        broadcasts={broadcasts}
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
@@ -512,6 +532,13 @@ function AppPageContent() {
             <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
             <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
           </button>
+
+          {/* Broadcast (Pro) */}
+          {profile && (
+            <div className="flex-shrink-0">
+               <BroadcastButton userId={profile.id} currentTier={profile.sub_tier} />
+            </div>
+          )}
 
         </div>
       </div>
@@ -646,9 +673,16 @@ function AppPageContent() {
 
                 <div className="flex flex-col gap-3">
                   {selectedPoi.place_id && (
+                    <CheckInButtonPlace 
+                      placeId={selectedPoi.place_id} 
+                      placeName={selectedPoi.name} 
+                      commune={selectedPoi.commune ?? null} 
+                    />
+                  )}
+                  {selectedPoi.place_id && (
                     <Link
                       href={`/app/place/${selectedPoi.place_id}`}
-                      className="flex items-center justify-center gap-2 bg-abidjan-orange text-white font-black py-4 rounded-2xl shadow-lg shadow-abidjan-orange/20 text-sm uppercase tracking-tight active:scale-[0.98] transition-all"
+                      className="flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-bold py-4 rounded-2xl text-sm uppercase tracking-tight active:scale-[0.98] transition-all hover:border-abidjan-orange/30"
                     >
                       Voir le profil complet →
                     </Link>

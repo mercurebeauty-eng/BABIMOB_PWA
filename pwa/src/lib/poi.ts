@@ -32,6 +32,15 @@ const CATEGORY_EMOJI: Record<string, string> = {
   other:         '🏢',
 };
 
+const CATEGORY_COLOR: Record<string, string> = {
+  food:          '#FF6B6B',
+  shop:          '#f5a623',
+  service:       '#4D96FF',
+  health:        '#FF4D6D',
+  entertainment: '#9B51E0',
+  other:         '#8a93a2',
+};
+
 // ── 1. Places depuis Supabase (sponsorisées + vérifiées) ──────────────────
 async function fetchSupabasePlaces(
   minLat: number, maxLat: number,
@@ -45,14 +54,13 @@ async function fetchSupabasePlaces(
     .gte('lat', minLat)
     .lte('lat', maxLat)
     .gte('lon', minLon)
-    .lte('lon', maxLon)
-    .or('is_sponsored.eq.true,verified.eq.true');
+    .lte('lon', maxLon);
 
   if (error || !data) return [];
 
   const now = new Date();
   return data
-    .filter(p => !(p.is_sponsored && p.sponsor_expires_at && new Date(p.sponsor_expires_at) < now))
+    .filter(p => !p.sponsor_expires_at || new Date(p.sponsor_expires_at) > now)
     .map(p => ({
       id:            p.osm_id ? `osm-${p.osm_id}` : `sp-${p.id}`,
       place_id:      p.id,
@@ -68,10 +76,10 @@ async function fetchSupabasePlaces(
       whatsapp:      p.whatsapp ?? undefined,
       instagram:     p.instagram ?? undefined,
       logo_emoji:    p.logo_emoji ?? CATEGORY_EMOJI[p.category] ?? '🏪',
-      cover_color:   p.cover_color ?? '#FF7A00',
-      is_sponsored:  p.is_sponsored && (!p.sponsor_expires_at || new Date(p.sponsor_expires_at) > now),
+      cover_color:   p.cover_color ?? CATEGORY_COLOR[p.category] ?? '#FF7A00',
+      is_sponsored:  p.is_sponsored,
       sponsor_tier:  p.sponsor_tier as 'pro' | 'elite' | null,
-      has_campaign:  p.has_campaign && (!p.campaign_expires_at || new Date(p.campaign_expires_at) > now),
+      has_campaign:  p.has_campaign,
       campaign_label: p.campaign_label ?? undefined,
       source:        'supabase' as const,
     }));
@@ -82,13 +90,13 @@ async function fetchOSMPlaces(
   centerLat: number, centerLon: number, radiusM: number,
 ): Promise<POI[]> {
   const query = `
-    [out:json][timeout:25];
+    [out:json][timeout:30];
     (
       nwr["shop"](around:${radiusM},${centerLat},${centerLon});
-      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy"](around:${radiusM},${centerLat},${centerLon});
-      nwr["healthcare"~"clinic|hospital"](around:${radiusM},${centerLat},${centerLon});
+      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy|bank|atm|school|place_of_worship|hospital|clinic"](around:${radiusM},${centerLat},${centerLon});
+      nwr["tourism"~"hotel|attraction"](around:${radiusM},${centerLat},${centerLon});
     );
-    out center 60;
+    out center 120;
   `;
   try {
     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
@@ -99,10 +107,30 @@ async function fetchOSMPlaces(
         const pointLat = el.lat ?? el.center?.lat;
         const pointLon = el.lon ?? el.center?.lon;
         if (!pointLat || !pointLon || !el.tags?.name) return null;
+        
         let category: POI['category'] = 'other';
-        if (el.tags.shop) category = 'shop';
-        else if (el.tags.amenity?.match(/restaurant|cafe|bar|fast_food|marketplace/)) category = 'food';
-        else if (el.tags.amenity === 'pharmacy' || el.tags.healthcare) category = 'health';
+        let emoji = '🏢';
+
+        if (el.tags.shop) {
+          category = 'shop';
+          emoji = '🛍️';
+        } else if (el.tags.amenity?.match(/restaurant|cafe|bar|fast_food|marketplace/)) {
+          category = 'food';
+          emoji = '🍴';
+        } else if (el.tags.amenity?.match(/pharmacy|hospital|clinic/) || el.tags.healthcare) {
+          category = 'health';
+          emoji = '🏥';
+        } else if (el.tags.amenity?.match(/bank|atm/)) {
+          category = 'service';
+          emoji = '💰';
+        } else if (el.tags.amenity === 'school' || el.tags.amenity === 'university') {
+          category = 'other';
+          emoji = '🎓';
+        } else if (el.tags.amenity === 'place_of_worship') {
+          category = 'other';
+          emoji = '🙏';
+        }
+
         return {
           id:          `osm-${el.id}`,
           name:        el.tags.name,
@@ -110,8 +138,8 @@ async function fetchOSMPlaces(
           lon:         pointLon,
           category,
           subcategory: el.tags.shop || el.tags.amenity || el.tags.healthcare,
-          logo_emoji:  CATEGORY_EMOJI[category] ?? '🏢',
-          cover_color: '#8a93a2',
+          logo_emoji:  emoji,
+          cover_color: CATEGORY_COLOR[category] || '#8a93a2',
           is_sponsored: false,
           sponsor_tier: null,
           has_campaign: false,
