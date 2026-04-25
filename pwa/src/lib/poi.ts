@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export type POI = {
   id: string;
-  place_id?: string;       // UUID Supabase (pour /app/place/[id])
+  place_id?: string;
   name: string;
   lat: number;
   lon: number;
@@ -33,17 +33,19 @@ const CATEGORY_EMOJI: Record<string, string> = {
 };
 
 // ── 1. Places depuis Supabase (sponsorisées + vérifiées) ──────────────────
-async function fetchSupabasePlaces(lat: number, lon: number, radiusKm = 1.5): Promise<POI[]> {
+async function fetchSupabasePlaces(
+  minLat: number, maxLat: number,
+  minLon: number, maxLon: number,
+): Promise<POI[]> {
   const supabase = createClient();
-  const delta = radiusKm / 111;
 
   const { data, error } = await supabase
     .from('places')
     .select('*')
-    .gte('lat', lat - delta)
-    .lte('lat', lat + delta)
-    .gte('lon', lon - delta)
-    .lte('lon', lon + delta)
+    .gte('lat', minLat)
+    .lte('lat', maxLat)
+    .gte('lon', minLon)
+    .lte('lon', maxLon)
     .or('is_sponsored.eq.true,verified.eq.true');
 
   if (error || !data) return [];
@@ -76,15 +78,17 @@ async function fetchSupabasePlaces(lat: number, lon: number, radiusKm = 1.5): Pr
 }
 
 // ── 2. Places depuis OpenStreetMap (fallback) ─────────────────────────────
-async function fetchOSMPlaces(lat: number, lon: number, radius = 1000): Promise<POI[]> {
+async function fetchOSMPlaces(
+  centerLat: number, centerLon: number, radiusM: number,
+): Promise<POI[]> {
   const query = `
     [out:json][timeout:25];
     (
-      nwr["shop"](around:${radius},${lat},${lon});
-      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy"](around:${radius},${lat},${lon});
-      nwr["healthcare"~"clinic|hospital"](around:${radius},${lat},${lon});
+      nwr["shop"](around:${radiusM},${centerLat},${centerLon});
+      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy"](around:${radiusM},${centerLat},${centerLon});
+      nwr["healthcare"~"clinic|hospital"](around:${radiusM},${centerLat},${centerLon});
     );
-    out center 40;
+    out center 60;
   `;
   try {
     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
@@ -120,18 +124,26 @@ async function fetchOSMPlaces(lat: number, lon: number, radius = 1000): Promise<
   }
 }
 
-// ── Export principal ──────────────────────────────────────────────────────
-export async function fetchNearbyPOIs(lat: number, lon: number, radius = 1000): Promise<POI[]> {
+// ── Export principal — prend les bounds visibles de la carte ──────────────
+export async function fetchNearbyPOIs(
+  minLat: number, maxLat: number,
+  minLon: number, maxLon: number,
+): Promise<POI[]> {
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLon = (minLon + maxLon) / 2;
+  // Rayon OSM = demi-diagonale des bounds en mètres (plafonné à 5km)
+  const latDiff = (maxLat - minLat) * 111000;
+  const lonDiff = (maxLon - minLon) * 111000 * Math.cos(centerLat * Math.PI / 180);
+  const radiusM = Math.min(Math.sqrt(latDiff ** 2 + lonDiff ** 2) / 2, 5000);
+
   const [supabasePOIs, osmPOIs] = await Promise.all([
-    fetchSupabasePlaces(lat, lon, radius / 1000),
-    fetchOSMPlaces(lat, lon, radius),
+    fetchSupabasePlaces(minLat, maxLat, minLon, maxLon),
+    fetchOSMPlaces(centerLat, centerLon, radiusM),
   ]);
 
-  // Déduplique OSM si la fiche existe déjà dans Supabase via osm_id
   const supabaseOsmIds = new Set(supabasePOIs.filter(p => p.id.startsWith('osm-')).map(p => p.id));
   const filteredOSM = osmPOIs.filter(p => !supabaseOsmIds.has(p.id));
 
-  // Tri : elite > campagne active > pro > OSM
   const score = (p: POI) =>
     p.sponsor_tier === 'elite' ? 4 : p.has_campaign ? 3 : p.sponsor_tier === 'pro' ? 2 : p.source === 'supabase' ? 1 : 0;
 

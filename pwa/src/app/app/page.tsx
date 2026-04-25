@@ -128,10 +128,11 @@ function AppPageContent() {
   const handleMapReady = useCallback((map: any) => {
     mapRef.current = map;
     const loadPois = () => {
-      const center = map.getCenter();
-      import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+      const b = map.getBounds();
+      import('@/lib/poi').then(mod =>
+        mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast())
+      ).then(setPois);
     };
-
     map.on('moveend', loadPois);
     loadPois();
   }, []);
@@ -431,7 +432,10 @@ function AppPageContent() {
             onClick={() => {
               if (mapRef.current) {
                 const c = mapRef.current.getCenter();
-                import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(c.lat, c.lng)).then(setPois);
+                const b = mapRef.current.getBounds();
+                import('@/lib/poi').then(mod =>
+                  mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast())
+                ).then(setPois);
               }
             }}
             aria-label="Découvrir les lieux"
