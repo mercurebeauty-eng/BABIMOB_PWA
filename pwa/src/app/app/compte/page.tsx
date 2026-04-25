@@ -34,32 +34,14 @@ export default async function ComptePage() {
 
   const { data: checkinsDetail } = await supabase
     .from('checkins')
-    .select('commune, place_name')
+    .select('commune, place_name, lat, lon')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(300);
 
-  // Pour la Heatmap, on a besoin des coordonnées.
-  // On va chercher les positions des places et arrêts concernés
-  const placeIds = [...new Set(checkinsDetail?.map(c => c.place_id).filter(Boolean))];
-  const stopIds  = [...new Set(checkinsDetail?.map(c => c.stop_id).filter(Boolean))];
-
-  const [{ data: placesCoords }, { data: stopsCoords }] = await Promise.all([
-    supabase.from('places').select('id, lat, lon').in('id', placeIds),
-    supabase.from('arrets').select('stop_id, stop_lat, stop_lon').in('stop_id', stopIds),
-  ]);
-
-  const heatmapData = checkinsDetail?.map(c => {
-    if (c.place_id) {
-       const p = placesCoords?.find(pc => pc.id === c.place_id);
-       return p ? { lat: p.lat, lon: p.lon } : null;
-    }
-    if (c.stop_id) {
-       const s = stopsCoords?.find(sc => sc.stop_id === c.stop_id);
-       return s ? { lat: s.stop_lat, lon: s.stop_lon } : null;
-    }
-    return null;
-  }).filter(Boolean);
+  const heatmapData = checkinsDetail
+    ?.filter(c => c.lat != null && c.lon != null)
+    .map(c => ({ lat: c.lat, lon: c.lon })) ?? [];
 
   const communeFreq: Record<string, number> = {};
   const categoryFreq: Record<string, number> = {
