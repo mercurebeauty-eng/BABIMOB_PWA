@@ -178,7 +178,7 @@ export default async function ComptePage() {
            
            <div className="flex flex-wrap gap-4">
               {[
-                { key: 'conqueror', label: 'Conquérant', emoji: '🗺️', desc: '5 communes visitées' },
+                { key: 'conqueror', label: 'Conquérant', emoji: '🗺️', desc: '5 lieux visités dans 5 communes différentes' },
                 { key: 'night_owl', label: 'Oiseau de Nuit', emoji: '🦉', desc: 'Sortie après 22h' },
                 { key: 'early_bird', label: 'Lève-tôt', emoji: '🥐', desc: 'Actif aux aurores' },
                 { key: 'guide', label: 'Guide Local', emoji: '💬', desc: 'Donne des avis utiles' }

@@ -673,13 +673,6 @@ function AppPageContent() {
 
                 <div className="flex flex-col gap-3">
                   {selectedPoi.place_id && (
-                    <PoiCheckInButton
-                      placeId={selectedPoi.place_id}
-                      placeName={selectedPoi.name}
-                      commune={selectedPoi.commune ?? undefined}
-                    />
-                  )}
-                  {selectedPoi.place_id && (
                     <Link
                       href={`/app/place/${selectedPoi.place_id}`}
                       className="flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-bold py-4 rounded-2xl text-sm uppercase tracking-tight active:scale-[0.98] transition-all hover:border-abidjan-orange/30"
