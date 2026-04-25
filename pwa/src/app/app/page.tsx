@@ -676,7 +676,7 @@ function AppPageContent() {
                     <PoiCheckInButton
                       placeId={selectedPoi.place_id}
                       placeName={selectedPoi.name}
-                      commune={selectedPoi.commune ?? null}
+                      commune={selectedPoi.commune ?? undefined}
                     />
                   )}
                   {selectedPoi.place_id && (
