@@ -106,8 +106,8 @@ export default function LandingPage() {
 
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-beige-muted">
               <a href="#comment"    className="hover:text-abidjan-orange transition-colors">Comment ça marche</a>
-              <a href="#transports" className="hover:text-abidjan-orange transition-colors">Transports</a>
               <a href="#fonctions"  className="hover:text-abidjan-orange transition-colors">Fonctionnalités</a>
+              <a href="#transports" className="hover:text-abidjan-orange transition-colors">Transports</a>
             </nav>
 
             <div className="hidden md:flex items-center gap-3">

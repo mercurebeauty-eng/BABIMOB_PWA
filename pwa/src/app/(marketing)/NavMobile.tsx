@@ -39,8 +39,8 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
           <nav className="flex flex-col gap-2">
             {[
               ['#comment',    'Comment ça marche'],
-              ['#transports', 'Transports'],
               ['#fonctions',  'Fonctionnalités'],
+              ['#transports', 'Transports'],
             ].map(([href, label]) => (
               <a
                 key={label}
