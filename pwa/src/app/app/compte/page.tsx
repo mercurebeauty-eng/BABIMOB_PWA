@@ -2,12 +2,19 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import SignOutButton from './SignOutButton';
+import ProfileEditor from './ProfileEditor';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 export default async function ComptePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/app/auth/signin');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_emoji')
+    .eq('id', user.id)
+    .maybeSingle();
 
   const { count: checkinCount } = await supabase
     .from('checkins')
@@ -56,7 +63,8 @@ export default async function ComptePage() {
     else userClass = 'Grand Voyageur';
   }
 
-  const initiale = (user.email?.[0] ?? 'U').toUpperCase();
+  const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
+  const avatarEmoji = profile?.avatar_emoji ?? '🧭';
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto relative bg-beige-50 text-beige-text font-sans">
@@ -76,14 +84,15 @@ export default async function ComptePage() {
         
         {/* PROFILE HEADER - Gamified */}
         <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 flex flex-col sm:flex-row items-center gap-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
-          <div className="relative z-10 w-24 h-24 rounded-3xl bg-abidjan-gradient flex items-center justify-center flex-shrink-0 shadow-xl shadow-abidjan-orange/20 ring-4 ring-beige-50">
-            <span className="text-white text-4xl font-black select-none">{initiale}</span>
-            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-xl shadow-lg border-2 border-beige-100 flex items-center justify-center text-lg font-black text-abidjan-orange">
+          <div className="relative z-10 w-24 h-24 rounded-3xl bg-beige-50 border-2 border-beige-200 flex items-center justify-center flex-shrink-0 shadow-xl shadow-black/5 ring-4 ring-beige-50">
+            <span className="text-5xl select-none">{avatarEmoji}</span>
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-abidjan-orange rounded-xl shadow-lg border-2 border-white flex items-center justify-center text-base font-black text-white">
               {level}
             </div>
           </div>
           <div className="relative z-10 flex-1 text-center sm:text-left">
-            <div className="text-2xl font-black text-beige-text mb-2 truncate max-w-xs sm:max-w-none">{user.email}</div>
+            <div className="text-2xl font-black text-beige-text mb-1 truncate max-w-xs sm:max-w-none">{displayName}</div>
+            <div className="text-sm text-beige-muted font-medium mb-3 truncate">{user.email}</div>
             <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-4">
               <span className="text-[10px] font-black text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100 uppercase tracking-widest">Niveau {level} · {badge}</span>
               <span className="text-[10px] font-black text-white bg-abidjan-blue px-3 py-1.5 rounded-full border border-abidjan-blue shadow-sm uppercase tracking-widest">Archetype: {userClass}</span>
@@ -193,6 +202,19 @@ export default async function ComptePage() {
               </ul>
             )}
           </div>
+        </div>
+
+        {/* PROFILE EDITOR - Span 1 */}
+        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30 flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-xl">✏️</div>
+            <div className="text-sm uppercase tracking-widest text-beige-text font-black">Mon profil</div>
+          </div>
+          <ProfileEditor
+            userId={user.id}
+            initialName={displayName}
+            initialEmoji={avatarEmoji}
+          />
         </div>
 
         {/* PREFERENCES - Span 1 */}
