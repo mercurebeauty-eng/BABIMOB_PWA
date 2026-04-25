@@ -41,6 +41,11 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
   const [visits, setVisits] = useState(initialVisits);
   const [following, setFollowing] = useState(initialFollowing);
   
+  // Search state
+  const [phoneSearch, setPhoneSearch] = useState('');
+  const [foundUser, setFoundUser] = useState<any>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  
   // Paywall state
   const [showWall, setShowWall] = useState(false);
   const [requiredTier, setRequiredTier] = useState<'messenger' | 'social' | 'pro'>('messenger');
