@@ -120,6 +120,10 @@ function AppPageContent() {
   const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
   const [poiNearestStop, setPoiNearestStop] = useState<{ stop_name: string; distance_m: number } | null>(null);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  const [livePois, setLivePois] = useState<string[]>([]);
+  const [liveTickerFeed, setLiveTickerFeed] = useState<any[]>([]);
+  const [communityFeed, setCommunityFeed] = useState<any[]>([]);
+  const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
 
   const handleGetDirections = useCallback((poi: POI) => {
@@ -140,16 +144,39 @@ function AppPageContent() {
       setPois(fetchedPois);
 
       if (fetchedPois.length > 0) {
-        const since = new Date(Date.now() - 7 * 86400000).toISOString();
-        const { data } = await supabase
+        // 1. Fetch total checkins (7 days) for the numbers on icons
+        const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data: allData } = await supabase
           .from('checkins')
-          .select('place_id')
+          .select('place_id, place_name, persona_name:profiles(display_name)')
           .in('place_id', fetchedPois.map(p => p.id))
-          .gte('created_at', since);
-        if (data) {
+          .gte('created_at', since7d);
+        
+        if (allData) {
           const counts: Record<string, number> = {};
-          data.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
+          allData.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
           setPoiCheckins(counts);
+        }
+
+        // 2. Fetch live checkins (last 3 hours) for pulsars & ticker
+        const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
+        const { data: liveData } = await supabase
+          .from('checkins')
+          .select('place_id, place_name, created_at, profile:profiles(display_name, avatar_emoji)')
+          .in('place_id', fetchedPois.map(p => p.id))
+          .gte('created_at', since3h)
+          .order('created_at', { ascending: false });
+
+        if (liveData) {
+          setLivePois(Array.from(new Set(liveData.map(d => d.place_id))));
+          
+          // Privacy Filter: Only show names if profile.is_public_visits is true
+          const filteredTicker = liveData.map(d => ({
+             ...d,
+             display_name: (d.profile as any)?.is_public_visits ? (d.profile as any).display_name : "Un explorateur"
+          })).slice(0, 5);
+
+          setLiveTickerFeed(filteredTicker);
         }
       }
     };
@@ -215,6 +242,32 @@ function AppPageContent() {
         .gt('last_broadcast_at', fourHoursAgo);
       
       if (bc) setBroadcasts(bc);
+
+      // Fetch Global Community Activity (last 24h)
+      const { data: globalFeed } = await supabase
+        .from('checkins')
+        .select(`
+          id, place_id, place_name, created_at, points_earned,
+          profile:profiles(id, display_name, avatar_emoji, is_verified_explorer, is_public_visits)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (globalFeed) {
+        setCommunityFeed(globalFeed.filter((f: any) => f.profile?.is_public_visits));
+        
+        // Calculate trending (most frequent place_id in the last 24h)
+        const counts: Record<string, { count: number, name: string }> = {};
+        globalFeed.forEach((f: any) => {
+           if (!counts[f.place_id]) counts[f.place_id] = { count: 0, name: f.place_name };
+           counts[f.place_id].count++;
+        });
+        const sorted = Object.entries(counts)
+          .sort((a,b) => b[1].count - a[1].count)
+          .slice(0, 3)
+          .map(([id, val]) => ({ id, name: val.name, count: val.count }));
+        setTrendingPlaces(sorted);
+      }
     }
     loadData();
   }, [supabase]);
@@ -415,8 +468,28 @@ function AppPageContent() {
         explorers={explorers}
         pois={pois}
         poiCheckins={poiCheckins}
+        livePois={livePois}
         broadcasts={broadcasts}
       />
+
+      {/* ── Live Ticker ── */}
+      {/* Feature restricted to Verified Explorers/Premium viewers */}
+      {(profile?.is_verified_explorer || profile?.sub_tier === 'pro' || profile?.sub_tier === 'elite') && liveTickerFeed.length > 0 && (
+        <div className="absolute top-0 left-0 right-0 z-[600] pointer-events-none">
+           <div className="bg-gradient-to-b from-black/20 to-transparent pt-1 pb-8 px-4 overflow-hidden">
+              <div className="flex gap-4 animate-marquee-slow">
+                 {liveTickerFeed.map((checkin, i) => (
+                    <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
+                       <span className="text-sm">{(checkin.profile as any)?.is_public_visits ? (checkin.profile as any)?.avatar_emoji : '👤'}</span>
+                       <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                          {checkin.display_name} est à <span className="text-abidjan-orange">{checkin.place_name}</span>
+                       </span>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
       <div className="absolute top-6 left-4 right-4 z-[500] flex flex-col gap-3">
@@ -916,17 +989,96 @@ function AppPageContent() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <div className="text-5xl mb-6">💬</div>
-                    <p className="text-base font-bold text-beige-muted mb-8 px-6 leading-relaxed">
-                      Découvre où bouge la communauté en ce moment même.
-                    </p>
-                    <Link
-                      href="/app/ccomment"
-                      className="inline-flex items-center gap-3 bg-abidjan-orange text-white text-base font-black px-10 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20"
-                    >
-                      VOIR C&apos;COMMENT
-                    </Link>
+                  <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                    
+                    {/* Trending Places Section */}
+                    {trendingPlaces.length > 0 && (
+                      <div>
+                         <div className="flex items-center gap-2 mb-4 px-2">
+                            <span className="text-xl">🔥</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-orange">Tendances du jour</span>
+                         </div>
+                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
+                            {trendingPlaces.map((tp, idx) => (
+                               <div 
+                                 key={idx} 
+                                 onClick={() => {
+                                    // Small trick to select POI if found or at least search for it
+                                    setQuery(tp.name);
+                                    setSearchOpen(true);
+                                    handleSearchChange(tp.name);
+                                 }}
+                                 className="flex-shrink-0 bg-white border-2 border-beige-100 rounded-[2rem] px-5 py-4 flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all text-center min-w-[140px]"
+                               >
+                                  <div className="text-[10px] font-black text-abidjan-orange flex items-center gap-1 bg-abidjan-orange/10 px-2 py-0.5 rounded-full mb-1">
+                                     #{idx + 1}
+                                  </div>
+                                  <div className="text-sm font-black text-beige-text whitespace-nowrap overflow-hidden text-ellipsis w-full">{tp.name}</div>
+                                  <div className="text-[9px] font-bold text-beige-muted uppercase tracking-widest">{tp.count} visites</div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                    )}
+
+                    {/* Community Activity Feed */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-4 px-2">
+                           <span className="text-xl">👥</span>
+                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-blue">Dernières visites</span>
+                        </div>
+                        <div className="space-y-4">
+                           {communityFeed.length > 0 ? communityFeed.map((post, idx) => (
+                              <div key={idx} className="flex gap-4 p-4 bg-beige-50/50 rounded-3xl border border-beige-100 group hover:border-abidjan-orange/30 transition-all">
+                                 <div className="relative flex-shrink-0">
+                                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-xl shadow-sm border border-beige-100 group-hover:scale-105 transition-transform">
+                                       {post.profile?.avatar_emoji || '👤'}
+                                    </div>
+                                    {post.profile?.is_verified_explorer && (
+                                       <div className="absolute -top-1 -right-1 w-5 h-5 bg-abidjan-orange rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white">✓</div>
+                                    )}
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                                       <span className="text-sm font-black text-beige-text truncate">
+                                          {post.profile?.display_name || 'Explorateur'}
+                                       </span>
+                                       <span className="text-[9px] font-bold text-beige-muted uppercase tracking-widest whitespace-nowrap">
+                                          {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                       </span>
+                                    </div>
+                                    <div className="text-xs text-beige-muted font-medium leading-relaxed">
+                                       À <span className="text-abidjan-orange font-bold">{post.place_name}</span>
+                                    </div>
+                                    <div className="mt-2.5 flex items-center gap-3">
+                                       <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-beige-100">
+                                          <span className="text-[10px]">⭐</span>
+                                          <span className="text-[9px] font-black text-beige-text">+{post.points_earned} XP</span>
+                                       </div>
+                                       <button className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">
+                                          Saluer 👋
+                                       </button>
+                                    </div>
+                                 </div>
+                              </div>
+                           )) : (
+                              <div className="text-center py-10 opacity-50">
+                                 <div className="text-3xl mb-4">💤</div>
+                                 <p className="text-[10px] font-black uppercase tracking-widest">Abidjan dort ? Fais un check-in !</p>
+                              </div>
+                           )}
+                        </div>
+                    </div>
+
+                    <div className="text-center pt-4">
+                        <Link
+                           href="/app/ccomment"
+                           className="inline-flex items-center gap-3 bg-beige-50 border-2 border-beige-200 text-beige-muted text-[10px] font-black px-8 py-3 rounded-2xl uppercase tracking-widest hover:border-abidjan-orange hover:text-abidjan-orange transition-all"
+                        >
+                           <span>💬</span> Voir tous les avis
+                        </Link>
+                    </div>
+
                   </div>
                 )}
               </div>

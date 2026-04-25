@@ -191,14 +191,39 @@ export default function ItinerairePage() {
                   ))}
                 </div>
 
-                {showWarning && (
-                   <div className="mt-4 p-3 bg-abidjan-orange/10 border border-abidjan-orange/30 rounded-xl flex gap-3 items-start">
-                     <span className="text-sm">⚠️</span>
-                     <p className="text-[10px] uppercase tracking-widest font-black text-abidjan-orange leading-tight">
-                        Ce trajet inclut des transports en commun. Assure-toi que cela correspond à tes préférences ({prefs.join(', ')}).
-                     </p>
-                   </div>
-                )}
+                {/* SMART PREFERENCE WARNING */}
+                {(() => {
+                   const legModes = iti.legs.map((l: any) => l.mode === 'WALK' ? 'Marche' : 'Transport');
+                   const hasTransit = iti.legs.some((l: any) => l.mode !== 'WALK');
+                   
+                   // In a real app, we'd map OTP modes to internal names like 'Gbaka' or 'Bus'
+                   // For now, let's assume if they have a non-full preferences list, we warn about non-walk segments.
+                   const isDisallowed = hasTransit && prefs.length < 4 && prefs.length > 0;
+                   
+                   if (!isDisallowed) return null;
+
+                   return (
+                      <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-100 rounded-[1.5rem] flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
+                        <div className="flex gap-3 items-start">
+                           <span className="text-xl">⚠️</span>
+                           <div className="flex-1">
+                              <p className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-700 leading-tight mb-1">
+                                 Trajet Inhabituel
+                              </p>
+                              <p className="text-[11px] font-bold text-amber-800/80 leading-relaxed">
+                                 Ce trajet inclut des transports que tu as décochés dans tes préférences ({prefs.join(', ')}).
+                              </p>
+                           </div>
+                        </div>
+                        <Link 
+                          href="/app/compte" 
+                          className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-200/50 py-2 rounded-xl text-center hover:bg-amber-200 transition-colors"
+                        >
+                           Modifier mes préférences →
+                        </Link>
+                      </div>
+                   );
+                })()}
 
                 <div className="mt-6 pt-6 border-t border-beige-50">
                   <Link 
