@@ -24,7 +24,7 @@ export default function FavoriteButton({
 }: Props) {
   const [favorited, setFavorited] = useState(initialFavorited);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!userId) {
     return (
@@ -40,10 +40,12 @@ export default function FavoriteButton({
     );
   }
 
+  const uid = userId as string; // narrowed: button only renders when userId is not null
+
   async function toggle() {
     if (loading) return;
     setLoading(true);
-    setError(false);
+    setErrorMsg(null);
     const next = !favorited;
     setFavorited(next);
 
@@ -52,7 +54,7 @@ export default function FavoriteButton({
 
     if (next) {
       ({ error: err } = await supabase.from('user_favorites').insert({
-        user_id: userId,
+        user_id: uid,
         kind: 'stop',
         label: commune ? `${stopName} · ${commune}` : stopName,
         stop_id: stopId,
@@ -63,23 +65,24 @@ export default function FavoriteButton({
       ({ error: err } = await supabase
         .from('user_favorites')
         .delete()
-        .eq('user_id', userId)
+        .eq('user_id', uid)
         .eq('stop_id', stopId)
         .eq('kind', 'stop'));
     }
 
     if (err) {
       setFavorited(!next);
-      setError(true);
-      setTimeout(() => setError(false), 3000);
+      setErrorMsg(err.message);
+      setTimeout(() => setErrorMsg(null), 6000);
     }
     setLoading(false);
   }
 
-  if (error) {
+  if (errorMsg) {
     return (
-      <div className="w-full flex items-center justify-center gap-3 py-4 rounded-[1.5rem] border-2 border-red-200 bg-red-50 text-red-500 font-black text-xs uppercase tracking-widest">
-        Erreur — réessaie plus tard
+      <div className="w-full flex flex-col items-center gap-1 py-4 rounded-[1.5rem] border-2 border-red-200 bg-red-50 text-red-500">
+        <span className="font-black text-xs uppercase tracking-widest">Erreur</span>
+        <span className="text-[10px] font-medium px-4 text-center break-all">{errorMsg}</span>
       </div>
     );
   }
@@ -89,7 +92,7 @@ export default function FavoriteButton({
       onClick={toggle}
       disabled={loading}
       aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-      className={`w-full flex items-center justify-center gap-3 py-4 rounded-[1.5rem] border-2 font-black transition-all active:scale-[0.97] uppercase tracking-widest text-xs disabled:opacity-60 ${
+      className={`w-full flex items-center justify-center gap-3 py-4 rounded-[1.5rem] border-2 font-black transition-all active:scale-[0.97] uppercase tracking-widest text-xs disabled:opacity-70 ${
         favorited
           ? 'bg-red-50 border-red-200 text-red-600 shadow-lg shadow-red-500/10'
           : 'bg-white border-beige-200 text-beige-muted hover:border-abidjan-orange/30 hover:text-abidjan-orange'
