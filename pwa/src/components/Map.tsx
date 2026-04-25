@@ -7,6 +7,11 @@ import type { POI } from '@/lib/poi';
 
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 
+const SVG_LAYERS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
+const SVG_GPS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
+const SVG_COMPASS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`;
+const SVG_PERSON = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21a8 8 0 10-16 0h16z"/></svg>`;
+
 type ItineraryLeg = {
   coords: [number, number][];
   mode: string;
@@ -85,8 +90,12 @@ export default function Map({
   const broadcastsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onStopClickRef = useRef(onStopClick);
+  const userLocationRef = useRef(userLocation);
+  const poiCheckinsRef = useRef(poiCheckins);
 
   useEffect(() => { onStopClickRef.current = onStopClick; }, [onStopClick]);
+  useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
+  useEffect(() => { poiCheckinsRef.current = poiCheckins; }, [poiCheckins]);
 
   // ── Init (once) ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -106,8 +115,8 @@ export default function Map({
       zoomControl: false,
     });
 
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    const baseLayer = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -116,8 +125,57 @@ export default function Map({
       }
     ).addTo(map);
 
-    // Zoom control bottom-right
+    const satLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: 'Tiles &copy; Esri', maxZoom: 20 }
+    );
+
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    const NavControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd() {
+        const c = L.DomUtil.create('div', 'bm-nav-toolbar');
+        L.DomEvent.disableClickPropagation(c);
+        L.DomEvent.disableScrollPropagation(c);
+
+        const layerBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        layerBtn.title = 'Vue satellite';
+        layerBtn.innerHTML = SVG_LAYERS;
+        let isSat = false;
+        L.DomEvent.on(layerBtn, 'click', () => {
+          isSat = !isSat;
+          if (isSat) {
+            map.removeLayer(baseLayer);
+            satLayer.addTo(map);
+            layerBtn.classList.add('bm-map-btn--active');
+          } else {
+            map.removeLayer(satLayer);
+            baseLayer.addTo(map);
+            layerBtn.classList.remove('bm-map-btn--active');
+          }
+        });
+
+        const gpsBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        gpsBtn.title = 'Ma position';
+        gpsBtn.innerHTML = SVG_GPS;
+        L.DomEvent.on(gpsBtn, 'click', () => {
+          const loc = userLocationRef.current;
+          if (loc) map.flyTo(loc, 16, { duration: 1.2 });
+        });
+
+        const compassBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        compassBtn.title = 'Vue Abidjan';
+        compassBtn.innerHTML = SVG_COMPASS;
+        L.DomEvent.on(compassBtn, 'click', () => {
+          map.flyTo(ABIDJAN_CENTER, 12, { duration: 1.2 });
+        });
+
+        return c;
+      },
+    });
+
+    new NavControl().addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
     const hotspotsLayer = L.layerGroup().addTo(map);
@@ -233,7 +291,7 @@ export default function Map({
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
       const isSelected = selectedPoiId === p.id;
       const isLive = livePois.includes(p.id) || livePois.includes(`sp-${p.id}`);
-      const checkinCount = poiCheckins[p.id] || poiCheckins[p.place_id ?? ''] || 0;
+      const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
 
       const circleSize = isElite ? 40 : isPro ? 32 : 24;
       const emojiSize = isElite ? 22 : isPro ? 17 : 14;
@@ -243,19 +301,19 @@ export default function Map({
         : isPro
         ? 'bm-poi-circle-pro'
         : '';
-      
+
       if (isLive) extraClass += ' bm-poi-live-pulse';
-      
+
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
       const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
+      const presenceHtml = checkinCount > 0
+        ? `<div class="bm-poi-presence">${SVG_PERSON}${checkinCount > 1 ? `<span class="bm-poi-presence-count">${checkinCount > 9 ? '9+' : checkinCount}</span>` : ''}</div>`
+        : '';
+
       const html = `
         <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
-          ${checkinCount > 0 ? `
-            <div class="bm-poi-presence">
-               <span class="bm-poi-presence-count">${checkinCount}</span>
-            </div>
-          ` : ''}
+          ${presenceHtml}
           <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
             <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
           </div>
@@ -278,7 +336,7 @@ export default function Map({
       marker.on('click', () => onPoiClickRef.current?.(p));
       marker.addTo(layer);
     });
-  }, [pois]);
+  }, [pois, livePois]);
 
   // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
   useEffect(() => {
