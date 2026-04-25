@@ -351,11 +351,12 @@ function AppPageContent() {
       />
 
       {/* ── Floating top bar ────────────────────────────────────────────── */}
-      <div className="absolute top-6 left-4 right-4 z-[500] flex items-center gap-3">
-        {/* Search bar */}
+      <div className="absolute top-6 left-4 right-4 z-[500] flex flex-col gap-3">
+
+        {/* Ligne 1 : barre de recherche pleine largeur */}
         <button
           onClick={openSearch}
-          className="flex-1 flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-[0.98]"
+          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-[0.98]"
         >
           <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
           <span className="text-sm font-bold text-beige-muted flex-1 truncate">
@@ -372,61 +373,84 @@ function AppPageContent() {
           )}
         </button>
 
-        {/* Locate me */}
-        <button
-          onClick={handleLocateMe}
-          disabled={geoLoading}
-          aria-label="Me localiser"
-          className={`w-14 h-14 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 ${
-            userLoc ? 'border-abidjan-blue text-abidjan-blue bg-abidjan-blue/5' : 'border-beige-200/50 text-beige-muted'
-          } disabled:opacity-60`}
-        >
-          {geoLoading ? (
-            <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />
-          ) : (
-            <IconLocate />
-          )}
-        </button>
+        {/* Ligne 2 : chips d'action en carousel scrollable */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
 
-        {/* Account */}
-        <Link
-          href="/app/compte"
-          className="w-14 h-14 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 text-beige-muted"
-          aria-label="Mon compte"
-        >
-          <IconUser />
-        </Link>
-
-        {/* Discover POIs toggle */}
-        <button
-          onClick={() => {
-            // Trigger a manual moveend-like refresh
-            if (mapRef.current) {
-               const center = mapRef.current.getCenter();
-               import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(center.lat, center.lng)).then(setPois);
+          {/* Me localiser */}
+          <button
+            onClick={handleLocateMe}
+            disabled={geoLoading}
+            aria-label="Me localiser"
+            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 disabled:opacity-60 ${
+              userLoc
+                ? 'bg-abidjan-blue text-white border-abidjan-blue shadow-abidjan-blue/20'
+                : 'bg-white/90 text-beige-muted border-beige-200/50 hover:border-abidjan-blue/30 hover:text-abidjan-blue'
+            }`}
+          >
+            {geoLoading
+              ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              : <IconLocate />
             }
-          }}
-          aria-label="Découvrir"
-          className="w-14 h-14 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 bg-white/90 text-beige-muted border-beige-200/50"
-        >
-          <span className="text-xl">✨</span>
-        </button>
+            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
+              {userLoc ? 'Localisé' : 'Me localiser'}
+            </span>
+          </button>
 
-        {/* Heat mode toggle */}
-        <button
-          onClick={() => setHeatMode(!heatMode)}
-          aria-label="Mode activité"
-          className={`w-14 h-14 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 flex items-center justify-center flex-shrink-0 transition-all hover:shadow-2xl active:scale-95 ${
-            heatMode ? 'bg-abidjan-orange text-white border-abidjan-orange shadow-abidjan-orange/20' : 'bg-white/90 text-beige-muted border-beige-200/50'
-          }`}
-        >
-          <span className="text-xl">{heatMode ? '🔥' : '❄️'}</span>
-        </button>
+          {/* Profil */}
+          <Link
+            href="/app/compte"
+            aria-label="Mon compte"
+            className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-orange/30 hover:text-abidjan-orange transition-all active:scale-95"
+          >
+            <IconUser />
+            <span className="text-[11px] font-black uppercase tracking-wider">Profil</span>
+          </Link>
+
+          {/* Itinéraire */}
+          <Link
+            href="/app/itineraire"
+            aria-label="Calculer un itinéraire"
+            className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-blue/30 hover:text-abidjan-blue transition-all active:scale-95"
+          >
+            <IconRoute />
+            <span className="text-[11px] font-black uppercase tracking-wider">Itinéraire</span>
+          </Link>
+
+          {/* Découvrir (POIs) */}
+          <button
+            onClick={() => {
+              if (mapRef.current) {
+                const c = mapRef.current.getCenter();
+                import('@/lib/poi').then(mod => mod.fetchNearbyPOIs(c.lat, c.lng)).then(setPois);
+              }
+            }}
+            aria-label="Découvrir les lieux"
+            className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-orange/30 transition-all active:scale-95"
+          >
+            <span className="text-base leading-none">✨</span>
+            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">Découvrir</span>
+          </button>
+
+          {/* Activité (heatmap) */}
+          <button
+            onClick={() => setHeatMode(!heatMode)}
+            aria-label="Mode activité"
+            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 ${
+              heatMode
+                ? 'bg-abidjan-orange text-white border-abidjan-orange shadow-abidjan-orange/20'
+                : 'bg-white/90 text-beige-muted border-beige-200/50 hover:border-abidjan-orange/30'
+            }`}
+          >
+            <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
+            <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
+          </button>
+
+        </div>
       </div>
 
       {/* Geo error toast */}
       {geoError && (
-        <div className="bm-toast absolute top-24 left-4 right-4 z-[500] bg-red-50 border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex items-center justify-between shadow-xl uppercase tracking-widest animate-in slide-in-from-top-4 duration-300">
+        <div className="bm-toast absolute top-36 left-4 right-4 z-[500] bg-red-50 border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex items-center justify-between shadow-xl uppercase tracking-widest animate-in slide-in-from-top-4 duration-300">
           <span>{geoError}</span>
           <button
             onClick={() => setGeoError(null)}
