@@ -32,6 +32,7 @@ type Props = {
   poiCheckins?: Record<string, number>;
   livePois?: string[];
   broadcasts?: { id: string; display_name: string; avatar_emoji: string; broadcast_text: string; broadcast_lat: number; broadcast_lon: number }[];
+  pois?: POI[];
 };
 
 function makeMarkerIcon(selected = false) {
@@ -68,10 +69,10 @@ export default function Map({
   legs = null,
   hotspots = [],
   explorers = [],
-  pois = [],
   poiCheckins = {},
   livePois = [],
   broadcasts = [],
+  pois = [],
   onPoiClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);

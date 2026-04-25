@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FavoriteButton from './FavoriteButton';
+import StopLinesList from './StopLinesList';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 type Props = { params: Promise<{ stop_id: string }> };

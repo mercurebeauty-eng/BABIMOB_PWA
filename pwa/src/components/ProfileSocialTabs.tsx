@@ -41,6 +41,11 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
   const [visits, setVisits] = useState(initialVisits);
   const [following, setFollowing] = useState(initialFollowing);
   
+  // Networking state
+  const [phoneSearch, setPhoneSearch] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [foundUser, setFoundUser] = useState<any>(null);
+
   // Paywall state
   const [showWall, setShowWall] = useState(false);
   const [requiredTier, setRequiredTier] = useState<'messenger' | 'social' | 'pro'>('messenger');
@@ -149,6 +154,7 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
                    <p className="text-sm font-bold text-beige-muted">Aucune visite enregistrée encore. Sors explorer Abidjan !</p>
                 </div>
               )}
+           </div>
            </div>
         </div>
       )}
