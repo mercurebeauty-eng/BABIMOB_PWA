@@ -8,10 +8,12 @@ type Props = {
   placeId: string; 
   placeName: string; 
   commune: string | null;
+  lat?: number;
+  lon?: number;
   onSuccess?: () => void;
 };
 
-export default function CheckInButtonPlace({ placeId, placeName, commune, onSuccess }: Props) {
+export default function CheckInButtonPlace({ placeId, placeName, commune, lat, lon, onSuccess }: Props) {
   const supabase = createClient();
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [recentCount, setRecentCount] = useState<number | null>(null);
@@ -46,8 +48,10 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, onSucc
     const { error } = await supabase.from('checkins').insert({
       user_id: user.id,
       place_id: placeId,
-      stop_name: placeName,
+      place_name: placeName,
       commune,
+      lat: lat ?? null,
+      lon: lon ?? null,
       is_public: true,
       display_name: profile?.display_name ?? 'Explorateur',
       avatar_emoji: profile?.avatar_emoji ?? '🧭',

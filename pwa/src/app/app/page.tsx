@@ -270,14 +270,7 @@ function AppPageContent() {
           stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`);
         });
         
-        // 2. Also search routes (bus lines)
-        let routesQuery = supabase
-          .from('gtfs_routes')
-          .select('route_id, route_short_name, route_long_name, route_color, agency_id')
-          .or(`route_short_name.ilike.%${q}%,route_long_name.ilike.%${q}%`)
-          .limit(3);
-
-        // 3. Search places (Supabase POIs + community spots)
+        // 2. Search places (Supabase POIs + community spots)
         const placesQuery = supabase
           .from('places')
           .select('id, name, lat, lon, category, commune, logo_emoji, cover_color, is_sponsored, sponsor_tier, has_campaign')
@@ -286,9 +279,8 @@ function AppPageContent() {
 
         const [
           { data: searchResults, error: stopError },
-          { data: routeResults },
           { data: placeResults },
-        ] = await Promise.all([stopsQuery.limit(15), routesQuery, placesQuery]);
+        ] = await Promise.all([stopsQuery.limit(15), placesQuery]);
 
         setIsSearching(false);
 
@@ -298,14 +290,6 @@ function AppPageContent() {
             type: 'stop',
           }));
 
-          const enrichedRoutes = (routeResults || []).map(r => ({
-            ...r,
-            type: 'route',
-            stop_id: r.route_id,
-            stop_name: r.route_long_name || r.route_short_name,
-            commune: r.agency_id,
-          }));
-
           const enrichedPlaces = (placeResults || []).map(p => ({
             ...p,
             type: 'place',
@@ -313,8 +297,7 @@ function AppPageContent() {
             stop_name: p.name,
           }));
 
-          // Merge: routes first, then places, then stops
-          const final = [...enrichedRoutes, ...enrichedPlaces, ...enrichedStops];
+          const final = [...enrichedPlaces, ...enrichedStops];
           setResults(final as any);
         }
       }, 250);
@@ -504,12 +487,22 @@ function AppPageContent() {
           {/* Découvrir (POIs) */}
           <button
             onClick={() => {
-              if (mapRef.current) {
-                const c = mapRef.current.getCenter();
+              if (pois.length > 0) {
+                const randomPoi = pois[Math.floor(Math.random() * pois.length)];
+                setSelectedPoi(randomPoi);
+                setSheetExpanded(true);
+              } else if (mapRef.current) {
+                // S'il n'y a pas de POIs chargés, on fait un fetch rapide et on en prend un
                 const b = mapRef.current.getBounds();
                 import('@/lib/poi').then(mod =>
                   mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast())
-                ).then(setPois);
+                ).then(loadedPois => {
+                  setPois(loadedPois);
+                  if(loadedPois.length > 0) {
+                    setSelectedPoi(loadedPois[Math.floor(Math.random() * loadedPois.length)]);
+                    setSheetExpanded(true);
+                  }
+                });
               }
             }}
             aria-label="Découvrir les lieux"

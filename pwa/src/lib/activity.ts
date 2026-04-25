@@ -12,12 +12,12 @@ export type ActivityHotspot = {
 // lat/lon are stored directly on each check-in row (no join needed).
 export async function fetchActivityHotspots(): Promise<ActivityHotspot[]> {
   const supabase = createClient();
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await supabase
     .from('checkins')
     .select('place_id, place_name, lat, lon')
-    .gt('created_at', yesterday)
+    .gt('created_at', lastWeek)
     .not('lat', 'is', null)
     .not('lon', 'is', null);
 
