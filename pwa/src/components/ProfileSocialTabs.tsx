@@ -126,7 +126,7 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
                  <span className="text-[10px] font-black bg-beige-50 px-3 py-1.5 rounded-full border border-beige-200">{visits.length} visites</span>
               </div>
 
-           <div className="space-y-4">
+              <div className="space-y-4">
               {visits.map((v) => (
                 <div key={v.id} className="flex gap-4 p-4 rounded-2xl bg-beige-50/50 border border-beige-100 hover:border-abidjan-orange/30 transition-all">
                    <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl">
@@ -148,6 +148,11 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
                    </div>
                 </div>
               ))}
+              
+              {visits.length === 0 && (
+                <div className="text-center py-12">
+                   <span className="text-4xl block mb-4 grayscale">🏜️</span>
+                   <p className="text-sm font-bold text-beige-muted">Aucune visite enregistrée encore. Sors explorer Abidjan !</p>
                 </div>
               )}
            </div>
