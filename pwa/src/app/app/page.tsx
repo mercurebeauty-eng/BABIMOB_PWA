@@ -160,7 +160,7 @@ function AppPageContent() {
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
       import('@/lib/activity').then(mod => mod.fetchActivityHotspots()).then(data => {
-        setHotspots(data.map(h => ({ lat: h.stop_lat, lon: h.stop_lon, intensity: h.count })));
+        setHotspots(data.map(h => ({ lat: h.lat, lon: h.lon, intensity: h.count })));
       });
     }
   }, [heatMode, hotspots.length]);
