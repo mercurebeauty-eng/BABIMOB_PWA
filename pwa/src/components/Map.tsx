@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { Stop } from '@/lib/types';
+import type { POI } from '@/lib/poi';
 
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 
@@ -26,7 +27,8 @@ type Props = {
   legs?: ItineraryLeg[] | null;
   hotspots?: { lat: number; lon: number; intensity: number }[];
   explorers?: { lat: number; lon: number; name: string }[];
-  pois?: { id: string; lat: number; lon: number; name: string; category: string }[];
+  pois?: POI[];
+  onPoiClick?: (poi: POI) => void;
 };
 
 function makeMarkerIcon(selected = false) {
@@ -63,6 +65,7 @@ export default function Map({
   hotspots = [],
   explorers = [],
   pois = [],
+  onPoiClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -200,31 +203,47 @@ export default function Map({
   }, [explorers]);
 
   // ── POIs (Points of Interest) ──────────────────────────────────────────────
+  const onPoiClickRef = useRef(onPoiClick);
+  useEffect(() => { onPoiClickRef.current = onPoiClick; }, [onPoiClick]);
+
   useEffect(() => {
     const layer = poisLayerRef.current;
     if (!layer) return;
-
     layer.clearLayers();
 
     pois.forEach((p) => {
-      const emoji = p.category === 'food' ? '🥘' : p.category === 'shop' ? '🛍️' : '🏢';
-      const icon = L.divIcon({
-        className: 'custom-poi-marker',
-        html: `
-          <div class="flex flex-col items-center group">
-            <div class="w-8 h-8 rounded-full bg-white border-2 border-beige-200 flex items-center justify-center text-sm shadow-md transition-transform group-hover:scale-125 relative z-[50]">
-              ${emoji}
-            </div>
-            <div class="hidden group-hover:block absolute top-full mt-1 bg-white px-2 py-1 rounded-md text-[10px] font-black shadow-lg border border-beige-100 whitespace-nowrap z-50">
-              ${p.name}
-            </div>
-          </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+      const emoji = p.logo_emoji ?? '🏢';
+      const color = p.cover_color ?? '#8a93a2';
+      let html: string;
+
+      if (p.sponsor_tier === 'elite') {
+        // Marqueur animé pulsant
+        html = `
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;width:48px;height:48px;">
+            <div class="poi-elite-ring" style="position:absolute;width:40px;height:40px;border-radius:50%;background:${color};opacity:0.4;"></div>
+            <div style="width:38px;height:38px;background:${color};border-radius:12px;border:2.5px solid white;box-shadow:0 4px 14px ${color}55;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;z-index:1;">${emoji}</div>
+          </div>`;
+      } else if (p.sponsor_tier === 'pro' || p.has_campaign) {
+        // Marqueur coloré Pro
+        html = `
+          <div style="width:32px;height:32px;background:white;border-radius:10px;border:2.5px solid ${color};box-shadow:0 2px 10px ${color}40;display:flex;align-items:center;justify-content:center;font-size:16px;">${emoji}</div>`;
+      } else {
+        // Marqueur basique OSM / gratuit
+        html = `
+          <div style="width:24px;height:24px;background:white;border-radius:6px;border:1.5px solid #D9C8AC;box-shadow:0 1px 4px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0.85;">${emoji}</div>`;
+      }
+
+      const size: [number, number] = p.sponsor_tier === 'elite' ? [48, 48] : p.sponsor_tier === 'pro' || p.has_campaign ? [32, 32] : [24, 24];
+      const anchor: [number, number] = [size[0] / 2, size[1] / 2];
+
+      const icon = L.divIcon({ className: '', html, iconSize: size, iconAnchor: anchor });
+      const marker = L.marker([p.lat, p.lon], {
+        icon,
+        zIndexOffset: p.sponsor_tier === 'elite' ? 200 : p.sponsor_tier === 'pro' ? 100 : 0,
       });
 
-      L.marker([p.lat, p.lon], { icon }).addTo(layer);
+      marker.on('click', () => onPoiClickRef.current?.(p));
+      marker.addTo(layer);
     });
   }, [pois]);
 

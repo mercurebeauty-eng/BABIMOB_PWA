@@ -31,6 +31,15 @@ body {
   background: #f4f4f0;
 }
 
+/* Marqueur Elite POI — anneau pulsant */
+@keyframes poi-elite-ping {
+  0%       { transform: scale(1);   opacity: 0.55; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.poi-elite-ring {
+  animation: poi-elite-ping 2s ease-out infinite;
+}
+
 .bm-popup-wrapper .leaflet-popup-content-wrapper {
   border-radius: 12px;
   padding: 0;

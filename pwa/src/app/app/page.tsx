@@ -5,6 +5,7 @@ import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
+import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const Map = dynamic(() => import('@/components/Map'), {
@@ -109,6 +110,7 @@ function AppPageContent() {
   const [isSearching, setIsSearching] = useState(false);
   
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
+  const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [heatMode, setHeatMode] = useState(false);
   const [hotspots, setHotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
@@ -338,6 +340,7 @@ function AppPageContent() {
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
         onStopClick={handleSelectStop}
+        onPoiClick={(poi) => { setSelectedPoi(poi); setSheetExpanded(true); }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
         legs={activeItinerary?.legs?.map((l: any) => ({
@@ -511,7 +514,85 @@ function AppPageContent() {
         {/* Expanded content */}
         {sheetExpanded && (
           <div className="px-6 pt-4 pb-12 overflow-y-auto max-h-[70vh]">
-            {activeItinerary ? (
+            {selectedPoi ? (
+              /* ── POI preview ── */
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-md"
+                      style={{ background: `${selectedPoi.cover_color}18`, border: `2px solid ${selectedPoi.cover_color}25` }}
+                    >
+                      {selectedPoi.logo_emoji}
+                    </div>
+                    <div>
+                      {selectedPoi.sponsor_tier === 'elite' && (
+                        <div className="text-[9px] font-black text-abidjan-orange uppercase tracking-widest mb-1">⭐ Partenaire Elite</div>
+                      )}
+                      {selectedPoi.sponsor_tier === 'pro' && (
+                        <div className="text-[9px] font-black text-abidjan-blue uppercase tracking-widest mb-1">✓ Partenaire Pro</div>
+                      )}
+                      <h2 className="text-lg font-black text-beige-text leading-tight">{selectedPoi.name}</h2>
+                      {selectedPoi.commune && (
+                        <div className="text-xs text-beige-muted font-bold uppercase tracking-widest mt-0.5">{selectedPoi.commune}</div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPoi(null)}
+                    className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200 flex-shrink-0"
+                  >
+                    <IconX size="w-5 h-5" />
+                  </button>
+                </div>
+
+                {selectedPoi.has_campaign && selectedPoi.campaign_label && (
+                  <div className="flex items-center gap-3 bg-abidjan-orange/10 border border-abidjan-orange/30 rounded-2xl px-4 py-3 mb-4">
+                    <span className="text-xl">🔥</span>
+                    <span className="text-xs font-black text-abidjan-orange">{selectedPoi.campaign_label}</span>
+                  </div>
+                )}
+
+                {selectedPoi.description && (
+                  <p className="text-sm text-beige-muted font-medium leading-relaxed mb-5">{selectedPoi.description}</p>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  {selectedPoi.place_id && (
+                    <Link
+                      href={`/app/place/${selectedPoi.place_id}`}
+                      className="flex items-center justify-center gap-2 bg-abidjan-orange text-white font-black py-4 rounded-2xl shadow-lg shadow-abidjan-orange/20 text-sm uppercase tracking-tight active:scale-[0.98] transition-all"
+                    >
+                      Voir le profil complet →
+                    </Link>
+                  )}
+                  <div className="flex gap-3">
+                    {selectedPoi.whatsapp && (
+                      <a
+                        href={`https://wa.me/${selectedPoi.whatsapp.replace(/\D/g, '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 bg-abidjan-green/10 border-2 border-abidjan-green/30 text-abidjan-green font-black py-3.5 rounded-2xl text-sm active:scale-95 transition-all"
+                      >
+                        <span>💬</span> WhatsApp
+                      </a>
+                    )}
+                    {selectedPoi.phone && (
+                      <a
+                        href={`tel:${selectedPoi.phone}`}
+                        className="flex-1 flex items-center justify-center gap-2 bg-abidjan-blue/10 border-2 border-abidjan-blue/30 text-abidjan-blue font-black py-3.5 rounded-2xl text-sm active:scale-95 transition-all"
+                      >
+                        <span>📞</span> Appeler
+                      </a>
+                    )}
+                  </div>
+                  {!selectedPoi.place_id && (
+                    <div className="text-center text-[10px] text-beige-muted font-bold uppercase tracking-widest pt-2">
+                      Source OpenStreetMap · <span className="text-abidjan-orange cursor-pointer">Référencer ce commerce</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : activeItinerary ? (
                /* ── Itinerary steps ── */
                <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="flex items-center justify-between mb-8">
@@ -569,6 +650,7 @@ function AppPageContent() {
                </div>
             ) : selected ? (
               /* ── Stop detail ── */
+
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="flex items-start justify-between gap-4 mb-8">
                   <div>
