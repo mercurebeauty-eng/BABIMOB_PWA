@@ -245,7 +245,7 @@ export default async function ComptePage() {
                <span className="text-lg">⭐</span>
                <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Mes Favoris</span>
              </div>
-             <Link href="/app/itineraire" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
+             <Link href="/app/compte/favoris" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
            </div>
 
            <div className="space-y-2">
