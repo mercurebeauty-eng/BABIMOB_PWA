@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -15,9 +16,13 @@ const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
-        <span className="text-xs text-beige-muted font-black uppercase tracking-widest">Chargement de la ville…</span>
+      <div className="flex flex-col items-center gap-4">
+        <Image src="/icons/icon-192.png" alt="BABIMOB" width={64} height={64} className="rounded-2xl shadow-lg shadow-abidjan-orange/20" />
+        <div className="text-center">
+          <div className="text-base font-black uppercase tracking-[0.2em] text-beige-text">BABIMOB</div>
+          <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-0.5">Chargement de la ville…</div>
+        </div>
+        <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
       </div>
     </div>
   ),
@@ -522,6 +527,7 @@ function AppPageContent() {
           onClick={openSearch}
           className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-[0.98]"
         >
+          <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg flex-shrink-0 opacity-90" />
           <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
           <span className="text-sm font-bold text-beige-muted flex-1 truncate">
             {selected ? selected.stop_name : "Arrêt, quartier ou lieu…"}
