@@ -1,6 +1,6 @@
-/* Leaflet CSS (nécessaire pour que les tiles s'affichent correctement) */
+/* MapLibre CSS */
 /* ⚠ @import DOIT précéder toutes les autres règles — Turbopack est strict */
-@import 'leaflet/dist/leaflet.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
 @tailwind components;
