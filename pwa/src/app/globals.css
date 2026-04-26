@@ -413,3 +413,71 @@ body {
 .leaflet-control-attribution {
   display: none !important;
 }
+
+/* ============================================
+   DARK MODE OVERRIDES
+   Activated by [data-theme='dark'] on <html>
+   Uses higher specificity (0,1,1) to beat Tailwind utilities (0,1,0)
+   ============================================ */
+
+[data-theme='dark'] .bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+[data-theme='dark'] .bg-beige-50 {
+  background-color: var(--bg-beige) !important;
+}
+
+[data-theme='dark'] .bg-beige-100 {
+  background-color: #1a1e26 !important;
+}
+
+[data-theme='dark'] .bg-beige-200 {
+  background-color: #222630 !important;
+}
+
+[data-theme='dark'] .border-beige-100,
+[data-theme='dark'] .border-beige-200 {
+  border-color: var(--border-main) !important;
+}
+
+[data-theme='dark'] .text-beige-text {
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] .text-beige-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .bg-beige-50\/80 {
+  background-color: rgba(15, 17, 22, 0.8) !important;
+}
+
+[data-theme='dark'] .bg-white\/80 {
+  background-color: rgba(22, 25, 31, 0.8) !important;
+}
+
+[data-theme='dark'] .bg-beige-50\/50 {
+  background-color: rgba(15, 17, 22, 0.5) !important;
+}
+
+[data-theme='dark'] .border-beige-200\/50 {
+  border-color: rgba(42, 47, 58, 0.5) !important;
+}
+
+[data-theme='dark'] .shadow-black\/5 {
+  --tw-shadow-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  background-color: #1a1e26 !important;
+  border-color: var(--border-main) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
