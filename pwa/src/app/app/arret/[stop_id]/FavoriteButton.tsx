@@ -92,7 +92,7 @@ export default function FavoriteButton({
       onClick={toggle}
       disabled={loading}
       aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-      className={`w-full flex items-center justify-center gap-3 py-4 rounded-[1.5rem] border-2 font-black transition-all active:scale-[0.97] uppercase tracking-widest text-xs disabled:opacity-70 ${
+      className={`w-full flex items-center justify-center gap-3 py-4 rounded-[1.5rem] border-2 font-black transition-all active:scale-95 uppercase tracking-widest text-xs disabled:opacity-50 ${
         favorited
           ? 'bg-red-50 border-red-200 text-red-600 shadow-lg shadow-red-500/10'
           : 'bg-white border-beige-200 text-beige-muted hover:border-abidjan-orange/30 hover:text-abidjan-orange'

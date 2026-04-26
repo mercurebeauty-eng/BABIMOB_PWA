@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -15,9 +16,13 @@ const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
-        <span className="text-xs text-beige-muted font-black uppercase tracking-widest">Chargement de la ville…</span>
+      <div className="flex flex-col items-center gap-4">
+        <Image src="/icons/icon-192.png" alt="BABIMOB" width={64} height={64} className="rounded-2xl shadow-lg shadow-abidjan-orange/20" />
+        <div className="text-center">
+          <div className="text-base font-black uppercase tracking-[0.2em] text-beige-text">BABIMOB</div>
+          <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-0.5">Chargement de la ville…</div>
+        </div>
+        <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
       </div>
     </div>
   ),
@@ -520,8 +525,9 @@ function AppPageContent() {
         {/* Ligne 1 : barre de recherche pleine largeur */}
         <button
           onClick={openSearch}
-          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-[0.98]"
+          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-95"
         >
+          <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg flex-shrink-0 opacity-90" />
           <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
           <span className="text-sm font-bold text-beige-muted flex-1 truncate">
             {selected ? selected.stop_name : "Arrêt, quartier ou lieu…"}
@@ -545,7 +551,7 @@ function AppPageContent() {
             onClick={handleLocateMe}
             disabled={geoLoading}
             aria-label="Me localiser"
-            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 disabled:opacity-60 ${
+            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 disabled:opacity-50 ${
               userLoc
                 ? 'bg-abidjan-blue text-white border-abidjan-blue shadow-abidjan-blue/20'
                 : 'bg-white/90 text-beige-muted border-beige-200/50 hover:border-abidjan-blue/30 hover:text-abidjan-blue'
@@ -774,7 +780,7 @@ function AppPageContent() {
                   {selectedPoi.place_id && (
                     <Link
                       href={`/app/place/${selectedPoi.place_id}`}
-                      className="flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-bold py-4 rounded-2xl text-sm uppercase tracking-tight active:scale-[0.98] transition-all hover:border-abidjan-orange/30"
+                      className="flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-bold py-4 rounded-2xl text-sm uppercase tracking-tight active:scale-95 transition-all hover:border-abidjan-orange/30"
                     >
                       Voir le profil complet →
                     </Link>
@@ -891,7 +897,7 @@ function AppPageContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
-                    className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
+                    className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
                   >
                     <IconList />
                     VOIR LES LIGNES
@@ -1006,14 +1012,14 @@ function AppPageContent() {
                     <div className="flex flex-col gap-4">
                       <button
                         onClick={openSearch}
-                        className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
+                        className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
                       >
                         RECHERCHER UN ARRÊT
                       </button>
                       <button
                         onClick={handleLocateMe}
                         disabled={geoLoading}
-                        className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-[0.98] transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-60"
+                        className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-95 transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-50"
                       >
                         {geoLoading ? (
                           <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />

@@ -126,21 +126,21 @@ export default async function ComptePage() {
 
         {/* STATS STRIP */}
         <div className="grid grid-cols-2 gap-4">
-           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5 relative group">
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 flex flex-col items-center shadow-xl shadow-black/5 relative group">
               <div className="text-xl mb-1 mt-1">🏆</div>
               <div className="text-2xl font-black text-beige-text">{badges?.length || 0}</div>
-              <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Badges</div>
+              <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Badges</div>
               {(badges?.length ?? 0) === 0 && (
-                <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-bold uppercase tracking-wide opacity-70">
+                <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
                   Check-in pour débloquer
                 </div>
               )}
            </div>
-           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5 relative group">
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 flex flex-col items-center shadow-xl shadow-black/5 relative group">
               <div className="text-xl mb-1 mt-1">📡</div>
               <div className="text-2xl font-black text-beige-text">{reachStr}</div>
-              <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Reach</div>
-              <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-bold uppercase tracking-wide opacity-70">
+              <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Reach</div>
+              <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
                 Vues estimées
               </div>
            </div>
@@ -180,15 +180,15 @@ export default async function ComptePage() {
               </div>
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 rounded-full bg-abidjan-green animate-pulse" />
-                 <span className="text-[9px] font-black uppercase text-abidjan-green tracking-widest">Live Area</span>
+                 <span className="text-[9px] font-semibold uppercase text-abidjan-green tracking-widest">Live Area</span>
               </div>
            </div>
            <div className="h-48 bg-beige-50">
               <PersonalHeatmap data={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []} />
            </div>
            <div className="p-5 text-center bg-beige-50/50">
-              <p className="text-[11px] text-beige-muted font-bold italic">
-                 Le plus actif à <span className="font-black text-beige-text">{topCommunes[0] || 'Abidjan'}</span> cette semaine
+              <p className="text-[11px] text-beige-muted font-medium italic">
+                 Le plus actif à <span className="font-bold text-beige-text">{topCommunes[0] || 'Abidjan'}</span> cette semaine
               </p>
            </div>
         </div>

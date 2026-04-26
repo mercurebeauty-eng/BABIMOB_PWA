@@ -328,13 +328,13 @@ body {
 
 /* Elite Pulse Aura */
 @keyframes bm-poi-elite-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.45); }
-  70%  { box-shadow: 0 0 0 18px rgba(255, 122, 0, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.3); }
+  70%  { box-shadow: 0 0 0 14px rgba(255, 122, 0, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0); }
 }
 
 .bm-poi-elite-pulse {
-  animation: bm-poi-elite-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: bm-poi-elite-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* ── POI Presence Indicator (check-in silhouette) ────────────── */
@@ -361,20 +361,20 @@ body {
 
 /* Live Pulse Aura (Orange for active spots) */
 @keyframes bm-poi-live-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
-  70%  { box-shadow: 0 0 0 12px rgba(245, 166, 35, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.25); }
+  70%  { box-shadow: 0 0 0 10px rgba(245, 166, 35, 0); }
   100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
 }
 
 .bm-poi-live-pulse {
-  animation: bm-poi-live-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  animation: bm-poi-live-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
   border-color: #f5a623 !important;
 }
 
 /* Marquee for Live Ticker */
 @keyframes marquee-slow {
-  0%   { transform: translateX(100vw); }
-  100% { transform: translateX(-200%); }
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(calc(-100% - 100vw)); }
 }
 
 .animate-marquee-slow {
@@ -480,4 +480,16 @@ body {
 [data-theme='dark'] input::placeholder,
 [data-theme='dark'] textarea::placeholder {
   color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .bg-white\/90 {
+  background-color: rgba(22, 25, 31, 0.92) !important;
+}
+
+[data-theme='dark'] .bg-white\/60 {
+  background-color: rgba(22, 25, 31, 0.6) !important;
+}
+
+[data-theme='dark'] .border-beige-100 {
+  border-color: var(--border-main) !important;
 }

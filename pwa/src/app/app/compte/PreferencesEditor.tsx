@@ -66,9 +66,10 @@ export default function PreferencesEditor({ userId, initialPreferences }: Props)
         {ALL_TRANSIT_MODES.map((t) => {
           const active = prefs.includes(t);
           return (
-            <button 
-              key={t} 
+            <button
+              key={t}
               onClick={() => toggleMode(t)}
+              aria-pressed={active}
               className={`text-xs font-black px-4 py-2.5 rounded-2xl transition-all shadow-sm border-2 active:scale-95 ${
                 active 
                   ? 'bg-abidjan-green text-white border-abidjan-green shadow-abidjan-green/20' 
@@ -102,6 +103,9 @@ export default function PreferencesEditor({ userId, initialPreferences }: Props)
          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-4">Mode Nuit</div>
          <button
            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+           role="switch"
+           aria-checked={theme === 'dark'}
+           aria-label="Mode nuit"
            className={`w-full flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${
              theme === 'dark' 
                ? 'bg-abidjan-blue text-white border-abidjan-blue shadow-lg shadow-abidjan-blue/20' 
