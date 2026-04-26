@@ -652,15 +652,15 @@ function AppPageContent() {
             <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
           </button>
 
-          {/* Broadcast (Pro) */}
-          {profile && (
-            <div className="flex-shrink-0">
-               <BroadcastButton userId={profile.id} currentTier={profile.sub_tier} />
-            </div>
-          )}
-
         </div>
       </div>
+
+      {/* Broadcast FAB — floating action button, always visible bottom-right */}
+      {profile && !sheetExpanded && (
+        <div className="absolute bottom-28 right-5 z-[600] animate-in fade-in zoom-in duration-300">
+          <BroadcastButton userId={profile.id} currentTier={profile.sub_tier} />
+        </div>
+      )}
 
       {/* Geo error toast */}
       {geoError && (
