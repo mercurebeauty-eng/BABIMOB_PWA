@@ -4,7 +4,7 @@ import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 import ProfileEditor from './ProfileEditor';
 import PreferencesEditor from './PreferencesEditor';
-import PersonalHeatmap from './PersonalHeatmap';
+import PersonalHeatmap from '@/components/PersonalHeatmap';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import ProfileSocialTabs from '@/components/ProfileSocialTabs';
 
