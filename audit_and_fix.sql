@@ -6,6 +6,40 @@
 -- ────────────────────────────────────────────────────────────────────────
 -- SECTION 1 : COLONNES profiles (migration v6)
 -- ────────────────────────────────────────────────────────────────────────
+
+-- Si sub_tier est un ENUM (subscription_tier), on ajoute 'elite' s'il manque
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_type WHERE typname = 'subscription_tier'
+  ) THEN
+    -- Ajoute 'elite' à l'enum si absent
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'subscription_tier' AND e.enumlabel = 'elite'
+    ) THEN
+      ALTER TYPE subscription_tier ADD VALUE 'elite';
+    END IF;
+    -- Ajoute 'messenger' et 'social' si absents aussi
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'subscription_tier' AND e.enumlabel = 'messenger'
+    ) THEN
+      ALTER TYPE subscription_tier ADD VALUE 'messenger';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'subscription_tier' AND e.enumlabel = 'social'
+    ) THEN
+      ALTER TYPE subscription_tier ADD VALUE 'social';
+    END IF;
+  END IF;
+END$$;
+
+-- Ajoute sub_tier seulement si elle n'existe pas encore (cas TEXT)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sub_tier             TEXT    DEFAULT 'free'  CHECK (sub_tier IN ('free','messenger','social','pro','elite'));
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin             BOOLEAN DEFAULT FALSE;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_verified_explorer BOOLEAN DEFAULT FALSE;
@@ -92,7 +126,7 @@ CREATE POLICY "profiles_public_select" ON profiles FOR SELECT
 -- SECTION 6 : BOOST ADMIN mercurebeauty@gmail.com
 -- ────────────────────────────────────────────────────────────────────────
 UPDATE profiles SET
-  sub_tier             = 'elite',
+  sub_tier             = 'pro',
   is_admin             = TRUE,
   is_verified_explorer = TRUE,
   total_points         = 9999,
