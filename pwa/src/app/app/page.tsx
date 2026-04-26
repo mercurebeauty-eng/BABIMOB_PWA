@@ -103,6 +103,7 @@ function AppPageContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -407,6 +408,13 @@ function AppPageContent() {
       setGeoError("La géolocalisation n'est pas disponible sur cet appareil.");
       return;
     }
+
+    // Stop any previous watch
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+
     setGeoLoading(true);
     setGeoError(null);
 
@@ -429,6 +437,13 @@ function AppPageContent() {
           setNearbyStops(data as ArretProche[]);
           setSheetExpanded(data.length > 0);
         }
+
+        // Start continuous tracking after initial fix
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (p) => setUserLoc([p.coords.latitude, p.coords.longitude]),
+          () => {},
+          { enableHighAccuracy: true }
+        );
       },
       (err) => {
         setGeoLoading(false);
@@ -441,6 +456,13 @@ function AppPageContent() {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, [supabase]);
+
+  // Clean up geolocation watch on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
+  }, []);
 
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
@@ -905,7 +927,10 @@ function AppPageContent() {
                     </div>
                   </div>
                   <button
-                    onClick={() => { setUserLoc(null); setNearbyStops([]); setSheetExpanded(false); }}
+                    onClick={() => {
+                      if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+                      setUserLoc(null); setNearbyStops([]); setSheetExpanded(false);
+                    }}
                     className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
                     aria-label="Effacer"
                   >

@@ -218,6 +218,26 @@ export default async function ComptePage() {
           currentTier={profile?.sub_tier || 'free'}
         />
 
+        {/* ADMIN CONSOLE — visible only for admins */}
+        {profile?.is_admin && (
+          <div className="bg-white rounded-[2.5rem] border-2 border-red-100 p-8 shadow-xl shadow-black/5 group hover:border-red-300 transition-all">
+            <Link href="/app/admin/places" className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                  ⚙️
+                </div>
+                <div>
+                  <div className="text-sm font-black uppercase tracking-widest text-beige-text">Console Admin</div>
+                  <div className="text-[10px] font-bold text-red-400 uppercase tracking-widest mt-1">Établissements & Analytics</div>
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-beige-50 flex items-center justify-center text-beige-muted group-hover:bg-red-500 group-hover:text-white transition-all">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+            </Link>
+          </div>
+        )}
+
         {/* MESSAGING - NEW ENTRY POINT */}
         <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5 group hover:border-abidjan-blue/30 transition-all">
            <Link href="/app/chat" className="flex items-center justify-between">
