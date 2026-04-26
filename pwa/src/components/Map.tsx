@@ -146,7 +146,8 @@ export default function Map({
           longitude: center[1],
           latitude: center[0],
           zoom: zoom,
-          pitch: 45, // MapLibre 3D flair
+          pitch: 60, // Premium 3D flair
+          bearing: -15, // Slight angle for depth
         }}
         mapStyle={mapStyle}
         onLoad={onMapLoad}
@@ -174,24 +175,23 @@ export default function Map({
         {/* 3D Buildings Layer */}
         <Layer
           id="3d-buildings"
-          source="openmaptiles" // Needs to match source in the Style JSON, often 'openmaptiles' or 'v3' in carto styles
+          source="carto" 
           source-layer="building"
-          filter={['==', 'extrude', 'true']}
           type="fill-extrusion"
           minzoom={15}
           paint={{
-            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-color': mapStyle === DARK_STYLE ? '#1f2533' : '#edece6',
             'fill-extrusion-height': [
               'interpolate', ['linear'], ['zoom'],
               15, 0,
-              15.05, ['get', 'height']
+              15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 25]
             ],
             'fill-extrusion-base': [
               'interpolate', ['linear'], ['zoom'],
               15, 0,
-              15.05, ['get', 'min_height']
+              15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]
             ],
-            'fill-extrusion-opacity': 0.6
+            'fill-extrusion-opacity': 0.8
           }}
         />
 
