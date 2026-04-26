@@ -101,7 +101,7 @@ export default async function ComptePage() {
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">ABIDJAN LIVE</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">MES PLANS TRIP</span>
         <SignOutButton />
       </div>
 
