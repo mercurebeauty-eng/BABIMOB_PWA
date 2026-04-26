@@ -36,7 +36,7 @@ export default async function ComptePage() {
 
   const { data: checkinsDetail } = await supabase
     .from('checkins')
-    .select('commune, place_name, lat, lon')
+    .select('id, created_at, place_name, commune, place_id, lat, lon, notes')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(300);
@@ -200,7 +200,7 @@ export default async function ComptePage() {
               </div>
            </div>
            <div className="h-48 bg-beige-50">
-              <PersonalHeatmap checkins={(checkinsDetail as any[]) || []} />
+              <PersonalHeatmap data={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []} />
            </div>
            <div className="p-5 text-center bg-beige-50/50">
               <p className="text-[11px] text-beige-muted font-bold italic">
@@ -210,11 +210,11 @@ export default async function ComptePage() {
         </div>
 
         {/* VISITS & SOCIAL TABS */}
-        <ProfileSocialTabs 
-          userId={user.id} 
+        <ProfileSocialTabs
+          userId={user.id}
           initialVisits={(checkinsDetail as any[]) || []}
           initialFollowing={(following as any[]) || []}
-          heatmapData={[]} // No longer needed here
+          heatmapData={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []}
           currentTier={profile?.sub_tier || 'free'}
         />
 
@@ -245,7 +245,7 @@ export default async function ComptePage() {
                <span className="text-lg">⭐</span>
                <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Mes Favoris</span>
              </div>
-             <Link href="/app/itineraire" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
+             <Link href="/app/compte/favoris" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
            </div>
 
            <div className="space-y-2">
