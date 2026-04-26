@@ -185,7 +185,11 @@ export default function ProfileEditor({
       <button
         onClick={handleSave}
         disabled={status === 'saving' || !name.trim() || !!phoneError}
-        className="w-full bg-abidjan-orange text-white font-black py-4 rounded-2xl shadow-lg shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 uppercase tracking-tight"
+        className={`w-full text-white font-black py-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 uppercase tracking-tight ${
+          status === 'saved'
+            ? 'bg-abidjan-green shadow-abidjan-green/20'
+            : 'bg-abidjan-orange shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5'
+        }`}
       >
         {status === 'saving' ? (
           <span className="flex items-center justify-center gap-3">
@@ -193,7 +197,7 @@ export default function ProfileEditor({
             Sauvegarde…
           </span>
         ) : status === 'saved' ? (
-          '✅ Profil mis à jour !'
+          '✓ Profil mis à jour !'
         ) : (
           'Enregistrer les modifications'
         )}

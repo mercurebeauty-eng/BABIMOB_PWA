@@ -105,7 +105,7 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, lat, l
     <button
       onClick={handleCheckin}
       disabled={status === 'loading'}
-      className="w-full flex items-center justify-center gap-3 bg-abidjan-blue text-white text-sm font-black py-4 rounded-2xl shadow-lg shadow-abidjan-blue/20 hover:shadow-abidjan-blue/40 transition-all active:scale-95 disabled:opacity-60"
+      className="w-full flex items-center justify-center gap-3 bg-abidjan-blue text-white text-sm font-black py-4 rounded-2xl shadow-lg shadow-abidjan-blue/20 hover:shadow-abidjan-blue/40 transition-all active:scale-95 disabled:opacity-50"
     >
       {status === 'loading' ? (
         <span className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
