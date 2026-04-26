@@ -604,14 +604,15 @@ function AppPageContent() {
           </motion.div>
 
           {/* Itinéraire */}
-          <Link
-            href="/app/itineraire"
-            aria-label="Calculer un itinéraire"
-            className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-blue/30 hover:text-abidjan-blue transition-all active:scale-95"
-          >
-            <IconRoute />
-            <span className="text-[11px] font-black uppercase tracking-wider">Itinéraire</span>
-          </Link>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <Link
+              href="/app/itineraire"
+              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bm-glass text-abidjan-blue"
+            >
+              <IconRoute />
+              <span className="text-[10px] font-black uppercase tracking-widest">Itinéraire</span>
+            </Link>
+          </motion.div>
 
           {/* Découvrir (POIs) */}
           <motion.button

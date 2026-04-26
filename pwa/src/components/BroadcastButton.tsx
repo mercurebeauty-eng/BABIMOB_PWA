@@ -55,22 +55,22 @@ export default function BroadcastButton({ userId, currentTier }: Props) {
     <>
       <button
         onClick={open}
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xl transition-all active:scale-95 ${
+        className={`flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bm-glass border border-white/20 transition-all active:scale-95 ${
           isPro
-            ? 'bg-abidjan-orange text-white shadow-abidjan-orange/30 animate-pulse'
-            : 'bg-white text-beige-muted border-2 border-beige-100'
+            ? 'bg-abidjan-orange text-white shadow-abidjan-orange/30'
+            : 'text-abidjan-blue'
         }`}
         title="Diffuser ma position (Pro)"
       >
-        <span className="relative">
-          📢
-          {!isPro && <span className="absolute -top-2 -right-2 text-[10px] bg-abidjan-orange text-white px-1 rounded-md">PRO</span>}
+        <span className="text-xl">📢</span>
+        <span className="text-[10px] font-black uppercase tracking-widest">
+          {isPro ? 'Live' : 'Pro'}
         </span>
       </button>
 
       {showModal && (
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm" onClick={() => !loading && setShowModal(false)}>
-          <div className="w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-2xl space-y-4 border border-white/50" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">📢</span>
               <div>
@@ -84,7 +84,7 @@ export default function BroadcastButton({ userId, currentTier }: Props) {
               onChange={e => setText(e.target.value.slice(0, 80))}
               placeholder="Ex : Venez me rejoindre au café !"
               rows={3}
-              className="w-full bg-beige-50 border-2 border-beige-100 focus:border-abidjan-orange rounded-2xl px-4 py-3 text-sm font-medium outline-none resize-none transition-all"
+              className="w-full bg-white/50 border-2 border-beige-100 focus:border-abidjan-orange rounded-2xl px-4 py-3 text-sm font-medium outline-none resize-none transition-all"
             />
             <div className="text-right text-[10px] text-beige-muted font-bold -mt-2">{text.length}/80</div>
 
