@@ -1,6 +1,6 @@
-/* Leaflet CSS (nécessaire pour que les tiles s'affichent correctement) */
+/* MapLibre CSS */
 /* ⚠ @import DOIT précéder toutes les autres règles — Turbopack est strict */
-@import 'leaflet/dist/leaflet.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
 @tailwind components;
@@ -45,33 +45,16 @@ body {
 .scope-dark ::-webkit-scrollbar-thumb     { background: #2a2f3a; border-radius: 3px; }
 .scope-dark ::-webkit-scrollbar-thumb:hover { background: #3a4150; }
 
-/* Override Leaflet pour un rendu plus propre */
-.leaflet-container {
-  background: #f4f4f0;
+/* MapLibre Popups Customization */
+.maplibregl-popup-content {
+  border-radius: 12px !important;
+  padding: 0 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  border: 1px solid #f0f0f0 !important;
 }
 
-/* Marqueur Elite POI — anneau pulsant */
-@keyframes poi-elite-ping {
-  0%       { transform: scale(1);   opacity: 0.55; }
-  70%, 100% { transform: scale(2.4); opacity: 0; }
-}
-.poi-elite-ring {
-  animation: poi-elite-ping 2s ease-out infinite;
-}
-
-.bm-popup-wrapper .leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  padding: 0;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  border: 1px solid #f0f0f0;
-}
-
-.bm-popup-wrapper .leaflet-popup-tip-container {
-  display: none;
-}
-
-.bm-popup-wrapper .leaflet-popup-content {
-  margin: 0;
+.maplibregl-popup-tip {
+  display: none !important;
 }
 
 .bm-popup {
@@ -176,15 +159,7 @@ body {
   padding-bottom: max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom)));
 }
 
-/* Leaflet zoom control — move up to avoid overlapping bottom sheet peek */
-.leaflet-bottom.leaflet-right {
-  bottom: 88px;
-}
 
-/* Hide attribution for a native-app look */
-.leaflet-control-attribution {
-  display: none;
-}
 
 /* ── Map Navigation Toolbar (Glassmorphism) ──────────────────── */
 .bm-nav-toolbar {
@@ -382,11 +357,7 @@ body {
   white-space: nowrap;
 }
 
-/* Leaflet Overrides for POI markers */
-.leaflet-div-icon {
-  background: transparent !important;
-  border: none !important;
-}
+
 
 /* Respect prefers-reduced-motion — pause all decorative animations */
 @media (prefers-reduced-motion: reduce) {
@@ -409,7 +380,4 @@ body {
   }
 }
 
-/* Utils & Leaflet Polish */
-.leaflet-control-attribution {
-  display: none !important;
-}
+

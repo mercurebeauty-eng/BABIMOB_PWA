@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import 'leaflet/dist/leaflet.css';
-
-// Loading Leaflet dynamically to avoid SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
+import MapGL, { Source, Layer, MapRef } from 'react-map-gl';
 
 type Checkin = {
   lat: number;
@@ -43,35 +37,41 @@ export default function PersonalHeatmap({ checkins }: { checkins: any[] }) {
     </div>
   );
 
-  const center: [number, number] = [5.3484, -4.0305]; // Abidjan
+  const center = { latitude: 5.3484, longitude: -4.0305 }; // Abidjan
+
+  const geojson = {
+    type: 'FeatureCollection',
+    features: heatmapData.map(d => ({
+      type: 'Feature',
+      properties: { weight: d.weight },
+      geometry: { type: 'Point', coordinates: [d.lon, d.lat] }
+    }))
+  };
 
   return (
     <div className="w-full h-full relative rounded-[2rem] overflow-hidden grayscale contrast-125 brightness-110">
-      <MapContainer 
-        center={center} 
-        zoom={11} 
-        scrollWheelZoom={false}
-        zoomControl={false}
+      <MapGL 
+        initialViewState={{
+          ...center,
+          zoom: 11
+        }}
+        mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+        interactive={false}
         attributionControl={false}
-        dragging={false}
-        doubleClickZoom={false}
-        touchZoom={false}
-        style={{ height: '100%', width: '100%', background: '#f4f4f0' }}
       >
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
-        {heatmapData.map((d, i) => (
-          <CircleMarker
-            key={i}
-            center={[d.lat, d.lon]}
-            radius={6 + (d.weight * 2)}
-            fillColor="#FF7A00"
-            color="transparent"
-            fillOpacity={0.4}
+        <Source id="personal-heat" type="geojson" data={geojson as any}>
+          {/* We emulate the CircleMarker with a circle layer */}
+          <Layer
+            id="heatmap-circles"
+            type="circle"
+            paint={{
+              'circle-radius': ['+', 6, ['*', ['get', 'weight'], 2]],
+              'circle-color': '#FF7A00',
+              'circle-opacity': 0.4
+            }}
           />
-        ))}
-      </MapContainer>
+        </Source>
+      </MapGL>
       <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none" />
     </div>
   );

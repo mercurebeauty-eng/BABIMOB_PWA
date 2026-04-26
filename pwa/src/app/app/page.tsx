@@ -9,6 +9,7 @@ import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import BroadcastButton from '@/components/BroadcastButton';
+import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -112,6 +113,7 @@ function AppPageContent() {
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
+  const controls = useAnimation();
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [heatMode, setHeatMode] = useState(false);
   const [hotspots, setHotspots] = useState<any[]>([]);
@@ -610,28 +612,47 @@ function AppPageContent() {
       </div>
 
       {/* Geo error toast */}
-      {geoError && (
-        <div className="bm-toast absolute top-36 left-4 right-4 z-[500] bg-red-50 border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex items-center justify-between shadow-xl uppercase tracking-widest animate-in slide-in-from-top-4 duration-300">
-          <span>{geoError}</span>
-          <button
-            onClick={() => setGeoError(null)}
-            className="ml-4 p-1.5 text-red-300 hover:text-red-500 rounded-full transition"
-            aria-label="Fermer"
+      <AnimatePresence>
+        {geoError && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="bm-toast absolute top-36 left-4 right-4 z-[500] bg-red-50 border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex flex-nowrap items-center justify-between shadow-xl uppercase tracking-widest"
           >
-            <IconX />
-          </button>
-        </div>
-      )}
+            <span className="flex-1 mr-2 leading-tight">{geoError}</span>
+            <button
+              onClick={() => setGeoError(null)}
+              className="p-2 ml-auto text-red-300 hover:text-red-500 hover:bg-red-100 rounded-full transition flex-shrink-0"
+              aria-label="Fermer"
+            >
+              <IconX />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ── Bottom sheet ────────────────────────────────────────────────── */}
-      <div
-        className={`bm-sheet absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 ease-out border-t-2 border-beige-100 ${
-          sheetExpanded ? 'translate-y-0' : 'translate-y-[calc(100%-88px)]'
-        }`}
+      {/* ── Bottom sheet (Framer Motion) ────────────────────────────────────────────────── */}
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, info: PanInfo) => {
+          if (info.offset.y > 50 || info.velocity.y > 200) {
+            setSheetExpanded(false);
+          } else if (info.offset.y < -50 || info.velocity.y < -200) {
+            setSheetExpanded(true);
+          }
+        }}
+        initial={false}
+        animate={{ y: sheetExpanded ? 0 : 'calc(100% - 88px)' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.8 }}
+        className="absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t-2 border-beige-100 h-[85vh] touch-none"
       >
         {/* Handle */}
         <div
-          className="flex flex-col items-center pt-4 pb-2 cursor-pointer select-none"
+          className="flex flex-col items-center pt-4 pb-2 cursor-grab active:cursor-grabbing select-none"
           onClick={() => setSheetExpanded(!sheetExpanded)}
           role="button"
           aria-label={sheetExpanded ? "Réduire" : "Agrandir"}
@@ -1085,12 +1106,19 @@ function AppPageContent() {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* ── Search overlay ──────────────────────────────────────────────── */}
-      {searchOpen && (
-        <div className="bm-search-overlay fixed inset-0 z-[600] bg-beige-50 flex flex-col animate-in slide-in-from-bottom-8 duration-500">
-          <div className="flex items-center gap-4 px-5 pt-12 pb-4 bg-white border-b-2 border-beige-200">
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: '20vh' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '20vh' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="bm-search-overlay fixed inset-0 z-[600] bg-beige-50 flex flex-col"
+          >
+            <div className="flex items-center gap-4 px-5 pt-12 pb-4 bg-white border-b-2 border-beige-200">
             <button
               onClick={closeSearch}
               className="p-2 -ml-2 rounded-full hover:bg-beige-50 transition text-beige-text"
@@ -1174,8 +1202,9 @@ function AppPageContent() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
