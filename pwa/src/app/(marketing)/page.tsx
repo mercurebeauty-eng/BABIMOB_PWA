@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import NavMobile from './NavMobile';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
+import ScrollReveal from './ScrollReveal';
 
 export const metadata: Metadata = {
   title: 'BABIMOB — Bouge à Abidjan comme un local',
@@ -228,41 +229,43 @@ export default function LandingPage() {
       {/* ══ COMMENT ÇA MARCHE ════════════════════════════════ */}
       <section id="comment" className="py-24 md:py-32 relative">
         <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <ScrollReveal direction="up" className="text-center max-w-2xl mx-auto mb-16">
             <div className="text-sm font-bold uppercase tracking-widest text-abidjan-orange mb-4">Simple comme bonjour</div>
             <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">3 étapes. C&apos;est tout.</h2>
             <p className="text-xl text-beige-muted font-medium">Pas de compte. Pas de téléchargement. Juste ta position.</p>
-          </div>
-          
+          </ScrollReveal>
+
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
                 n: '01', t: 'Envoie ta position',
                 d: "Partage ta localisation depuis Telegram ou WhatsApp en un clic.",
                 c: 'bg-white', b: 'border-abidjan-orange/20', h: 'hover:border-abidjan-orange',
-                icon: '📍', color: 'text-abidjan-orange bg-abidjan-orange/10'
+                icon: '📍', color: 'text-abidjan-orange bg-abidjan-orange/10', delay: 0
               },
               {
                 n: '02', t: 'Dis où tu vas',
                 d: "En nouchi ou abréviations (Yop, Zone 4), l'IA comprend ton langage.",
                 c: 'bg-white', b: 'border-abidjan-blue/20', h: 'hover:border-abidjan-blue',
-                icon: '🗣️', color: 'text-abidjan-blue bg-abidjan-blue/10'
+                icon: '🗣️', color: 'text-abidjan-blue bg-abidjan-blue/10', delay: 120
               },
               {
                 n: '03', t: 'Pars en confiance',
                 d: "Reçois lignes, tarifs et arrêts. Le vrai prix du terrain garanti.",
                 c: 'bg-white', b: 'border-abidjan-green/20', h: 'hover:border-abidjan-green',
-                icon: '🚶🏾‍♂️', color: 'text-abidjan-green bg-abidjan-green/10'
+                icon: '🚶🏾‍♂️', color: 'text-abidjan-green bg-abidjan-green/10', delay: 240
               },
             ].map((s) => (
-              <div key={s.n} className={`group relative rounded-[2rem] p-8 border-2 ${s.c} ${s.b} ${s.h} transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-black/5`}>
-                <div className="absolute top-6 right-6 font-display text-6xl font-black text-beige-100 group-hover:scale-110 transition-transform select-none">{s.n}</div>
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-8 ${s.color}`}>
-                  {s.icon}
+              <ScrollReveal key={s.n} direction="up" delay={s.delay}>
+                <div className={`group relative rounded-[2rem] p-8 border-2 h-full ${s.c} ${s.b} ${s.h} transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-black/5`}>
+                  <div className="absolute top-6 right-6 font-display text-6xl font-black text-beige-100 group-hover:scale-110 transition-transform select-none">{s.n}</div>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-8 ${s.color}`}>
+                    {s.icon}
+                  </div>
+                  <h3 className="font-display font-bold text-2xl mb-3">{s.t}</h3>
+                  <p className="text-beige-muted text-lg font-medium leading-relaxed">{s.d}</p>
                 </div>
-                <h3 className="font-display font-bold text-2xl mb-3">{s.t}</h3>
-                <p className="text-beige-muted text-lg font-medium leading-relaxed">{s.d}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -271,7 +274,7 @@ export default function LandingPage() {
       {/* ══ FONCTIONNALITÉS / C'COMMENT ══════════════════════ */}
       <section id="fonctions" className="py-24 md:py-32 relative">
         <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center max-w-3xl mx-auto mb-20">
+          <ScrollReveal direction="up" className="text-center max-w-3xl mx-auto mb-20">
             <div className="inline-flex items-center gap-2 text-xs font-bold text-abidjan-blue bg-abidjan-blue/10 border border-abidjan-blue/20 px-4 py-1.5 rounded-full mb-6">
               ✨ Nouveau
             </div>
@@ -282,32 +285,22 @@ export default function LandingPage() {
             <p className="text-xl text-beige-muted font-medium leading-relaxed">
               BABIMOB n&apos;est plus seulement une carte. C&apos;est la communauté qui te dit la vérité sur le terrain.
             </p>
-          </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
-              <div className="w-14 h-14 rounded-2xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-3xl mb-8">📍</div>
-              <h3 className="font-display font-bold text-2xl mb-4">Check-in Instantané</h3>
-              <p className="text-beige-muted font-medium leading-relaxed">
-                Un bouton &quot;Je suis ici&quot; pour laisser ta trace horodatée. Maquis, arrêt ou marché : montre que tu explores la ville.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
-              <div className="w-14 h-14 rounded-2xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-3xl mb-8">💬</div>
-              <h3 className="font-display font-bold text-2xl mb-4">Qui est déjà allé ?</h3>
-              <p className="text-beige-muted font-medium leading-relaxed">
-                Demande l&apos;avis des autres en un clic. Pas d&apos;algorithmes, juste des vrais Abidjanais qui te répondent en direct.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
-              <div className="w-14 h-14 rounded-2xl bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-3xl mb-8">🏅</div>
-              <h3 className="font-display font-bold text-2xl mb-4">Badge Explorateur</h3>
-              <p className="text-beige-muted font-medium leading-relaxed">
-                Plus tu visites, plus tu gagnes de points. Deviens une Légende d&apos;Abidjan et débloque des privilèges dans ton profil.
-              </p>
-            </div>
+            {[
+              { icon: '📍', color: 'bg-abidjan-orange/10 text-abidjan-orange', title: 'Check-in Instantané', desc: 'Un bouton "Je suis ici" pour laisser ta trace horodatée. Maquis, arrêt ou marché : montre que tu explores la ville.', delay: 0 },
+              { icon: '💬', color: 'bg-abidjan-blue/10 text-abidjan-blue', title: 'Qui est déjà allé ?', desc: "Demande l'avis des autres en un clic. Pas d'algorithmes, juste des vrais Abidjanais qui te répondent en direct.", delay: 120 },
+              { icon: '🏅', color: 'bg-abidjan-green/10 text-abidjan-green', title: 'Badge Explorateur', desc: "Plus tu visites, plus tu gagnes de points. Deviens une Légende d'Abidjan et débloque des privilèges dans ton profil.", delay: 240 },
+            ].map((f) => (
+              <ScrollReveal key={f.title} direction="up" delay={f.delay}>
+                <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all h-full">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-8 ${f.color}`}>{f.icon}</div>
+                  <h3 className="font-display font-bold text-2xl mb-4">{f.title}</h3>
+                  <p className="text-beige-muted font-medium leading-relaxed">{f.desc}</p>
+                </div>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
       </section>
@@ -315,23 +308,25 @@ export default function LandingPage() {
       {/* ══ TRANSPORTS ═══════════════════════════════════════ */}
       <section id="transports" className="py-24 md:py-32 bg-white border-y border-beige-200/50">
         <div className="max-w-6xl mx-auto px-5">
-          <div className="max-w-2xl mb-16">
+          <ScrollReveal direction="left" className="max-w-2xl mb-16">
             <div className="text-sm font-bold uppercase tracking-widest text-abidjan-green mb-4">Réseau cartographié</div>
             <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">Tous les transports</h2>
             <p className="text-xl text-beige-muted font-medium">
               Gbaka bondé ou taxi confort — BABIMOB connaît les tarifs réels pour chaque véhicule.
             </p>
-          </div>
+          </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {TRANSPORTS.map((t) => (
-              <div key={t.n} className="bg-beige-50 rounded-3xl p-6 border border-beige-200 hover:border-abidjan-green/50 hover:shadow-lg hover:-translate-y-1 transition-all">
-                <div className="text-5xl mb-6">{t.e}</div>
-                <h3 className="font-display font-bold text-xl mb-3">{t.n}</h3>
-                <div className="inline-block bg-white text-abidjan-green font-bold text-sm px-3 py-1.5 rounded-full border border-beige-200 shadow-sm mb-4">
-                  {t.p}
+            {TRANSPORTS.map((t, i) => (
+              <ScrollReveal key={t.n} direction="up" delay={i * 100}>
+                <div className="bg-beige-50 rounded-3xl p-6 border border-beige-200 hover:border-abidjan-green/50 hover:shadow-lg hover:-translate-y-1 transition-all h-full">
+                  <div className="text-5xl mb-6">{t.e}</div>
+                  <h3 className="font-display font-bold text-xl mb-3">{t.n}</h3>
+                  <div className="inline-block bg-white text-abidjan-green font-bold text-sm px-3 py-1.5 rounded-full border border-beige-200 shadow-sm mb-4">
+                    {t.p}
+                  </div>
+                  <p className="text-beige-muted text-sm font-medium leading-relaxed">{t.d}</p>
                 </div>
-                <p className="text-beige-muted text-sm font-medium leading-relaxed">{t.d}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -340,7 +335,7 @@ export default function LandingPage() {
       {/* ══ CTA FOOTER ═══════════════════════════════════════ */}
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 bg-abidjan-gradient opacity-10" />
-        <div className="max-w-4xl mx-auto px-5 text-center relative z-10">
+        <ScrollReveal direction="up" className="max-w-4xl mx-auto px-5 text-center relative z-10">
           <h2 className="font-display font-black text-5xl md:text-6xl tracking-tight mb-8">
             Prêt à dompter Abidjan ?
           </h2>
@@ -352,7 +347,7 @@ export default function LandingPage() {
               Ouvrir la Carte Web
             </Link>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ══ FOOTER ═══════════════════════════════════════════ */}

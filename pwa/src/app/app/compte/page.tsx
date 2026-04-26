@@ -4,9 +4,10 @@ import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 import ProfileEditor from './ProfileEditor';
 import PreferencesEditor from './PreferencesEditor';
-import PersonalHeatmap from './PersonalHeatmap';
+import PersonalHeatmap from '@/components/PersonalHeatmap';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import ProfileSocialTabs from '@/components/ProfileSocialTabs';
+import ExplorerGoals from './ExplorerGoals';
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -36,7 +37,7 @@ export default async function ComptePage() {
 
   const { data: checkinsDetail } = await supabase
     .from('checkins')
-    .select('commune, place_name, lat, lon')
+    .select('id, created_at, place_name, commune, place_id, lat, lon, notes')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(300);
@@ -75,8 +76,9 @@ export default async function ComptePage() {
   const nextMilestone = level === 1 ? 100 : level === 2 ? 400 : level === 3 ? 1000 : 5000;
   const progress = Math.min((levelScore / nextMilestone) * 100, 100);
 
-  // REACH metric (logical mock based on activity)
-  const reachVal = (total * 125) + (totalPoints * 4);
+  // REACH metric — real impressions from reach_events (ticker + map + feed + broadcast)
+  const { data: reachData } = await supabase.rpc('get_reach', { p_user_id: user.id, p_days: 30 });
+  const reachVal: number = reachData ?? 0;
   const reachStr = reachVal >= 1000 ? `${(reachVal / 1000).toFixed(1)}k` : reachVal.toString();
 
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
@@ -100,7 +102,7 @@ export default async function ComptePage() {
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">ABIDJAN LIVE</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">MES PLANS TRIP</span>
         <SignOutButton />
       </div>
 
@@ -125,15 +127,23 @@ export default async function ComptePage() {
 
         {/* STATS STRIP */}
         <div className="grid grid-cols-2 gap-4">
-           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5">
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 flex flex-col items-center shadow-xl shadow-black/5 relative group">
               <div className="text-xl mb-1 mt-1">🏆</div>
               <div className="text-2xl font-black text-beige-text">{badges?.length || 0}</div>
-              <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Badges</div>
+              <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Badges</div>
+              {(badges?.length ?? 0) === 0 && (
+                <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
+                  Check-in pour débloquer
+                </div>
+              )}
            </div>
-           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5">
-              <div className="text-xl mb-1 mt-1">📊</div>
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 flex flex-col items-center shadow-xl shadow-black/5 relative group">
+              <div className="text-xl mb-1 mt-1">📡</div>
               <div className="text-2xl font-black text-beige-text">{reachStr}</div>
-              <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Reach</div>
+              <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Reach</div>
+              <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
+                Vues réelles · 30j
+              </div>
            </div>
         </div>
 
@@ -150,39 +160,14 @@ export default async function ComptePage() {
                    <p className="text-[11px] font-bold text-beige-muted leading-relaxed uppercase tracking-widest">Gagne l&apos;accès au Live Feed complet et aux avantages Elite.</p>
                 </div>
 
-                <div className="space-y-4">
-                   {[
-                      { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
-                      { label: "5 Communes visitées", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
-                      { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
-                   ].map((goal, idx) => {
-                      const pct = Math.min((goal.current / goal.target) * 100, 100);
-                      const isDone = pct >= 100;
-                      return (
-                         <div key={idx}>
-                            <div className="flex justify-between items-end mb-2">
-                               <div className="flex items-center gap-2">
-                                  <span className={isDone ? "" : "grayscale opacity-50"}>{goal.emoji}</span>
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${isDone ? 'text-abidjan-green' : 'text-beige-text'}`}>
-                                     {goal.label} {isDone && "✓"}
-                                  </span>
-                               </div>
-                               <span className="text-[9px] font-black text-beige-muted">{goal.current} / {goal.target}</span>
-                            </div>
-                            <div className="h-1.5 bg-white rounded-full overflow-hidden border border-beige-100">
-                               <div 
-                                 className={`h-full transition-all duration-[1500ms] ${isDone ? 'bg-abidjan-green' : 'bg-abidjan-orange opacity-40'}`}
-                                 style={{ width: `${pct}%` }}
-                               />
-                            </div>
-                         </div>
-                      );
-                   })}
-                </div>
-                
-                <p className="text-[9px] font-black text-abidjan-orange italic uppercase tracking-wider text-center mt-2">
-                   Plus que {Math.max(500 - totalPoints, 0)} points pour y arriver !
-                </p>
+                <ExplorerGoals
+                   goals={[
+                     { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
+                     { label: "5 lieux de 5 Communes", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
+                     { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
+                   ]}
+                   remainingPoints={Math.max(500 - totalPoints, 0)}
+                />
              </div>
           </div>
         )}
@@ -196,27 +181,47 @@ export default async function ComptePage() {
               </div>
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 rounded-full bg-abidjan-green animate-pulse" />
-                 <span className="text-[9px] font-black uppercase text-abidjan-green tracking-widest">Live Area</span>
+                 <span className="text-[9px] font-semibold uppercase text-abidjan-green tracking-widest">Live Area</span>
               </div>
            </div>
            <div className="h-48 bg-beige-50">
-              <PersonalHeatmap checkins={(checkinsDetail as any[]) || []} />
+              <PersonalHeatmap data={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []} />
            </div>
            <div className="p-5 text-center bg-beige-50/50">
-              <p className="text-[11px] text-beige-muted font-bold italic">
-                 Le plus actif à <span className="font-black text-beige-text">{topCommunes[0] || 'Abidjan'}</span> cette semaine
+              <p className="text-[11px] text-beige-muted font-medium italic">
+                 Le plus actif à <span className="font-bold text-beige-text">{topCommunes[0] || 'Abidjan'}</span> cette semaine
               </p>
            </div>
         </div>
 
         {/* VISITS & SOCIAL TABS */}
-        <ProfileSocialTabs 
-          userId={user.id} 
+        <ProfileSocialTabs
+          userId={user.id}
           initialVisits={(checkinsDetail as any[]) || []}
           initialFollowing={(following as any[]) || []}
-          heatmapData={[]} // No longer needed here
+          heatmapData={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []}
           currentTier={profile?.sub_tier || 'free'}
         />
+
+        {/* ADMIN CONSOLE — visible only for admins */}
+        {profile?.is_admin && (
+          <div className="bg-white rounded-[2.5rem] border-2 border-red-100 p-8 shadow-xl shadow-black/5 group hover:border-red-300 transition-all">
+            <Link href="/app/admin/places" className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                  ⚙️
+                </div>
+                <div>
+                  <div className="text-sm font-black uppercase tracking-widest text-beige-text">Console Admin</div>
+                  <div className="text-[10px] font-bold text-red-400 uppercase tracking-widest mt-1">Établissements & Analytics</div>
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-beige-50 flex items-center justify-center text-beige-muted group-hover:bg-red-500 group-hover:text-white transition-all">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* MESSAGING - NEW ENTRY POINT */}
         <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5 group hover:border-abidjan-blue/30 transition-all">
@@ -245,14 +250,25 @@ export default async function ComptePage() {
                <span className="text-lg">⭐</span>
                <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Mes Favoris</span>
              </div>
-             <Link href="/app/itineraire" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
+             <Link href="/app/compte/favoris" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
            </div>
-           
+
            <div className="space-y-2">
               {favorites?.map(f => (
-                 <Link key={f.id} href={f.kind === 'stop' ? `/app/arret/${f.stop_id}` : `/app`} className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100 hover:border-abidjan-orange/30 transition-all">
+                 <Link
+                   key={f.id}
+                   href={
+                     f.kind === 'stop' && f.stop_id ? `/app/arret/${encodeURIComponent(f.stop_id)}`
+                     : f.kind === 'place' && f.stop_id ? `/app/place/${encodeURIComponent(f.stop_id)}`
+                     : f.kind === 'route' && f.route_id ? `/app/ligne/${encodeURIComponent(f.route_id)}`
+                     : '/app'
+                   }
+                   className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100 hover:border-abidjan-orange/30 transition-all"
+                 >
                     <span className="text-[11px] font-black text-beige-text">{f.label}</span>
-                    <span className="text-[8px] font-black uppercase text-beige-muted border border-beige-200 px-2 py-0.5 rounded-full">{f.kind === 'stop' ? 'Arrêt' : 'Ligne'}</span>
+                    <span className="text-[8px] font-black uppercase text-beige-muted border border-beige-200 px-2 py-0.5 rounded-full">
+                      {f.kind === 'stop' ? 'Arrêt' : f.kind === 'place' ? 'Lieu' : 'Ligne'}
+                    </span>
                  </Link>
               ))}
               {(!favorites || favorites.length === 0) && (
@@ -277,6 +293,7 @@ export default async function ComptePage() {
                 initialPhone={profile?.phone_number || ''}
                 initialConsent={profile?.phone_marketing_consent}
                 initialVisibility={profile?.is_public_visits}
+                initialCommune={profile?.origin_commune || ''}
               />
            </div>
 

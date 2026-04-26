@@ -114,7 +114,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all disabled:opacity-60 text-lg tracking-tight"
+                  className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 text-lg tracking-tight"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-3">

@@ -45,16 +45,33 @@ body {
 .scope-dark ::-webkit-scrollbar-thumb     { background: #2a2f3a; border-radius: 3px; }
 .scope-dark ::-webkit-scrollbar-thumb:hover { background: #3a4150; }
 
-/* MapLibre Popups Customization */
-.maplibregl-popup-content {
-  border-radius: 12px !important;
-  padding: 0 !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
-  border: 1px solid #f0f0f0 !important;
+/* Override Leaflet pour un rendu plus propre */
+.leaflet-container {
+  background: #f4f4f0;
 }
 
-.maplibregl-popup-tip {
-  display: none !important;
+/* Marqueur Elite POI — anneau pulsant */
+@keyframes poi-elite-ping {
+  0%       { transform: scale(1);   opacity: 0.55; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.poi-elite-ring {
+  animation: poi-elite-ping 2s ease-out infinite;
+}
+
+.bm-popup-wrapper .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border: 1px solid #f0f0f0;
+}
+
+.bm-popup-wrapper .leaflet-popup-tip-container {
+  display: none;
+}
+
+.bm-popup-wrapper .leaflet-popup-content {
+  margin: 0;
 }
 
 .bm-popup {
@@ -159,7 +176,15 @@ body {
   padding-bottom: max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom)));
 }
 
+/* Leaflet zoom control — move up to avoid overlapping bottom sheet peek */
+.leaflet-bottom.leaflet-right {
+  bottom: 88px;
+}
 
+/* Hide attribution for a native-app look */
+.leaflet-control-attribution {
+  display: none;
+}
 
 /* ── Map Navigation Toolbar (Glassmorphism) ──────────────────── */
 .bm-nav-toolbar {
@@ -303,13 +328,13 @@ body {
 
 /* Elite Pulse Aura */
 @keyframes bm-poi-elite-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.45); }
-  70%  { box-shadow: 0 0 0 18px rgba(255, 122, 0, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.3); }
+  70%  { box-shadow: 0 0 0 14px rgba(255, 122, 0, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0); }
 }
 
 .bm-poi-elite-pulse {
-  animation: bm-poi-elite-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: bm-poi-elite-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* ── POI Presence Indicator (check-in silhouette) ────────────── */
@@ -336,20 +361,20 @@ body {
 
 /* Live Pulse Aura (Orange for active spots) */
 @keyframes bm-poi-live-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
-  70%  { box-shadow: 0 0 0 12px rgba(245, 166, 35, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.25); }
+  70%  { box-shadow: 0 0 0 10px rgba(245, 166, 35, 0); }
   100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
 }
 
 .bm-poi-live-pulse {
-  animation: bm-poi-live-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  animation: bm-poi-live-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
   border-color: #f5a623 !important;
 }
 
 /* Marquee for Live Ticker */
 @keyframes marquee-slow {
-  0%   { transform: translateX(100vw); }
-  100% { transform: translateX(-200%); }
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(calc(-100% - 100vw)); }
 }
 
 .animate-marquee-slow {
@@ -357,7 +382,11 @@ body {
   white-space: nowrap;
 }
 
-
+/* Leaflet Overrides for POI markers */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
 
 /* Respect prefers-reduced-motion — pause all decorative animations */
 @media (prefers-reduced-motion: reduce) {
@@ -380,4 +409,87 @@ body {
   }
 }
 
+/* Utils & Leaflet Polish */
+.leaflet-control-attribution {
+  display: none !important;
+}
 
+/* ============================================
+   DARK MODE OVERRIDES
+   Activated by [data-theme='dark'] on <html>
+   Uses higher specificity (0,1,1) to beat Tailwind utilities (0,1,0)
+   ============================================ */
+
+[data-theme='dark'] .bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+[data-theme='dark'] .bg-beige-50 {
+  background-color: var(--bg-beige) !important;
+}
+
+[data-theme='dark'] .bg-beige-100 {
+  background-color: #1a1e26 !important;
+}
+
+[data-theme='dark'] .bg-beige-200 {
+  background-color: #222630 !important;
+}
+
+[data-theme='dark'] .border-beige-100,
+[data-theme='dark'] .border-beige-200 {
+  border-color: var(--border-main) !important;
+}
+
+[data-theme='dark'] .text-beige-text {
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] .text-beige-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .bg-beige-50\/80 {
+  background-color: rgba(15, 17, 22, 0.8) !important;
+}
+
+[data-theme='dark'] .bg-white\/80 {
+  background-color: rgba(22, 25, 31, 0.8) !important;
+}
+
+[data-theme='dark'] .bg-beige-50\/50 {
+  background-color: rgba(15, 17, 22, 0.5) !important;
+}
+
+[data-theme='dark'] .border-beige-200\/50 {
+  border-color: rgba(42, 47, 58, 0.5) !important;
+}
+
+[data-theme='dark'] .shadow-black\/5 {
+  --tw-shadow-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  background-color: #1a1e26 !important;
+  border-color: var(--border-main) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .bg-white\/90 {
+  background-color: rgba(22, 25, 31, 0.92) !important;
+}
+
+[data-theme='dark'] .bg-white\/60 {
+  background-color: rgba(22, 25, 31, 0.6) !important;
+}
+
+[data-theme='dark'] .border-beige-100 {
+  border-color: var(--border-main) !important;
+}

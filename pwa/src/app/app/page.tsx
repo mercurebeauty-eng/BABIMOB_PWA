@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -8,6 +9,7 @@ import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
+import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import BroadcastButton from '@/components/BroadcastButton';
 import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
 
@@ -15,9 +17,13 @@ const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
-        <span className="text-xs text-beige-muted font-black uppercase tracking-widest">Chargement de la ville…</span>
+      <div className="flex flex-col items-center gap-4">
+        <Image src="/icons/icon-192.png" alt="BABIMOB" width={64} height={64} className="rounded-2xl shadow-lg shadow-abidjan-orange/20" />
+        <div className="text-center">
+          <div className="text-base font-black uppercase tracking-[0.2em] text-beige-text">BABIMOB</div>
+          <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-0.5">Chargement de la ville…</div>
+        </div>
+        <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
       </div>
     </div>
   ),
@@ -103,6 +109,8 @@ function AppPageContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const watchIdRef = useRef<number | null>(null);
+  const reachLoggedRef = useRef<Set<string>>(new Set());
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -127,6 +135,14 @@ function AppPageContent() {
   const [communityFeed, setCommunityFeed] = useState<any[]>([]);
   const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
+
+  // Fire-and-forget reach impression — deduplicated per user+source per session
+  const logReach = useCallback((userId: string, source: 'ticker' | 'map' | 'feed' | 'broadcast') => {
+    const key = `${userId}:${source}`;
+    if (reachLoggedRef.current.has(key)) return;
+    reachLoggedRef.current.add(key);
+    supabase.rpc('record_reach', { p_user_id: userId, p_source: source });
+  }, [supabase]);
 
   const handleGetDirections = useCallback((poi: POI) => {
     router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
@@ -171,7 +187,7 @@ function AppPageContent() {
 
         if (liveData) {
           setLivePois(Array.from(new Set(liveData.map(d => d.place_id))));
-          
+
           // Privacy Filter: Only show names if profile.is_public_visits is true
           const filteredTicker = liveData.map(d => ({
              ...d,
@@ -179,12 +195,17 @@ function AppPageContent() {
           })).slice(0, 5);
 
           setLiveTickerFeed(filteredTicker);
+          // Track ticker impressions for each visible public user
+          filteredTicker.forEach(d => {
+            const uid = (d.profile as any)?.id;
+            if (uid) logReach(uid, 'ticker');
+          });
         }
       }
     };
     map.on('moveend', loadPois);
     loadPois();
-  }, [supabase]);
+  }, [supabase, logReach]);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -193,18 +214,6 @@ function AppPageContent() {
       });
     }
   }, [heatMode, hotspots.length]);
-
-  // Mock live explorers around Abidjan for visual feel
-  useEffect(() => {
-    const mockExplorers = [
-      { lat: 5.3484, lon: -4.0305, name: 'Jean', level: 3, class: 'Gbaka Master' },
-      { lat: 5.3310, lon: -4.0210, name: 'Awa', level: 2, class: 'Citadine' },
-      { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4, class: 'Légende Abobo' },
-      { lat: 5.3150, lon: -4.0150, name: 'Marie', level: 1, class: 'Novice' },
-    ];
-    // Simulate: Only show Level 2+ explorers (50+ check-ins) for social discovery
-    setExplorers(mockExplorers.filter(e => e.level >= 2));
-  }, []);
 
   // Geolocation
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
@@ -235,15 +244,30 @@ function AppPageContent() {
         setProfile(data);
       }
 
-      // Fetch active broadcasts (last 4 hours)
+      // Fetch active broadcasts (last 4 hours) — includes lat/lon for map rendering
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
       const { data: bc } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, sub_tier')
+        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier, is_public_visits')
         .not('last_broadcast_at', 'is', null)
         .gt('last_broadcast_at', fourHoursAgo);
-      
-      if (bc) setBroadcasts(bc);
+      if (bc) {
+        setBroadcasts(bc);
+        // Derive Snap-style explorer markers from public broadcast users
+        const publicExplorers = bc.filter((p: any) => p.is_public_visits && p.broadcast_lat && p.broadcast_lon);
+        setExplorers(
+          publicExplorers.map((p: any) => ({
+            lat: p.broadcast_lat,
+            lon: p.broadcast_lon,
+            name: p.display_name ?? 'Explorateur',
+            emoji: p.avatar_emoji ?? '🧭',
+          }))
+        );
+        // Track map impressions for each visible public explorer
+        publicExplorers.forEach((p: any) => logReach(p.id, 'map'));
+        // Track broadcast impressions for users with an active broadcast
+        bc.filter((p: any) => p.broadcast_text).forEach((p: any) => logReach(p.id, 'broadcast'));
+      }
 
       // Fetch Global Community Activity (last 24h)
       const { data: globalFeed } = await supabase
@@ -254,10 +278,13 @@ function AppPageContent() {
         `)
         .order('created_at', { ascending: false })
         .limit(10);
-      
       if (globalFeed) {
-        setCommunityFeed(globalFeed.filter((f: any) => f.profile?.is_public_visits));
-        
+        const publicFeed = globalFeed.filter((f: any) => f.profile?.is_public_visits);
+        setCommunityFeed(publicFeed);
+        // Track feed impressions for each visible user
+        publicFeed.forEach((f: any) => {
+          if (f.profile?.id) logReach(f.profile.id, 'feed');
+        });
         // Calculate trending (most frequent place_id in the last 24h)
         const counts: Record<string, { count: number, name: string }> = {};
         globalFeed.forEach((f: any) => {
@@ -272,7 +299,7 @@ function AppPageContent() {
       }
     }
     loadData();
-  }, [supabase]);
+  }, [supabase, logReach]);
 
   // Nearest stop to selected POI — for Phase 2 distance display
   useEffect(() => {
@@ -408,6 +435,13 @@ function AppPageContent() {
       setGeoError("La géolocalisation n'est pas disponible sur cet appareil.");
       return;
     }
+
+    // Stop any previous watch
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+
     setGeoLoading(true);
     setGeoError(null);
 
@@ -430,6 +464,13 @@ function AppPageContent() {
           setNearbyStops(data as ArretProche[]);
           setSheetExpanded(data.length > 0);
         }
+
+        // Start continuous tracking after initial fix
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (p) => setUserLoc([p.coords.latitude, p.coords.longitude]),
+          () => {},
+          { enableHighAccuracy: true }
+        );
       },
       (err) => {
         setGeoLoading(false);
@@ -442,6 +483,13 @@ function AppPageContent() {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, [supabase]);
+
+  // Clean up geolocation watch on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
+  }, []);
 
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
@@ -499,8 +547,9 @@ function AppPageContent() {
         {/* Ligne 1 : barre de recherche pleine largeur */}
         <button
           onClick={openSearch}
-          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-[0.98]"
+          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-95"
         >
+          <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg flex-shrink-0 opacity-90" />
           <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
           <span className="text-sm font-bold text-beige-muted flex-1 truncate">
             {selected ? selected.stop_name : "Arrêt, quartier ou lieu…"}
@@ -524,7 +573,7 @@ function AppPageContent() {
             onClick={handleLocateMe}
             disabled={geoLoading}
             aria-label="Me localiser"
-            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 disabled:opacity-60 ${
+            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 disabled:opacity-50 ${
               userLoc
                 ? 'bg-abidjan-blue text-white border-abidjan-blue shadow-abidjan-blue/20'
                 : 'bg-white/90 text-beige-muted border-beige-200/50 hover:border-abidjan-blue/30 hover:text-abidjan-blue'
@@ -717,12 +766,22 @@ function AppPageContent() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedPoi(null)}
-                    className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200 flex-shrink-0"
-                  >
-                    <IconX size="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <PoiFavoriteButton
+                      placeId={selectedPoi.place_id ?? selectedPoi.id}
+                      placeName={selectedPoi.name}
+                      commune={selectedPoi.commune}
+                      lat={selectedPoi.lat}
+                      lon={selectedPoi.lon}
+                      userId={profile?.id ?? null}
+                    />
+                    <button
+                      onClick={() => setSelectedPoi(null)}
+                      className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
+                    >
+                      <IconX size="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {selectedPoi.has_campaign && selectedPoi.campaign_label && (
@@ -762,7 +821,7 @@ function AppPageContent() {
                   {selectedPoi.place_id && (
                     <Link
                       href={`/app/place/${selectedPoi.place_id}`}
-                      className="flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-bold py-4 rounded-2xl text-sm uppercase tracking-tight active:scale-[0.98] transition-all hover:border-abidjan-orange/30"
+                      className="flex items-center justify-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-bold py-4 rounded-2xl text-sm uppercase tracking-tight active:scale-95 transition-all hover:border-abidjan-orange/30"
                     >
                       Voir le profil complet →
                     </Link>
@@ -879,7 +938,7 @@ function AppPageContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
-                    className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
+                    className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
                   >
                     <IconList />
                     VOIR LES LIGNES
@@ -915,7 +974,10 @@ function AppPageContent() {
                     </div>
                   </div>
                   <button
-                    onClick={() => { setUserLoc(null); setNearbyStops([]); setSheetExpanded(false); }}
+                    onClick={() => {
+                      if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+                      setUserLoc(null); setNearbyStops([]); setSheetExpanded(false);
+                    }}
                     className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
                     aria-label="Effacer"
                   >
@@ -991,14 +1053,14 @@ function AppPageContent() {
                     <div className="flex flex-col gap-4">
                       <button
                         onClick={openSearch}
-                        className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-[0.98] transition-all"
+                        className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
                       >
                         RECHERCHER UN ARRÊT
                       </button>
                       <button
                         onClick={handleLocateMe}
                         disabled={geoLoading}
-                        className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-[0.98] transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-60"
+                        className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-95 transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-50"
                       >
                         {geoLoading ? (
                           <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />

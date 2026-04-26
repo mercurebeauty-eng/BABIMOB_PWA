@@ -36,7 +36,7 @@ export default function ChatRoom({ me, other }: Props) {
 
     // 2. Realtime Subscription
     const channel = supabase
-      .channel('chat-room')
+      .channel(`chat-${[me.id, other.id].sort().join('-')}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
@@ -89,7 +89,7 @@ export default function ChatRoom({ me, other }: Props) {
   }
 
   return (
-    <div className={`flex flex-col h-full bg-beige-50 transition-all duration-500 ${!isFocused ? 'blur-xl grayscale' : ''}`}>
+    <div className={`flex flex-col h-full bg-beige-50 transition-all duration-300 ${!isFocused ? 'blur-sm brightness-75' : ''}`}>
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.map((m) => {
