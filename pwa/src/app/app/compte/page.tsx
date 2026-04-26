@@ -5,7 +5,6 @@ import SignOutButton from './SignOutButton';
 import ProfileEditor from './ProfileEditor';
 import PreferencesEditor from './PreferencesEditor';
 import PersonalHeatmap from '@/components/PersonalHeatmap';
-import BeigeMapBackground from '@/components/BeigeMapBackground';
 import ProfileSocialTabs from '@/components/ProfileSocialTabs';
 import ExplorerGoals from './ExplorerGoals';
 
@@ -14,69 +13,26 @@ export default async function ComptePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/app/auth/signin');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  const { data: badges } = await supabase.from('user_badges').select('badge_key, awarded_at').eq('user_id', user.id);
+  const { data: following } = await supabase.from('follows').select('id, profiles:following_id(id, display_name, avatar_emoji, is_verified_explorer)').eq('follower_id', user.id);
+  const { count: checkinCount } = await supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
 
-  const { data: badges } = await supabase
-    .from('user_badges')
-    .select('badge_key, awarded_at')
-    .eq('user_id', user.id);
-
-  const { data: following } = await supabase
-    .from('follows')
-    .select('id, profiles:following_id(id, display_name, avatar_emoji, is_verified_explorer)')
-    .eq('follower_id', user.id);
-
-  const { count: checkinCount } = await supabase
-    .from('checkins')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-
-  const { data: checkinsDetail } = await supabase
-    .from('checkins')
-    .select('id, created_at, place_name, commune, place_id, lat, lon, notes')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(300);
+  const { data: checkinsDetail } = await supabase.from('checkins').select('id, created_at, place_name, commune, place_id, lat, lon, notes').eq('user_id', user.id).order('created_at', { ascending: false }).limit(300);
 
   const communeFreq: Record<string, number> = {};
-  const categoryFreq: Record<string, number> = {
-    gastronome: 0,
-    shopping: 0,
-    culture: 0,
-    transport: 0,
-  };
-
-  checkinsDetail?.forEach((r) => {
-    if (r.commune) communeFreq[r.commune] = (communeFreq[r.commune] ?? 0) + 1;
-    const name = (r.place_name || '').toLowerCase();
-    if (name.match(/maquis|resto|restaurant|bar|café/)) categoryFreq.gastronome++;
-    if (name.match(/marché|mall|magasin|boutique|supermarché|shopping/)) categoryFreq.shopping++;
-    if (name.match(/musée|cinéma|théâtre|école|université|faculté/)) categoryFreq.culture++;
-    if (name.match(/gare|arrêt|station|gbaka|woro/)) categoryFreq.transport++;
-  });
-
-  const topCommunes = Object.entries(communeFreq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([c]) => c);
+  checkinsDetail?.forEach((r) => { if (r.commune) communeFreq[r.commune] = (communeFreq[r.commune] ?? 0) + 1; });
+  const topCommunes = Object.entries(communeFreq).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
   
   const total = checkinCount ?? 0;
   const totalPoints = profile?.total_points ?? 0;
-  
-  // STATS CALCULATIONS
   const levelScore = (total * 2) + Math.floor(totalPoints / 5);
   const level = levelScore >= 1000 ? 4 : levelScore >= 400 ? 3 : levelScore >= 100 ? 2 : 1;
   const levelNames = ['Novice', 'Explorateur Émergent', 'Guide Urbain', 'Maître d\'Abidjan'];
   const badgeName = levelNames[level - 1];
-  
   const nextMilestone = level === 1 ? 100 : level === 2 ? 400 : level === 3 ? 1000 : 5000;
   const progress = Math.min((levelScore / nextMilestone) * 100, 100);
 
-  // REACH metric — real impressions from reach_events (ticker + map + feed + broadcast)
   const { data: reachData } = await supabase.rpc('get_reach', { p_user_id: user.id, p_days: 30 });
   const reachVal: number = reachData ?? 0;
   const reachStr = reachVal >= 1000 ? `${(reachVal / 1000).toFixed(1)}k` : reachVal.toString();
@@ -84,208 +40,166 @@ export default async function ComptePage() {
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
   const avatarEmoji = profile?.avatar_emoji ?? '🧭';
 
-  const { data: favorites } = await supabase
-    .from('user_favorites')
-    .select('id, label, stop_id, route_id, kind')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
+  const { data: favorites } = await supabase.from('user_favorites').select('id, label, stop_id, route_id, kind').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5);
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto relative bg-beige-50 text-beige-text font-sans">
-      <BeigeMapBackground />
+    <div className="flex-1 flex flex-col overflow-y-auto relative bg-bm-obsidian text-white font-sans">
       
-      {/* Top nav */}
-      <div className="sticky top-0 z-30 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
-        <Link href="/app" className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors" aria-label="Retour à la carte">
-          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      {/* Dynamic Header Background */}
+      <div className="absolute top-0 inset-x-0 h-80 bg-gradient-to-b from-bm-orange/20 to-transparent pointer-events-none" />
+
+      {/* Top Nav (Glass) */}
+      <div className="sticky top-0 z-[100] bg-bm-obsidian/60 backdrop-blur-3xl border-b border-white/5 px-6 py-4 flex items-center justify-between">
+        <Link href="/app" className="bm-fab w-10 h-10 border-white/10" aria-label="Retour">
+          <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </Link>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">MES PLANS TRIP</span>
+        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 italic">Profil Premium</span>
         <SignOutButton />
       </div>
 
-      <div className="max-w-xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
+      <div className="max-w-2xl mx-auto w-full px-6 py-10 space-y-12 relative z-10">
         
-        {/* PROFILE HEADER - Compact & Premium */}
-        <div className="flex flex-col items-center">
-           <div className="relative mb-4">
-              <div className="w-28 h-28 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-5xl ring-4 ring-abidjan-green/20 relative z-10">
-                {avatarEmoji}
+        {/* HEADER SECTION */}
+        <section className="flex flex-col items-center">
+           <div className="relative mb-6 group">
+              <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-bm-orange to-bm-blue p-1 shadow-2xl relative z-10 animate-phone-float">
+                 <div className="w-full h-full rounded-full bg-bm-obsidian flex items-center justify-center text-6xl">
+                   {avatarEmoji}
+                 </div>
               </div>
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 bg-abidjan-orange text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-white">
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-bm-orange text-white px-5 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(255,107,0,0.5)] border-2 border-bm-obsidian">
                 Level {level}
               </div>
+              {/* Pulse effect */}
+              <div className="absolute inset-x-0 inset-y-0 rounded-full bg-bm-orange animate-ping opacity-10"></div>
            </div>
            
-           <h1 className="text-2xl font-black text-beige-text text-center">{displayName}</h1>
-           <p className="text-beige-muted text-xs font-bold mt-1 uppercase tracking-widest">
-              @{displayName.toLowerCase().replace(/\s/g, '_')} • {badgeName}
-           </p>
-        </div>
+           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white mb-2">{displayName}</h1>
+           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 italic">
+              {badgeName}
+           </div>
+        </section>
 
-        {/* STATS STRIP */}
-        <div className="grid grid-cols-2 gap-4">
-           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 flex flex-col items-center shadow-xl shadow-black/5 relative group">
-              <div className="text-xl mb-1 mt-1">🏆</div>
-              <div className="text-2xl font-black text-beige-text">{badges?.length || 0}</div>
-              <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Badges</div>
-              {(badges?.length ?? 0) === 0 && (
-                <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
-                  Check-in pour débloquer
-                </div>
-              )}
+        {/* PROGRESS BAR */}
+        <section className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+           <div className="flex justify-between items-end mb-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-white/40 italic">Progression XP</div>
+              <div className="text-xl font-black italic">{levelScore} <span className="text-xs text-white/40">/ {nextMilestone} PT</span></div>
            </div>
-           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 flex flex-col items-center shadow-xl shadow-black/5 relative group">
-              <div className="text-xl mb-1 mt-1">📡</div>
-              <div className="text-2xl font-black text-beige-text">{reachStr}</div>
-              <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Reach</div>
-              <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
-                Vues réelles · 30j
+           <div className="w-full h-4 bg-white/5 rounded-full overflow-hidden p-1 border border-white/5">
+              <div 
+                 className="h-full bg-gradient-to-r from-bm-orange via-bm-orange to-white rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(255,107,0,0.4)]"
+                 style={{ width: `${progress}%` }}
+              />
+           </div>
+        </section>
+
+        {/* MAIN STATS GRID */}
+        <section className="grid grid-cols-2 gap-6">
+           {[
+             { label: 'Visites', val: total, color: 'text-bm-orange', icon: '📍', sub: 'Total check-ins' },
+             { label: 'Radiance', val: reachStr, color: 'text-bm-green', icon: '📡', sub: 'Influence 30j' },
+             { label: 'Badges', val: badges?.length || 0, color: 'text-purple-400', icon: '🏅', sub: 'Succès urbains' },
+             { label: 'Communes', val: Object.keys(communeFreq).length, color: 'text-blue-400', icon: '🗺️', sub: 'Territoires' },
+           ].map((stat, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-[3rem] p-8 flex flex-col items-center text-center shadow-xl hover:border-white/20 transition-all">
+                 <div className="text-3xl mb-4">{stat.icon}</div>
+                 <div className={`text-4xl font-black italic tracking-tighter ${stat.color} mb-1`}>{stat.val}</div>
+                 <div className="text-[10px] font-black uppercase tracking-widest text-white italic mb-1">{stat.label}</div>
+                 <div className="text-[8px] font-bold text-white/30 uppercase tracking-widest leading-tight">{stat.sub}</div>
               </div>
-           </div>
-        </div>
+           ))}
+        </section>
 
         {/* ROAD TO VERIFIED EXPLORER */}
         {!profile?.is_verified_explorer && (
-          <div className="bg-abidjan-orange/5 border-2 border-dashed border-abidjan-orange/30 rounded-[2.5rem] p-8 relative overflow-hidden group">
-             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform">
-                <span className="text-6xl">✓</span>
-             </div>
-             
-             <div className="flex flex-col gap-6 relative z-10">
-                <div>
-                   <h3 className="text-sm font-black uppercase tracking-widest text-abidjan-orange mb-1">Objectif : Explorateur Vérifié</h3>
-                   <p className="text-[11px] font-bold text-beige-muted leading-relaxed uppercase tracking-widest">Gagne l&apos;accès au Live Feed complet et aux avantages Elite.</p>
+          <section className="bg-gradient-to-br from-bm-orange to-bm-orange/20 rounded-[3rem] p-1 shadow-2xl">
+             <div className="bg-bm-obsidian rounded-[2.9rem] p-8 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform">
+                   <span className="text-9xl font-black italic">ELITE</span>
                 </div>
-
-                <ExplorerGoals
-                   goals={[
-                     { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
-                     { label: "5 lieux de 5 Communes", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
-                     { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
-                   ]}
-                   remainingPoints={Math.max(500 - totalPoints, 0)}
-                />
+                <div className="relative z-10 space-y-8">
+                   <div>
+                      <h3 className="text-xl font-black italic uppercase italic text-bm-orange mb-2">Devenir Explorateur Vérifié</h3>
+                      <p className="text-xs font-medium text-white/40 leading-relaxed max-w-sm uppercase tracking-wider">Débloque le Live Feed temps-réel et les avantages Premium à Abidjan.</p>
+                   </div>
+                   <ExplorerGoals
+                      goals={[
+                        { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
+                        { label: "5 Communes", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
+                        { label: "500 Points", current: totalPoints, target: 500, emoji: "⭐" },
+                      ]}
+                      remainingPoints={Math.max(500 - totalPoints, 0)}
+                   />
+                </div>
              </div>
-          </div>
+          </section>
         )}
 
-        {/* PERSONAL HEATMAP SECTION */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 overflow-hidden shadow-xl shadow-black/5">
-           <div className="p-6 border-b border-beige-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-lg bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-lg">🌍</div>
-                 <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Ma Carte Personnelle</span>
+        {/* PERSONAL HEATMAP */}
+        <section className="bg-white/5 border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
+           <div className="p-8 flex items-center justify-between border-b border-white/5">
+              <div className="flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-2xl bg-bm-green/20 text-bm-green flex items-center justify-center text-2xl shadow-inner">🌍</div>
+                 <div>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest italic">Territoire Explorer</h3>
+                    <div className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mt-1 italic">Dernières 24h</div>
+                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-abidjan-green animate-pulse" />
-                 <span className="text-[9px] font-semibold uppercase text-abidjan-green tracking-widest">Live Area</span>
-              </div>
+              <div className="px-4 py-1.5 rounded-full bg-bm-green/10 border border-bm-green/30 text-[9px] font-black uppercase text-bm-green tracking-widest animate-pulse">Live Tracking</div>
            </div>
-           <div className="h-48 bg-beige-50">
+           <div className="h-64 bg-bm-black flex items-center justify-center relative">
               <PersonalHeatmap data={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []} />
            </div>
-           <div className="p-5 text-center bg-beige-50/50">
-              <p className="text-[11px] text-beige-muted font-medium italic">
-                 Le plus actif à <span className="font-bold text-beige-text">{topCommunes[0] || 'Abidjan'}</span> cette semaine
+           <div className="p-6 bg-white/5 text-center">
+              <p className="text-xs font-medium text-white/40 italic">
+                 Tu as été le plus actif à <span className="font-black text-bm-orange uppercase tracking-wider">{topCommunes[0] || 'Abidjan'}</span> récemment.
               </p>
            </div>
-        </div>
+        </section>
 
-        {/* VISITS & SOCIAL TABS */}
-        <ProfileSocialTabs
-          userId={user.id}
-          initialVisits={(checkinsDetail as any[]) || []}
-          initialFollowing={(following as any[]) || []}
-          heatmapData={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []}
-          currentTier={profile?.sub_tier || 'free'}
-        />
+        {/* SOCIAL TABS (Feed & Following) */}
+        <section>
+           <ProfileSocialTabs
+             userId={user.id}
+             initialVisits={(checkinsDetail as any[]) || []}
+             initialFollowing={(following as any[]) || []}
+             heatmapData={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []}
+             currentTier={profile?.sub_tier || 'free'}
+           />
+        </section>
 
-        {/* ADMIN CONSOLE — visible only for admins */}
-        {profile?.is_admin && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-red-100 p-8 shadow-xl shadow-black/5 group hover:border-red-300 transition-all">
-            <Link href="/app/admin/places" className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                  ⚙️
-                </div>
-                <div>
-                  <div className="text-sm font-black uppercase tracking-widest text-beige-text">Console Admin</div>
-                  <div className="text-[10px] font-bold text-red-400 uppercase tracking-widest mt-1">Établissements & Analytics</div>
-                </div>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-beige-50 flex items-center justify-center text-beige-muted group-hover:bg-red-500 group-hover:text-white transition-all">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              </div>
-            </Link>
-          </div>
-        )}
-
-        {/* MESSAGING - NEW ENTRY POINT */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5 group hover:border-abidjan-blue/30 transition-all">
-           <Link href="/app/chat" className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                 <div className="w-14 h-14 rounded-2xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                    ✉️
-                 </div>
-                 <div>
-                    <div className="text-sm font-black uppercase tracking-widest text-beige-text">Ma Messagerie</div>
-                    <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-1">Discussions & Broadcasts</div>
-                 </div>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-beige-50 flex items-center justify-center text-beige-muted group-hover:bg-abidjan-blue group-hover:text-white transition-all">
-                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                 </svg>
+        {/* MESSAGING & FAVS */}
+        <section className="grid md:grid-cols-2 gap-6 pb-32">
+           <Link href="/app/chat" className="group p-8 rounded-[3rem] bg-white/5 border border-white/10 hover:border-bm-orange/30 transition-all flex flex-col justify-between h-52 shadow-xl">
+              <div className="w-14 h-14 rounded-2xl bg-bm-orange/20 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform shadow-inner">✉️</div>
+              <div>
+                 <div className="text-xl font-black italic uppercase tracking-tighter">Messages</div>
+                 <div className="text-[10px] font-black uppercase text-white/30 tracking-widest">Broadcasts reçus</div>
               </div>
            </Link>
-        </div>
 
-        {/* FAVORITES PREVIEW */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 shadow-xl shadow-black/5">
-           <div className="flex items-center justify-between mb-4 px-2">
-             <div className="flex items-center gap-3">
-               <span className="text-lg">⭐</span>
-               <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Mes Favoris</span>
-             </div>
-             <Link href="/app/compte/favoris" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
-           </div>
-
-           <div className="space-y-2">
-              {favorites?.map(f => (
-                 <Link
-                   key={f.id}
-                   href={
-                     f.kind === 'stop' && f.stop_id ? `/app/arret/${encodeURIComponent(f.stop_id)}`
-                     : f.kind === 'place' && f.stop_id ? `/app/place/${encodeURIComponent(f.stop_id)}`
-                     : f.kind === 'route' && f.route_id ? `/app/ligne/${encodeURIComponent(f.route_id)}`
-                     : '/app'
-                   }
-                   className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100 hover:border-abidjan-orange/30 transition-all"
-                 >
-                    <span className="text-[11px] font-black text-beige-text">{f.label}</span>
-                    <span className="text-[8px] font-black uppercase text-beige-muted border border-beige-200 px-2 py-0.5 rounded-full">
-                      {f.kind === 'stop' ? 'Arrêt' : f.kind === 'place' ? 'Lieu' : 'Ligne'}
-                    </span>
-                 </Link>
-              ))}
-              {(!favorites || favorites.length === 0) && (
-                 <div className="py-8 text-center text-[10px] font-bold text-beige-muted uppercase tracking-widest border-2 border-dashed border-beige-100 rounded-3xl">
-                    Aucun favori enregistré
-                 </div>
-              )}
-           </div>
-        </div>
-
-        {/* PROFILE & PREFERENCES - Bottom Grid */}
-        <div className="grid md:grid-cols-2 gap-6 pb-20">
-           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-xl">✏️</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-text font-black">Mon profil</div>
+           <div className="p-8 rounded-[3rem] bg-white/5 border border-white/10 flex flex-col h-52 shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                 <div className="text-[11px] font-black uppercase tracking-widest text-bm-orange italic">Favoris</div>
+                 <Link href="/app/compte/favoris" className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white">Tout voir</Link>
               </div>
+              <div className="space-y-3 overflow-y-auto pr-2">
+                 {favorites?.slice(0, 3).map(f => (
+                    <Link key={f.id} href="/app" className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-bm-orange/40 transition-colors">
+                       <span className="text-[10px] font-black truncate max-w-[120px]">{f.label}</span>
+                       <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em]">{f.kind}</span>
+                    </Link>
+                 ))}
+                 {(!favorites || favorites.length === 0) && <div className="text-center py-6 text-[10px] font-black uppercase text-white/10">Vide</div>}
+              </div>
+           </div>
+        </section>
+
+        {/* EDITORS - Bottom Group */}
+        <section className="grid lg:grid-cols-2 gap-6 pb-20">
+           <div className="bg-bm-obsidian/40 backdrop-blur-3xl border border-white/10 p-8 rounded-[3rem] shadow-2xl">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-8 border-b border-white/5 pb-4 italic">🔧 Modifier le profil</h3>
               <ProfileEditor
                 userId={user.id}
                 initialName={displayName}
@@ -296,21 +210,13 @@ export default async function ComptePage() {
                 initialCommune={profile?.origin_commune || ''}
               />
            </div>
-
-           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-xl">⚙️</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-text font-black">Préférences</div>
-              </div>
-              <PreferencesEditor 
-                userId={user.id} 
-                initialPreferences={profile?.preferred_transit_modes || []} 
-              />
+           <div className="bg-bm-obsidian/40 backdrop-blur-3xl border border-white/10 p-8 rounded-[3rem] shadow-2xl">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-8 border-b border-white/5 pb-4 italic">⚙️ Préférences</h3>
+              <PreferencesEditor userId={user.id} initialPreferences={profile?.preferred_transit_modes || []} />
            </div>
-        </div>
+        </section>
 
       </div>
     </div>
   );
 }
-

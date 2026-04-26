@@ -8,27 +8,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 
-// MapLibre uses [lng, lat] while Leaflet used [lat, lng].
 const ABIDJAN_CENTER: [number, number] = [-4.020, 5.345];
 
-// Map Styles (Using Carto for consistency with previous Leaflet style, but full vector)
+// Map Styles
 const LIGHT_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const SATELLITE_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 // Inline SVG icons
-const SVG_LAYERS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
-const SVG_GPS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
-const SVG_COMPASS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`;
+const SVG_LAYERS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
+const SVG_GPS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
+const SVG_COMPASS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`;
+const SVG_3D = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`;
 
 type ItineraryLeg = {
-  coords: [number, number][]; // [lat, lng] from API!
+  coords: [number, number][]; // [lat, lng]
   mode: string;
   routeColor?: string;
 };
 
 type Props = {
   stops?: Stop[];
-  center?: [number, number]; // [lat, lng] format kept for backward compatibility with parent
+  center?: [number, number]; // [lat, lng]
   zoom?: number;
   className?: string;
   selectedStopId?: string | null;
@@ -37,20 +38,18 @@ type Props = {
   onPoiClick?: (poi: POI) => void;
   onMapReady?: (map: maplibregl.Map) => void;
   userLocation?: [number, number] | null; // [lat, lng]
-  route?: [number, number][] | null; // [lat, lng]
-  routeColor?: string;
   legs?: ItineraryLeg[] | null;
   hotspots?: { lat: number; lon: number; intensity: number }[];
-  explorers?: { lat: number; lon: number; name: string }[];
+  explorers?: { lat: number; lon: number; name: string; emoji?: string }[];
   poiCheckins?: Record<string, number>;
   livePois?: string[];
-  broadcasts?: { id: string; display_name: string; avatar_emoji: string; broadcast_text: string; broadcast_lat: number; broadcast_lon: number }[];
+  broadcasts?: any[];
   pois?: POI[];
 };
 
 export default function Map({
   stops = [],
-  center = [5.345, -4.020], // Default Leaflet center [lat, lng]
+  center = [5.345, -4.020],
   zoom = 12,
   className = 'absolute inset-0',
   selectedStopId = null,
@@ -58,8 +57,6 @@ export default function Map({
   onStopClick,
   onMapReady,
   userLocation = null,
-  route = null,
-  routeColor = '',
   legs = null,
   hotspots = [],
   explorers = [],
@@ -70,75 +67,55 @@ export default function Map({
   onPoiClick,
 }: Props) {
   const mapRef = useRef<MapRef | null>(null);
-  
-  // Theme state: default to Light, detect system
   const [mapStyle, setMapStyle] = useState(LIGHT_STYLE);
-  // Satellite view toggle
   const [isSatellite, setIsSatellite] = useState(false);
+  const [pitch3d, setPitch3d] = useState(0);
 
   useEffect(() => {
-    // Media query to detect dark mode automatically
     const matcher = window.matchMedia('(prefers-color-scheme: dark)');
     const updateStyle = (e: MediaQueryListEvent | MediaQueryList) => {
-      setMapStyle(e.matches ? DARK_STYLE : LIGHT_STYLE);
+      if (!isSatellite) setMapStyle(e.matches ? DARK_STYLE : LIGHT_STYLE);
     };
-    // Initial check
     updateStyle(matcher);
+    if (matcher.addEventListener) matcher.addEventListener('change', updateStyle);
+    return () => matcher.removeEventListener && matcher.removeEventListener('change', updateStyle);
+  }, [isSatellite]);
 
-    // Listen for changes
-    if (matcher.addEventListener) {
-      matcher.addEventListener('change', updateStyle);
-    }
-    return () => {
-      if (matcher.removeEventListener) {
-        matcher.removeEventListener('change', updateStyle);
-      }
-    };
-  }, []);
-
-  const currentStyleURL = isSatellite 
-    ? 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL' // Fallback for satellite, actually better to inject a raster source over our vector basemap if needed, but for now we'll stick to simple vector logic. Let's build a clean satellite toggle using MapLibre standard if needed. For now, we will just use standard styles.
-    : mapStyle;
-
-  // Transform legs from [lat, lng] to [lng, lat] for GeoJSON
   const legsFeatures = useMemo(() => {
     if (!legs) return [];
-    return legs.map((leg, i) => {
+    return legs.map((leg) => {
       const isWalk = leg.mode === 'WALK';
       const color = isWalk ? '#8a93a2' : leg.routeColor ? `#${leg.routeColor}` : '#FF7A00';
       return {
         type: 'Feature',
-        properties: {
-          color,
-          isWalk,
-        },
+        properties: { color, isWalk },
         geometry: {
           type: 'LineString',
-          coordinates: leg.coords.map(c => [c[1], c[0]]), // [lng, lat]
+          coordinates: leg.coords.map(c => [c[1], c[0]]),
         }
       };
     });
   }, [legs]);
 
-  const onMapLoad = () => {
-    if (mapRef.current && onMapReady) {
-      onMapReady(mapRef.current.getMap());
+  const toggle3d = () => {
+    const nextPitch = pitch3d === 0 ? 60 : 0;
+    setPitch3d(nextPitch);
+    if (mapRef.current) {
+      mapRef.current.easeTo({ pitch: nextPitch, duration: 1000 });
     }
   };
 
   const flyToUser = () => {
     if (userLocation && mapRef.current) {
-      mapRef.current.flyTo({ center: [userLocation[1], userLocation[0]], zoom: 16, duration: 1200 });
+      mapRef.current.flyTo({ center: [userLocation[1], userLocation[0]], zoom: 16, duration: 1500 });
     }
   };
 
   const flyToCenter = () => {
     if (mapRef.current) {
-      mapRef.current.flyTo({ center: ABIDJAN_CENTER, zoom: 12, pitch: 0, bearing: 0, duration: 1200 });
+      mapRef.current.flyTo({ center: ABIDJAN_CENTER, zoom: 13, pitch: 0, bearing: 0, duration: 1500 });
     }
   };
-
-  const toggleSatellite = () => setIsSatellite(!isSatellite);
 
   return (
     <div className={className}>
@@ -148,215 +125,140 @@ export default function Map({
           longitude: center[1],
           latitude: center[0],
           zoom: zoom,
-          pitch: 60,
-          bearing: -15,
+          pitch: 0,
         }}
         mapStyle={mapStyle}
-        onLoad={onMapLoad}
+        onLoad={() => onMapReady?.(mapRef.current!.getMap())}
         attributionControl={false}
         maxZoom={20}
       >
-        {/* Raster Satellite Layer (Injectée si mode Satellite ON) */}
+        {/* Raster Satellite Layer */}
         {isSatellite && (
-          <Source 
-            id="satellite-source" 
-            type="raster" 
-            tiles={['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']} 
-            tileSize={256}
-          >
-            <Layer
-              id="satellite-layer"
-              type="raster"
-              beforeId="background" // Garde les étiquettes et routes vectorielles visibles au-dessus
-              paint={{ 'raster-opacity': 1 }}
-            />
+          <Source id="satellite-source" type="raster" tiles={[SATELLITE_TILE_URL]} tileSize={256}>
+            <Layer id="satellite-layer" type="raster" beforeId={stops.length > 0 ? "stops" : undefined} />
           </Source>
         )}
-        {/* ── HUD Controls (Glassmorphism) ────────────────────────────────── */}
-        <div className="absolute top-4 right-4 flex flex-col gap-3 z-[10]">
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
-            className={`w-12 h-12 flex items-center justify-center rounded-2xl bm-glass transition-all ${isSatellite ? 'bg-abidjan-orange text-white' : 'text-abidjan-blue'}`}
-            onClick={toggleSatellite}
-            title="Vue Satellite"
-            dangerouslySetInnerHTML={{ __html: SVG_LAYERS }}
-          />
 
+        {/* Buttons Controls — Right Side */}
+        <div className="absolute top-24 right-4 flex flex-col gap-3 z-[200]">
           <motion.button
-            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bm-glass text-abidjan-blue transition-all"
+            className="bm-map-btn shadow-2xl"
             onClick={flyToUser}
-            title="Ma position"
             dangerouslySetInnerHTML={{ __html: SVG_GPS }}
           />
-
           <motion.button
-            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bm-glass text-abidjan-blue transition-all"
+            className="bm-map-btn shadow-2xl"
+            onClick={toggle3d}
+            dangerouslySetInnerHTML={{ __html: SVG_3D }}
+          />
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className={`bm-map-btn shadow-2xl ${isSatellite ? 'bg-bm-orange text-white border-bm-orange' : ''}`}
+            onClick={() => setIsSatellite(!isSatellite)}
+            dangerouslySetInnerHTML={{ __html: SVG_LAYERS }}
+          />
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className="bm-map-btn shadow-2xl"
             onClick={flyToCenter}
-            title="Recentrer"
             dangerouslySetInnerHTML={{ __html: SVG_COMPASS }}
           />
         </div>
 
-        {/* 3D Buildings Layer */}
-        <Layer
-          id="3d-buildings"
-          source="carto" 
-          source-layer="building"
-          type="fill-extrusion"
-          minzoom={15}
-          paint={{
-            'fill-extrusion-color': mapStyle === DARK_STYLE ? '#1f2533' : '#edece6',
-            'fill-extrusion-height': [
-              'interpolate', ['linear'], ['zoom'],
-              15, 0,
-              15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 25]
-            ],
-            'fill-extrusion-base': [
-              'interpolate', ['linear'], ['zoom'],
-              15, 0,
-              15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]
-            ],
-            'fill-extrusion-opacity': 0.8
-          }}
-        />
+        {/* 3D Buildings Layer — Only visible in Vector styles */}
+        {!isSatellite && (
+          <Layer
+            id="3d-buildings"
+            source="carto" 
+            source-layer="building"
+            type="fill-extrusion"
+            minzoom={15}
+            paint={{
+              'fill-extrusion-color': mapStyle === DARK_STYLE ? '#1F2533' : '#E8E7E0',
+              'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 20]],
+              'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
+              'fill-extrusion-opacity': 0.8
+            }}
+          />
+        )}
 
-        {/* Hotspots (Heatmap using MapLibre natively) */}
+        {/* Hotspots Heatmap */}
         {hotspots.length > 0 && (
-          <Source id="hotspots" type="geojson" data={{
-            type: 'FeatureCollection',
-            features: hotspots.map(h => ({
-              type: 'Feature',
-              properties: { intensity: h.intensity },
-              geometry: { type: 'Point', coordinates: [h.lon, h.lat] }
-            }))
+          <Source id="hotspots" type="geojson" data={{ 
+            type: 'FeatureCollection', 
+            features: hotspots.map(h => ({ 
+              type: 'Feature', properties: { intensity: h.intensity }, geometry: { type: 'Point', coordinates: [h.lon, h.lat] } 
+            })) 
           }}>
-            <Layer
-              id="hotspot-heat"
-              type="heatmap"
-              paint={{
-                'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 100, 1],
-                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 3],
-                'heatmap-color': [
-                  'interpolate', ['linear'], ['heatmap-density'],
-                  0, 'rgba(255,61,0,0)',
-                  0.2, '#ff9100',
-                  0.6, '#ff3d00',
-                  1, '#ffffff'
-                ],
-                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 11, 20, 15, 60],
-                'heatmap-opacity': 0.7
-              }}
-            />
+            <Layer id="hotspot-heat" type="heatmap" paint={{
+              'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 100, 1],
+              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 3],
+              'heatmap-color': ['interpolate',['linear'],['heatmap-density'],0,'rgba(255,107,0,0)',0.2,'#FFB300',0.6,'#FF6B00',1,'#FFFFFF'],
+              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 11, 25, 15, 70],
+              'heatmap-opacity': 0.6
+            }} />
           </Source>
         )}
 
-        {/* Multi-Leg Route */}
+        {/* Route Lines */}
         {legsFeatures.length > 0 && (
-          <Source id="legs-source" type="geojson" data={{
-            type: 'FeatureCollection',
-            features: legsFeatures as any
-          }}>
-            <Layer
-              id="legs-line"
-              type="line"
-              layout={{
-                'line-join': 'round',
-                'line-cap': 'round'
-              }}
-              paint={{
-                'line-color': ['get', 'color'],
-                'line-width': ['case', ['==', ['get', 'isWalk'], true], 3, 6],
-                'line-dasharray': ['case', ['==', ['get', 'isWalk'], true], ['literal', [2, 3]], ['literal', [1]]]
-              }}
-            />
+          <Source id="legs-source" type="geojson" data={{ type: 'FeatureCollection', features: legsFeatures as any }}>
+            <Layer id="legs-line" type="line" layout={{ 'line-join': 'round', 'line-cap': 'round' }} paint={{
+              'line-color': ['get', 'color'],
+              'line-width': ['case', ['==', ['get', 'isWalk'], true], 4, 8],
+              'line-dasharray': ['case', ['==', ['get', 'isWalk'], true], ['literal', [2, 2]], ['literal', [1]]]
+            }} />
           </Source>
         )}
 
-        {/* Stops */}
+        {/* Stops Markers */}
         {stops.map(s => (
-          <Marker
-            key={s.stop_id}
-            longitude={s.stop_lon}
-            latitude={s.stop_lat}
-            onClick={() => onStopClick?.(s)}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className={`w-2.5 h-2.5 rounded-full bg-abidjan-orange border-2 border-white shadow-sm ${s.stop_id === selectedStopId ? 'ring-2 ring-abidjan-orange ring-offset-1 scale-125' : ''}`} />
+          <Marker key={s.stop_id} longitude={s.stop_lon} latitude={s.stop_lat} onClick={() => onStopClick?.(s)}>
+            <div className={`w-3 h-3 rounded-full bg-bm-orange border-2 border-white shadow-xl cursor-pointer ${s.stop_id === selectedStopId ? 'ring-4 ring-bm-orange/30 scale-150' : ''} transition-all`} />
           </Marker>
         ))}
 
-        {/* POIs */}
+        {/* POI Markers */}
         {pois.map(p => {
           const isSelected = selectedPoiId === p.id;
           const isElite = p.sponsor_tier === 'elite';
-          const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
           const isLive = livePois.includes(p.id) || livePois.includes(`sp-${p.id}`);
-          const checkinCount = poiCheckins[p.id] || poiCheckins[p.place_id ?? ''] || 0;
-          
+          const count = poiCheckins[p.id] || 0;
           return (
             <Marker key={p.id} longitude={p.lon} latitude={p.lat} onClick={() => onPoiClick?.(p)} style={{ zIndex: isElite ? 100 : 50 }}>
-              <motion.div 
-                className={`bm-poi-container ${isSelected ? 'scale-110 z-50' : ''}`}
-                whileHover={{ scale: 1.15, y: -4 }}
-                layout
-              >
-                {checkinCount > 0 && (
-                  <div className="bm-poi-presence">
-                     <span className="bm-poi-presence-count">{checkinCount}</span>
+               <motion.div whileHover={{ scale: 1.1, y: -5 }} className="flex flex-col items-center">
+                  <div className={`relative flex items-center justify-center rounded-2xl bg-white shadow-2xl border-2 transition-all p-1.5 ${isSelected ? 'border-bm-orange scale-110' : 'border-gray-50'}`}>
+                     <span className="text-xl leading-none">{p.logo_emoji || '📍'}</span>
+                     {count > 0 && <span className="absolute -top-3 -right-3 bg-bm-orange text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg border border-white">{count}</span>}
+                     {isLive && <div className="absolute -inset-1 rounded-2xl bg-bm-orange animate-ping opacity-20 pointer-events-none" />}
                   </div>
-                )}
-                <div className={`bm-poi-circle ${isElite ? 'bm-poi-circle-elite bm-poi-elite-pulse' : isPro ? 'bm-poi-circle-pro' : ''} ${isLive ? 'bm-poi-live-pulse' : ''}`} style={{ width: isElite ? 40 : 28, height: isElite ? 40 : 28 }}>
-                  <span className="bm-poi-emoji" style={{ fontSize: isElite ? 22 : 16 }}>{p.logo_emoji || '📍'}</span>
-                </div>
-                <div className={`bm-poi-label-under ${isElite ? 'bm-poi-label-under-elite' : ''} ${isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed'}`}>
-                  {p.name}
-                </div>
-              </motion.div>
+                  <AnimatePresence>
+                    {(isElite || isSelected) && (
+                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-1 bg-bm-obsidian/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white whitespace-nowrap">{p.name}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+               </motion.div>
             </Marker>
           );
         })}
 
-        {/* Explorers (Ping Dots / Avatars) */}
+        {/* Live Explorers Avatars */}
         {explorers.map((exp, idx) => (
           <Marker key={idx} longitude={exp.lon} latitude={exp.lat}>
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-4 h-4 bg-blue-500/30 rounded-full animate-ping"></div>
-              <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm"></div>
-            </div>
+             <div className="bm-user-marker w-5 h-5 bg-bm-blue flex items-center justify-center border-2 border-white overflow-hidden shadow-2xl">
+                <span className="text-xs">{exp.emoji || '🦁'}</span>
+             </div>
           </Marker>
         ))}
 
-        {/* Broadcasts (Social Updates) */}
-        {broadcasts.map(bc => bc.broadcast_lon && bc.broadcast_lat && (
-          <Marker key={bc.id} longitude={bc.broadcast_lon} latitude={bc.broadcast_lat} style={{ zIndex: 1000 }}>
-            <motion.div 
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative cursor-pointer"
-            >
-              <div className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap bm-glass px-4 py-2.5 rounded-[22px] border border-white/20 flex items-center gap-3 shadow-2xl">
-                 <div className="w-9 h-9 rounded-full bg-abidjan-orange/10 flex items-center justify-center text-xl shadow-inner">{bc.avatar_emoji}</div>
-                 <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-abidjan-orange uppercase tracking-[0.1em]">{bc.display_name}</span>
-                    <span className="text-[12px] font-bold text-abidjan-blue">{bc.broadcast_text}</span>
-                 </div>
-                 {/* Petit connecteur HUD */}
-                 <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bm-glass border-b border-r border-white/20 rotate-45"></div>
-              </div>
-              <div className="w-5 h-5 bg-abidjan-orange rounded-full border-4 border-white shadow-lg animate-pulse" style={{ marginTop: '16px' }}></div>
-            </motion.div>
-          </Marker>
-        ))}
-
-        {/* User Location */}
+        {/* User Marker */}
         {userLocation && (
-          <Marker longitude={userLocation[1]} latitude={userLocation[0]} style={{ zIndex: 2000 }}>
-            <div className="bm-user-marker"></div>
+          <Marker longitude={userLocation[1]} latitude={userLocation[0]} style={{ zIndex: 1000 }}>
+             <div className="bm-user-marker w-5 h-5 bg-blue-500 border-2 border-white shadow-xl" />
           </Marker>
         )}
 

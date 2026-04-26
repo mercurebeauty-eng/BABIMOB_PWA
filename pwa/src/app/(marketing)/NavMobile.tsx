@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function TgIcon() {
   return (
@@ -21,58 +22,103 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
       <button
         onClick={() => setOpen(!open)}
         aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
-        className="w-11 h-11 rounded-full bg-white border border-beige-200 flex items-center justify-center text-beige-text shadow-sm transition hover:border-abidjan-orange/40"
+        className="relative z-[100] w-11 h-11 rounded-2xl bg-white border border-beige-200 flex items-center justify-center text-bm-obsidian shadow-sm transition-all hover:border-bm-orange/40 active:scale-90"
       >
-        {open ? (
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-            <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-            <path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round" />
-          </svg>
-        )}
+        <AnimatePresence mode="wait">
+          {open ? (
+            <motion.svg 
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              viewBox="0 0 24 24" 
+              className="w-5 h-5 font-bold" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="3" 
+              aria-hidden
+            >
+              <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+            </motion.svg>
+          ) : (
+            <motion.svg 
+              key="menu"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+              viewBox="0 0 24 24" 
+              className="w-5 h-5" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="3" 
+              aria-hidden
+            >
+              <path d="M4 8h16M4 16h16" strokeLinecap="round" />
+            </motion.svg>
+          )}
+        </AnimatePresence>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 top-[80px] z-40 bg-beige-50/95 backdrop-blur-xl flex flex-col pt-8 px-6 overflow-y-auto">
-          <nav className="flex flex-col gap-2">
-            {[
-              ['#comment',    'Comment ça marche'],
-              ['#fonctions',  'Fonctionnalités'],
-              ['#transports', 'Transports'],
-            ].map(([href, label]) => (
-              <a
-                key={label}
-                href={href}
-                onClick={close}
-                className="font-display font-bold text-2xl py-4 border-b border-beige-200/50 text-beige-text hover:text-abidjan-orange transition-colors"
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={close}
+              className="fixed inset-0 z-40 bg-bm-obsidian/20 backdrop-blur-sm"
+            />
+            
+            {/* Menu Drawer */}
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 bottom-0 w-[80%] z-50 bg-white shadow-2xl flex flex-col p-8 pt-24"
+            >
+              <nav className="flex flex-col gap-1">
+                {[
+                  ['#comment',    'Comment ça marche'],
+                  ['#fonctions',  'Fonctionnalités'],
+                  ['#transports', 'Transports'],
+                ].map(([href, label]) => (
+                  <motion.a
+                    key={label}
+                    href={href}
+                    onClick={close}
+                    whileHover={{ x: 10 }}
+                    className="font-display font-black text-3xl py-4 border-b border-gray-50 text-bm-obsidian hover:text-bm-orange transition-colors"
+                  >
+                    {label}
+                  </motion.a>
+                ))}
+              </nav>
 
-          <div className="mt-8 flex flex-col gap-4 pb-8">
-            <a
-              href={tgUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={close}
-              className="flex items-center justify-center gap-2 py-4 rounded-full bg-abidjan-blue text-white font-bold text-lg shadow-lg shadow-abidjan-blue/20"
-            >
-              <TgIcon /> Démarrer sur Telegram
-            </a>
-            <Link
-              href="/app"
-              onClick={close}
-              className="flex items-center justify-center py-4 rounded-full bg-abidjan-orange text-white font-bold text-lg shadow-lg shadow-abidjan-orange/20"
-            >
-              Ouvrir la carte →
-            </Link>
-          </div>
-        </div>
-      )}
+              <div className="mt-auto flex flex-col gap-4">
+                <a
+                  href={tgUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={close}
+                  className="flex items-center justify-center gap-3 py-5 rounded-2xl bg-bm-blue text-white font-black text-lg shadow-xl shadow-bm-blue/20"
+                >
+                  <TgIcon /> Telegram
+                </a>
+                <Link
+                  href="/app"
+                  onClick={close}
+                  className="flex items-center justify-center py-5 rounded-2xl bg-bm-orange text-white font-black text-lg shadow-xl shadow-bm-orange/20"
+                >
+                  Ouvrir la carte →
+                </Link>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

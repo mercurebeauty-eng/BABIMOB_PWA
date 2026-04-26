@@ -1,495 +1,115 @@
-/* MapLibre CSS */
+/* MapLibre GL CSS — Must be first */
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg-app: #fcfcf9;
-  --bg-card: rgba(255, 255, 255, 0.75);
-  --abidjan-orange: #FF6B00;
-  --abidjan-blue: #0A2540;
-  --text-main: #1A1512;
-  --text-muted: #625D59;
-  --border-glass: rgba(255, 255, 255, 0.4);
-  --shadow-premium: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
-}
-
-[data-theme='dark'] {
-  --bg-app: #08090b;
-  --bg-card: rgba(18, 20, 24, 0.8);
-  --text-main: #F4F4F3;
-  --text-muted: #A19E9B;
-  --border-glass: rgba(255, 255, 255, 0.08);
-}
-
-body {
-  -webkit-font-smoothing: antialiased;
-  background: var(--bg-app);
-  color: var(--text-main);
-  transition: background 0.3s ease;
-  overflow: hidden; /* App-like feel */
-}
-
-/* ── BABIMOB X GLASSMORPHISM ── */
-.bm-glass {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid var(--border-glass);
-  box-shadow: var(--shadow-premium);
-}
-
-.bm-glass-dark {
-  background: rgba(10, 15, 25, 0.85);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* ── TACTILE BUTTONS ── */
-.bm-btn-primary {
-  background: var(--abidjan-orange);
-  color: white;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 1rem 2rem;
-  border-radius: 1.25rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 14px 0 rgba(255, 107, 0, 0.39);
-}
-
-.bm-btn-primary:active {
-  transform: scale(0.95);
-  box-shadow: 0 2px 4px 0 rgba(255, 107, 0, 0.2);
-}
-
-/* ── HUD ELEMENTS ── */
-.bm-hud-pill {
-  border-radius: 9999px;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: flex;
-  items-center: center;
-  gap: 0.5rem;
-}
-
-/* Scrollbar discret pour mobile */
-::-webkit-scrollbar { width: 0px; background: transparent; }
-
-/* ── MARQUEURS & POIs ── */
-.bm-user-marker {
-  width: 24px;
-  height: 24px;
-  background: var(--abidjan-orange);
-  border: 4px solid white;
-  border-radius: 50%;
-  box-shadow: 0 0 20px var(--abidjan-orange);
-  animation: bm-marker-pulse 2s infinite;
-}
-
-@keyframes bm-marker-pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.7); }
-  70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(255, 107, 0, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 0, 0); }
-}
-.bm-pulse-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #3b82f6;
-  border: 2px solid white;
-  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
-  animation: bm-pulse 2.5s ease-in-out infinite;
-}
-
-/* Search overlay entrance */
-@keyframes bm-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.bm-search-overlay {
-  animation: bm-fade-up 160ms ease-out;
-}
-
-/* Toast entrance */
-@keyframes bm-slide-down {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.bm-toast {
-  animation: bm-slide-down 200ms ease-out;
-}
-
-/* ── Liquid glass card (dark theme) ─────────────────────────── */
-.glass-card {
-  position: relative;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow:
-    0 1px 0 0 rgba(255,255,255,0.05) inset,
-    0 -1px 0 0 rgba(0,0,0,0.2) inset,
-    0 4px 24px rgba(0,0,0,0.25);
-}
-.glass-card::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent 5%, rgba(255,255,255,0.22) 30%, rgba(255,255,255,0.28) 50%, rgba(255,255,255,0.22) 70%, transparent 95%);
-  pointer-events: none;
-  z-index: 1;
-}
-.glass-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(245,166,35,0.04) 0%, transparent 50%, rgba(46,221,139,0.03) 100%);
-  opacity: 0;
-  transition: opacity 300ms ease;
-  pointer-events: none;
-  z-index: 0;
-}
-.glass-card:hover {
-  background: rgba(255, 255, 255, 0.055);
-  border-color: rgba(255, 255, 255, 0.11);
-  box-shadow:
-    0 1px 0 0 rgba(255,255,255,0.08) inset,
-    0 -1px 0 0 rgba(0,0,0,0.2) inset,
-    0 8px 32px rgba(0,0,0,0.3);
-}
-.glass-card:hover::after {
-  opacity: 1;
-}
-
-/* Safe area bottom padding utility */
-.pb-safe {
-  padding-bottom: max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom)));
-}
-
-/* Leaflet zoom control — move up to avoid overlapping bottom sheet peek */
-.leaflet-bottom.leaflet-right {
-  bottom: 88px;
-}
-
-/* Hide attribution for a native-app look */
-.leaflet-control-attribution {
-  display: none;
-}
-
-/* ── Map Navigation Toolbar (Glassmorphism) ──────────────────── */
-.bm-nav-toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 12px 12px 0 0;
-}
-
-.bm-map-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08);
-  color: #374151;
-  cursor: pointer;
-  transition: background 150ms ease, box-shadow 150ms ease, transform 120ms ease;
-  padding: 0;
-}
-
-.bm-map-btn:hover {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.08);
-  transform: scale(1.06);
-}
-
-.bm-map-btn:active {
-  transform: scale(0.95);
-}
-
-.bm-map-btn--active {
-  background: rgba(245, 166, 35, 0.12);
-  border-color: rgba(245, 166, 35, 0.5);
-  color: #f5a623;
-}
-
-/* Smooth bottom sheet hardware acceleration */
-.bm-sheet {
-  will-change: transform;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* ── POI Circular Markers (Google/Snap Style) ─────────────────────────── */
-.bm-poi-container {
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  transition: transform 150ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-}
-
-.bm-poi-container:hover {
-  transform: translate(-50%, -50%) scale(1.15) translateY(-4px);
-  z-index: 1000 !important;
-}
-
-.bm-poi-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-  border: 1.5px solid rgba(0,0,0,0.08);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.bm-poi-emoji {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.bm-poi-label-under {
-  margin-top: 4px;
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 800;
-  color: #2D2721;
-  text-align: center;
-  transition: all 200ms ease;
-  /* Readability stroke over the map */
-  text-shadow: 
-    -1.5px -1.5px 0 #fff,
-     1.5px -1.5px 0 #fff,
-    -1.5px  1.5px 0 #fff,
-     1.5px  1.5px 0 #fff,
-     0px 2px 4px rgba(0,0,0,0.1);
-}
-
-.bm-poi-label-collapsed {
-  max-width: 65px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.bm-poi-label-expanded {
-  max-width: 180px;
-  white-space: normal;
-  word-wrap: break-word;
-  font-size: 12px;
-  z-index: 1001 !important;
-}
-
-.bm-poi-container-selected {
-  z-index: 1001 !important;
-}
-
-/* Pro style */
-.bm-poi-circle-pro {
-  border: 2px solid #FF7A00 !important;
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.25);
-}
-
-/* Elite style */
-.bm-poi-circle-elite {
-  border: 3px solid #FF7A00 !important;
-  box-shadow: 0 8px 24px rgba(255, 122, 0, 0.35);
-}
-
-.bm-poi-label-under-elite {
-  font-size: 12.5px;
-  color: #FF7A00;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-/* Elite Pulse Aura */
-@keyframes bm-poi-elite-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.3); }
-  70%  { box-shadow: 0 0 0 14px rgba(255, 122, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0); }
-}
-
-.bm-poi-elite-pulse {
-  animation: bm-poi-elite-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* ── POI Presence Indicator (check-in silhouette) ────────────── */
-.bm-poi-presence {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1.5px solid rgba(245, 166, 35, 0.45);
-  border-radius: 999px;
-  padding: 2px 5px;
-  margin-bottom: 3px;
-  color: #f5a623;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-}
-
-.bm-poi-presence-count {
-  font-size: 8px;
-  font-weight: 800;
-  font-family: system-ui, sans-serif;
-  color: #f5a623;
-  line-height: 1;
-}
-
-/* Live Pulse Aura (Orange for active spots) */
-@keyframes bm-poi-live-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.25); }
-  70%  { box-shadow: 0 0 0 10px rgba(245, 166, 35, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
-}
-
-.bm-poi-live-pulse {
-  animation: bm-poi-live-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
-  border-color: #f5a623 !important;
-}
-
-/* Marquee for Live Ticker */
-@keyframes marquee-slow {
-  from { transform: translateX(100vw); }
-  to   { transform: translateX(calc(-100% - 100vw)); }
-}
-
-.animate-marquee-slow {
-  animation: marquee-slow 30s linear infinite;
-  white-space: nowrap;
-}
-
-/* Leaflet Overrides for POI markers */
-.leaflet-div-icon {
-  background: transparent !important;
-  border: none !important;
-}
-
-/* Respect prefers-reduced-motion — pause all decorative animations */
-@media (prefers-reduced-motion: reduce) {
-  .animate-marquee,
-  .animate-marquee-slow,
-  .animate-float,
-  .animate-phone-float,
-  .bm-poi-elite-pulse,
-  .bm-poi-live-pulse {
-    animation: none !important;
+@layer base {
+  :root {
+    --bm-orange: #FF6B00;
+    --bm-blue: #0A2540;
+    --bm-green: #00C896;
+    --bm-obsidian: #0C0E12;
+    --bm-beige: #FCFCF9;
+    
+    --bg-app: var(--bm-beige);
+    --text-main: #2D2721;
+    --text-muted: #6b7280;
+    --border-main: rgba(0,0,0,0.06);
+    
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.5);
   }
-  .bm-search-overlay {
-    animation: none !important;
+
+  [data-theme='dark'] {
+    --bg-app: var(--bm-obsidian);
+    --text-main: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --border-main: rgba(255,255,255,0.1);
+    
+    --glass-bg: rgba(12, 14, 18, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
   }
-  .bm-toast {
-    animation: none !important;
+
+  body {
+    @apply font-sans antialiased text-main bg-app;
+    font-family: var(--font-jakarta), system-ui, sans-serif;
+    transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
+}
+
+@layer components {
+  /* Premium Glassmorphism */
+  .bm-glass {
+    @apply backdrop-blur-2xl border border-white/50 dark:border-white/10;
+    background: var(--glass-bg);
+  }
+
+  /* Floating Action Buttons (FABs) */
+  .bm-fab {
+    @apply w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90 hover:scale-105 z-50;
+    @apply bg-white/90 backdrop-blur-xl border border-white/50 text-bm-obsidian;
+    @apply dark:bg-bm-obsidian/90 dark:text-white dark:border-white/10;
+  }
+
+  .bm-fab-primary {
+    @apply bg-bm-orange text-white border-bm-orange/20 shadow-bm-orange/20;
+  }
+
+  /* Map Buttons (GPS, Compass) */
+  .bm-map-btn {
+    @apply w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl transition-all active:scale-95 z-50;
+    @apply bg-white text-bm-blue border-2 border-white;
+    @apply dark:bg-bm-obsidian dark:text-white dark:border-bm-obsidian;
+  }
+
+  /* Bottom Sheet Handle & Container */
   .bm-sheet {
-    transition: none !important;
+    @apply rounded-t-[32px] shadow-[0_-12px_40px_rgba(0,0,0,0.12)] border-t border-white/50 dark:border-white/10;
+    @apply bg-white/85 backdrop-blur-3xl dark:bg-bm-obsidian/90;
+  }
+
+  .bm-sheet-handle {
+    @apply w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full my-4 mx-auto;
+  }
+
+  /* User/Explorer Markers */
+  .bm-user-marker {
+    @apply w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg relative;
+  }
+  
+  .bm-user-marker::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-50;
+  }
+
+  /* Snap-style Broadcast Bubble */
+  .bm-broadcast-bubble {
+    @apply relative bg-white dark:bg-bm-obsidian px-4 py-2 rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 flex items-center gap-3 max-w-[200px];
+  }
+  
+  .bm-broadcast-bubble::after {
+    content: '';
+    @apply absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-bm-obsidian rotate-45 border-b border-r border-gray-100 dark:border-white/10;
   }
 }
 
-/* Utils & Leaflet Polish */
-.leaflet-control-attribution {
-  display: none !important;
+/* Animations */
+@keyframes phone-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
 }
 
-/* ============================================
-   DARK MODE OVERRIDES
-   Activated by [data-theme='dark'] on <html>
-   Uses higher specificity (0,1,1) to beat Tailwind utilities (0,1,0)
-   ============================================ */
-
-[data-theme='dark'] .bg-white {
-  background-color: var(--bg-card) !important;
+.animate-phone-float {
+  animation: phone-float 6s ease-in-out infinite;
 }
 
-[data-theme='dark'] .bg-beige-50 {
-  background-color: var(--bg-beige) !important;
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-[data-theme='dark'] .bg-beige-100 {
-  background-color: #1a1e26 !important;
-}
-
-[data-theme='dark'] .bg-beige-200 {
-  background-color: #222630 !important;
-}
-
-[data-theme='dark'] .border-beige-100,
-[data-theme='dark'] .border-beige-200 {
-  border-color: var(--border-main) !important;
-}
-
-[data-theme='dark'] .text-beige-text {
-  color: var(--text-main) !important;
-}
-
-[data-theme='dark'] .text-beige-muted {
-  color: var(--text-muted) !important;
-}
-
-[data-theme='dark'] .bg-beige-50\/80 {
-  background-color: rgba(15, 17, 22, 0.8) !important;
-}
-
-[data-theme='dark'] .bg-white\/80 {
-  background-color: rgba(22, 25, 31, 0.8) !important;
-}
-
-[data-theme='dark'] .bg-beige-50\/50 {
-  background-color: rgba(15, 17, 22, 0.5) !important;
-}
-
-[data-theme='dark'] .border-beige-200\/50 {
-  border-color: rgba(42, 47, 58, 0.5) !important;
-}
-
-[data-theme='dark'] .shadow-black\/5 {
-  --tw-shadow-color: rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-theme='dark'] input,
-[data-theme='dark'] textarea,
-[data-theme='dark'] select {
-  background-color: #1a1e26 !important;
-  border-color: var(--border-main) !important;
-  color: var(--text-main) !important;
-}
-
-[data-theme='dark'] input::placeholder,
-[data-theme='dark'] textarea::placeholder {
-  color: var(--text-muted) !important;
-}
-
-[data-theme='dark'] .bg-white\/90 {
-  background-color: rgba(22, 25, 31, 0.92) !important;
-}
-
-[data-theme='dark'] .bg-white\/60 {
-  background-color: rgba(22, 25, 31, 0.6) !important;
-}
-
-[data-theme='dark'] .border-beige-100 {
-  border-color: var(--border-main) !important;
+.animate-bounce-slow {
+  animation: bounce-slow 4s ease-in-out infinite;
 }

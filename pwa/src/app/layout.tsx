@@ -1,20 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Syne } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import InstallPrompt from '@/components/InstallPrompt';
 import './globals.css';
 
-const dmSans = DM_Sans({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '700'],
-  variable: '--font-dm-sans',
-  display: 'swap'
-});
-
-const syne = Syne({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-syne',
+  variable: '--font-jakarta',
   display: 'swap'
 });
 
@@ -49,8 +41,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
-      <body className="font-sans min-h-screen flex flex-col">
+    <html lang="fr" className={`${jakarta.variable} scroll-smooth`}>
+      <body className="font-sans min-h-screen flex flex-col selection:bg-abidjan-orange/20 selection:text-abidjan-orange">
         {children}
         <InstallPrompt />
         <SpeedInsights />
