@@ -123,7 +123,7 @@ export default function LandingPage() {
                 href="/app"
                 className="text-sm font-bold px-6 py-2.5 rounded-full bg-abidjan-orange text-white hover:bg-abidjan-orange/90 shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all"
               >
-                Ouvrir la carte
+                Commencer à se déplacer
               </Link>
             </div>
 
@@ -169,7 +169,7 @@ export default function LandingPage() {
                   href="/app"
                   className="group flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-abidjan-orange text-white shadow-xl shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-1 transition-all"
                 >
-                  <span className="font-bold text-lg">Carte interactive</span>
+                  <span className="font-bold text-lg">Commencer à se déplacer</span>
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </Link>
               </div>
