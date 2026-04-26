@@ -7,6 +7,7 @@ import PreferencesEditor from './PreferencesEditor';
 import PersonalHeatmap from '@/components/PersonalHeatmap';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import ProfileSocialTabs from '@/components/ProfileSocialTabs';
+import ExplorerGoals from './ExplorerGoals';
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -125,15 +126,23 @@ export default async function ComptePage() {
 
         {/* STATS STRIP */}
         <div className="grid grid-cols-2 gap-4">
-           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5">
+           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5 relative group">
               <div className="text-xl mb-1 mt-1">🏆</div>
               <div className="text-2xl font-black text-beige-text">{badges?.length || 0}</div>
               <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Badges</div>
+              {(badges?.length ?? 0) === 0 && (
+                <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-bold uppercase tracking-wide opacity-70">
+                  Check-in pour débloquer
+                </div>
+              )}
            </div>
-           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5">
-              <div className="text-xl mb-1 mt-1">📊</div>
+           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5 relative group">
+              <div className="text-xl mb-1 mt-1">📡</div>
               <div className="text-2xl font-black text-beige-text">{reachStr}</div>
               <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Reach</div>
+              <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-bold uppercase tracking-wide opacity-70">
+                Vues estimées
+              </div>
            </div>
         </div>
 
@@ -150,39 +159,14 @@ export default async function ComptePage() {
                    <p className="text-[11px] font-bold text-beige-muted leading-relaxed uppercase tracking-widest">Gagne l&apos;accès au Live Feed complet et aux avantages Elite.</p>
                 </div>
 
-                <div className="space-y-4">
-                   {[
-                      { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
-                      { label: "5 Communes visitées", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
-                      { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
-                   ].map((goal, idx) => {
-                      const pct = Math.min((goal.current / goal.target) * 100, 100);
-                      const isDone = pct >= 100;
-                      return (
-                         <div key={idx}>
-                            <div className="flex justify-between items-end mb-2">
-                               <div className="flex items-center gap-2">
-                                  <span className={isDone ? "" : "grayscale opacity-50"}>{goal.emoji}</span>
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${isDone ? 'text-abidjan-green' : 'text-beige-text'}`}>
-                                     {goal.label} {isDone && "✓"}
-                                  </span>
-                               </div>
-                               <span className="text-[9px] font-black text-beige-muted">{goal.current} / {goal.target}</span>
-                            </div>
-                            <div className="h-1.5 bg-white rounded-full overflow-hidden border border-beige-100">
-                               <div 
-                                 className={`h-full transition-all duration-[1500ms] ${isDone ? 'bg-abidjan-green' : 'bg-abidjan-orange opacity-40'}`}
-                                 style={{ width: `${pct}%` }}
-                               />
-                            </div>
-                         </div>
-                      );
-                   })}
-                </div>
-                
-                <p className="text-[9px] font-black text-abidjan-orange italic uppercase tracking-wider text-center mt-2">
-                   Plus que {Math.max(500 - totalPoints, 0)} points pour y arriver !
-                </p>
+                <ExplorerGoals
+                   goals={[
+                     { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
+                     { label: "5 lieux de 5 Communes", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
+                     { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
+                   ]}
+                   remainingPoints={Math.max(500 - totalPoints, 0)}
+                />
              </div>
           </div>
         )}
@@ -308,6 +292,7 @@ export default async function ComptePage() {
                 initialPhone={profile?.phone_number || ''}
                 initialConsent={profile?.phone_marketing_consent}
                 initialVisibility={profile?.is_public_visits}
+                initialCommune={profile?.origin_commune || ''}
               />
            </div>
 
