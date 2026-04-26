@@ -1,5 +1,4 @@
 /* MapLibre CSS */
-/* ⚠ @import DOIT précéder toutes les autres règles — Turbopack est strict */
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
@@ -7,97 +6,98 @@
 @tailwind utilities;
 
 :root {
-  --bg-app: #ffffff;
-  --bg-card: #ffffff;
-  --bg-beige: #fcfcf9;
-  --text-main: #2D2721;
-  --text-muted: #6b7280;
-  --border-main: #e5e7eb;
+  --bg-app: #fcfcf9;
+  --bg-card: rgba(255, 255, 255, 0.75);
+  --abidjan-orange: #FF6B00;
+  --abidjan-blue: #0A2540;
+  --text-main: #1A1512;
+  --text-muted: #625D59;
+  --border-glass: rgba(255, 255, 255, 0.4);
+  --shadow-premium: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
 }
 
 [data-theme='dark'] {
-  --bg-app: #0c0e12;
-  --bg-card: #16191f;
-  --bg-beige: #0f1116;
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --border-main: #2a2f3a;
-}
-
-html, body {
-  height: 100%;
+  --bg-app: #08090b;
+  --bg-card: rgba(18, 20, 24, 0.8);
+  --text-main: #F4F4F3;
+  --text-muted: #A19E9B;
+  --border-glass: rgba(255, 255, 255, 0.08);
 }
 
 body {
   -webkit-font-smoothing: antialiased;
   background: var(--bg-app);
   color: var(--text-main);
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: background 0.3s ease;
+  overflow: hidden; /* App-like feel */
 }
 
-/* Scrollbar discret (contexte clair) */
-.scope-light ::-webkit-scrollbar          { width: 6px; height: 6px; }
-.scope-light ::-webkit-scrollbar-thumb    { background: #cbd5e1; border-radius: 3px; }
-.scope-light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* Scrollbar discret (contexte sombre) */
-.scope-dark ::-webkit-scrollbar           { width: 6px; height: 6px; }
-.scope-dark ::-webkit-scrollbar-thumb     { background: #2a2f3a; border-radius: 3px; }
-.scope-dark ::-webkit-scrollbar-thumb:hover { background: #3a4150; }
-
-/* Override Leaflet pour un rendu plus propre */
-.leaflet-container {
-  background: #f4f4f0;
+/* ── BABIMOB X GLASSMORPHISM ── */
+.bm-glass {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-premium);
 }
 
-/* Marqueur Elite POI — anneau pulsant */
-@keyframes poi-elite-ping {
-  0%       { transform: scale(1);   opacity: 0.55; }
-  70%, 100% { transform: scale(2.4); opacity: 0; }
-}
-.poi-elite-ring {
-  animation: poi-elite-ping 2s ease-out infinite;
+.bm-glass-dark {
+  background: rgba(10, 15, 25, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.bm-popup-wrapper .leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  padding: 0;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  border: 1px solid #f0f0f0;
+/* ── TACTILE BUTTONS ── */
+.bm-btn-primary {
+  background: var(--abidjan-orange);
+  color: white;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem 2rem;
+  border-radius: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px 0 rgba(255, 107, 0, 0.39);
 }
 
-.bm-popup-wrapper .leaflet-popup-tip-container {
-  display: none;
+.bm-btn-primary:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 4px 0 rgba(255, 107, 0, 0.2);
 }
 
-.bm-popup-wrapper .leaflet-popup-content {
-  margin: 0;
+/* ── HUD ELEMENTS ── */
+.bm-hud-pill {
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  items-center: center;
+  gap: 0.5rem;
 }
 
-.bm-popup {
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #111827;
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
-  white-space: nowrap;
-}
+/* Scrollbar discret pour mobile */
+::-webkit-scrollbar { width: 0px; background: transparent; }
 
-.bm-popup-sub {
-  font-size: 11px;
-  font-weight: 400;
-  color: #6b7280;
-  margin-top: 1px;
-}
-
-/* User location pulsing dot */
-@keyframes bm-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35); }
-  70%  { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-}
-
+/* ── MARQUEURS & POIs ── */
 .bm-user-marker {
+  width: 24px;
+  height: 24px;
+  background: var(--abidjan-orange);
+  border: 4px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 20px var(--abidjan-orange);
+  animation: bm-marker-pulse 2s infinite;
+}
+
+@keyframes bm-marker-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(255, 107, 0, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 0, 0); }
+}
+.bm-pulse-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;

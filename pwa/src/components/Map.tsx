@@ -138,6 +138,8 @@ export default function Map({
     }
   };
 
+  const toggleSatellite = () => setIsSatellite(!isSatellite);
+
   return (
     <div className={className}>
       <MapGL
@@ -146,28 +148,56 @@ export default function Map({
           longitude: center[1],
           latitude: center[0],
           zoom: zoom,
-          pitch: 60, // Premium 3D flair
-          bearing: -15, // Slight angle for depth
+          pitch: 60,
+          bearing: -15,
         }}
         mapStyle={mapStyle}
         onLoad={onMapLoad}
         attributionControl={false}
         maxZoom={20}
       >
-        {/* Nav Controls */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-[10]">
+        {/* Raster Satellite Layer (Injectée si mode Satellite ON) */}
+        {isSatellite && (
+          <Source 
+            id="satellite-source" 
+            type="raster" 
+            tiles={['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']} 
+            tileSize={256}
+          >
+            <Layer
+              id="satellite-layer"
+              type="raster"
+              beforeId="background" // Garde les étiquettes et routes vectorielles visibles au-dessus
+              paint={{ 'raster-opacity': 1 }}
+            />
+          </Source>
+        )}
+        {/* ── HUD Controls (Glassmorphism) ────────────────────────────────── */}
+        <div className="absolute top-4 right-4 flex flex-col gap-3 z-[10]">
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bm-map-btn"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
+            className={`w-12 h-12 flex items-center justify-center rounded-2xl bm-glass transition-all ${isSatellite ? 'bg-abidjan-orange text-white' : 'text-abidjan-blue'}`}
+            onClick={toggleSatellite}
+            title="Vue Satellite"
+            dangerouslySetInnerHTML={{ __html: SVG_LAYERS }}
+          />
+
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bm-glass text-abidjan-blue transition-all"
             onClick={flyToUser}
+            title="Ma position"
             dangerouslySetInnerHTML={{ __html: SVG_GPS }}
           />
+
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bm-map-btn"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bm-glass text-abidjan-blue transition-all"
             onClick={flyToCenter}
+            title="Recentrer"
             dangerouslySetInnerHTML={{ __html: SVG_COMPASS }}
           />
         </div>

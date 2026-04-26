@@ -522,19 +522,23 @@ function AppPageContent() {
         broadcasts={broadcasts}
       />
 
-      {/* ── Live Ticker ── */}
-      {/* Feature restricted to Verified Explorers/Premium viewers */}
+      {/* ── Live Ticker (HUD) ── */}
       {(profile?.is_verified_explorer || profile?.sub_tier === 'pro' || profile?.sub_tier === 'elite') && liveTickerFeed.length > 0 && (
         <div className="absolute top-0 left-0 right-0 z-[600] pointer-events-none">
-           <div className="bg-gradient-to-b from-black/20 to-transparent pt-1 pb-8 px-4 overflow-hidden">
+           <div className="bg-gradient-to-b from-black/20 to-transparent pt-3 pb-8 px-4 overflow-hidden">
               <div className="flex gap-4 animate-marquee-slow">
                  {liveTickerFeed.map((checkin, i) => (
-                    <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
-                       <span className="text-sm">{(checkin.profile as any)?.is_public_visits ? (checkin.profile as any)?.avatar_emoji : '👤'}</span>
-                       <span className="text-[10px] font-black uppercase tracking-widest text-white">
-                          {checkin.display_name} est à <span className="text-abidjan-orange">{checkin.place_name}</span>
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex-shrink-0 flex items-center gap-2 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-2xl"
+                    >
+                       <span className="text-base">{(checkin.profile as any)?.is_public_visits ? (checkin.profile as any)?.avatar_emoji : '👤'}</span>
+                       <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/90">
+                          {checkin.display_name} <span className="text-abidjan-orange/80">@ {checkin.place_name}</span>
                        </span>
-                    </div>
+                    </motion.div>
                  ))}
               </div>
            </div>
@@ -544,59 +548,60 @@ function AppPageContent() {
       {/* ── Floating top bar ────────────────────────────────────────────── */}
       <div className="absolute top-6 left-4 right-4 z-[500] flex flex-col gap-3">
 
-        {/* Ligne 1 : barre de recherche pleine largeur */}
-        <button
+        {/* Ligne 1 : barre de recherche HUD */}
+        <motion.button
+          whileTap={{ scale: 0.98 }}
           onClick={openSearch}
-          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-95"
+          className="w-full flex items-center gap-4 bm-glass rounded-[1.75rem] px-5 py-4 text-left shadow-2xl transition-all hover:border-abidjan-orange/30 group"
         >
-          <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg flex-shrink-0 opacity-90" />
+          <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg flex-shrink-0 grayscale group-hover:grayscale-0 transition-all" />
           <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
-          <span className="text-sm font-bold text-beige-muted flex-1 truncate">
-            {selected ? selected.stop_name : "Arrêt, quartier ou lieu…"}
+          <span className="text-sm font-bold text-abidjan-blue flex-1 truncate opacity-70">
+            {selected ? selected.stop_name : "Babi, on va où ?"}
           </span>
           {selected && (
             <button
               onClick={(e) => { e.stopPropagation(); clearSelection(); }}
-              className="text-beige-200 hover:text-beige-text p-1 rounded-full transition"
-              aria-label="Effacer la sélection"
+              className="text-beige-muted hover:text-abidjan-orange p-1 rounded-full transition"
             >
               <IconX />
             </button>
           )}
-        </button>
+        </motion.button>
 
         {/* Ligne 2 : chips d'action en carousel scrollable */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
 
           {/* Me localiser */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={handleLocateMe}
             disabled={geoLoading}
-            aria-label="Me localiser"
-            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 disabled:opacity-50 ${
+            className={`flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bm-glass transition-all ${
               userLoc
-                ? 'bg-abidjan-blue text-white border-abidjan-blue shadow-abidjan-blue/20'
-                : 'bg-white/90 text-beige-muted border-beige-200/50 hover:border-abidjan-blue/30 hover:text-abidjan-blue'
+                ? 'bg-abidjan-blue text-white'
+                : 'text-abidjan-blue'
             }`}
           >
             {geoLoading
               ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
               : <IconLocate />
             }
-            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
-              {userLoc ? 'Localisé' : 'Me localiser'}
+            <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+              {userLoc ? '📍 GPS OK' : 'Me localiser'}
             </span>
-          </button>
+          </motion.button>
 
           {/* Profil */}
-          <Link
-            href="/app/compte"
-            aria-label="Mon compte"
-            className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-orange/30 hover:text-abidjan-orange transition-all active:scale-95"
-          >
-            <IconUser />
-            <span className="text-[11px] font-black uppercase tracking-wider">Profil</span>
-          </Link>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <Link
+              href="/app/compte"
+              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bm-glass text-abidjan-blue"
+            >
+              <IconUser />
+              <span className="text-[10px] font-black uppercase tracking-widest">Profil</span>
+            </Link>
+          </motion.div>
 
           {/* Itinéraire */}
           <Link
@@ -609,14 +614,14 @@ function AppPageContent() {
           </Link>
 
           {/* Découvrir (POIs) */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => {
               if (pois.length > 0) {
                 const randomPoi = pois[Math.floor(Math.random() * pois.length)];
                 setSelectedPoi(randomPoi);
                 setSheetExpanded(true);
               } else if (mapRef.current) {
-                // S'il n'y a pas de POIs chargés, on fait un fetch rapide et on en prend un
                 const b = mapRef.current.getBounds();
                 import('@/lib/poi').then(mod =>
                   mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast())
@@ -629,26 +634,25 @@ function AppPageContent() {
                 });
               }
             }}
-            aria-label="Découvrir les lieux"
-            className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-orange/30 transition-all active:scale-95"
+            className="flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bm-glass text-abidjan-blue"
           >
             <span className="text-base leading-none">✨</span>
-            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">Découvrir</span>
-          </button>
+            <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Découvrir</span>
+          </motion.button>
 
           {/* Activité (heatmap) */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => setHeatMode(!heatMode)}
-            aria-label="Mode activité"
-            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 px-4 py-2.5 transition-all active:scale-95 ${
+            className={`flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bm-glass transition-all ${
               heatMode
-                ? 'bg-abidjan-orange text-white border-abidjan-orange shadow-abidjan-orange/20'
-                : 'bg-white/90 text-beige-muted border-beige-200/50 hover:border-abidjan-orange/30'
+                ? 'bg-gradient-to-br from-abidjan-orange to-[#FF8C00] text-white'
+                : 'text-abidjan-blue'
             }`}
           >
             <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
-            <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
-          </button>
+            <span className="text-[10px] font-black uppercase tracking-widest">Activité</span>
+          </motion.button>
 
           {/* Broadcast (Pro) */}
           {profile && (
@@ -668,7 +672,7 @@ function AppPageContent() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="bm-toast absolute top-36 left-4 right-4 z-[500] bg-red-50 border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex flex-nowrap items-center justify-between shadow-xl uppercase tracking-widest"
+            className="bm-toast absolute top-36 left-4 right-4 z-[500] bm-glass border-2 border-red-100 rounded-2xl px-5 py-4 text-xs font-black text-red-600 flex flex-nowrap items-center justify-between uppercase tracking-widest"
           >
             <span className="flex-1 mr-2 leading-tight">{geoError}</span>
             <button
@@ -695,19 +699,16 @@ function AppPageContent() {
           }
         }}
         initial={false}
-        animate={{ y: sheetExpanded ? 0 : 'calc(100% - 88px)' }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.8 }}
-        className="absolute bottom-0 left-0 right-0 z-[500] bg-white rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t-2 border-beige-100 h-[85vh] touch-none"
+        animate={{ y: sheetExpanded ? 0 : 'calc(100% - 92px)' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.6 }}
+        className="absolute bottom-0 left-0 right-0 z-[500] bm-glass rounded-t-[3.5rem] shadow-2xl h-[85vh] touch-none"
       >
         {/* Handle */}
         <div
           className="flex flex-col items-center pt-4 pb-2 cursor-grab active:cursor-grabbing select-none"
           onClick={() => setSheetExpanded(!sheetExpanded)}
-          role="button"
-          aria-label={sheetExpanded ? "Réduire" : "Agrandir"}
-          aria-expanded={sheetExpanded}
         >
-          <div className="w-12 h-1.5 bg-beige-200 rounded-full" />
+          <div className="w-14 h-1.5 bg-abidjan-blue/10 rounded-full" />
         </div>
 
         {/* Collapsed peek */}
