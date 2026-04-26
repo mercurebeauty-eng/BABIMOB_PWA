@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import MapGL, { Source, Layer, MapRef } from 'react-map-gl';
+import MapGL, { Source, Layer, MapRef } from 'react-map-gl/maplibre';
 
 type Checkin = {
   lat: number;

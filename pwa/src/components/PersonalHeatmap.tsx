@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import MapGL, { Source, Layer, MapRef } from 'react-map-gl';
+import MapGL, { Source, Layer, MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 type Props = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useMemo } from 'react';
-import MapGL, { Source, Layer, MapRef, Marker } from 'react-map-gl';
+import MapGL, { Source, Layer, MapRef, Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 type ShapePoint = { shape_pt_lat: number; shape_pt_lon: number };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import MapGL, { Marker, MapRef, Layer, Source } from 'react-map-gl';
+import MapGL, { Marker, MapRef, Layer, Source } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { motion, AnimatePresence } from 'framer-motion';
