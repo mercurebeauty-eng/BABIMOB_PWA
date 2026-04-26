@@ -86,7 +86,7 @@ export default function ProfileEditor({
   return (
     <div className="space-y-6">
       <div>
-        <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-3">Avatar</div>
+        <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-3">Avatar</div>
         <div className="flex flex-wrap gap-2">
           {EMOJIS.map((e) => (
             <button
@@ -106,7 +106,7 @@ export default function ProfileEditor({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-2">Pseudo</div>
+          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-2">Pseudo</div>
           <input
             type="text"
             value={name}
@@ -116,7 +116,7 @@ export default function ProfileEditor({
           />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-2">Commune d&apos;origine</div>
+          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-2">Commune d&apos;origine</div>
           <select
             value={commune}
             onChange={(e) => setCommune(e.target.value)}
@@ -131,7 +131,7 @@ export default function ProfileEditor({
       </div>
 
       <div>
-        <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-2">Téléphone</div>
+        <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-2">Téléphone</div>
         <input
           type="tel"
           value={phone}
@@ -150,9 +150,14 @@ export default function ProfileEditor({
             type="checkbox"
             checked={visibility}
             onChange={e => setVisibility(e.target.checked)}
-            className="hidden"
+            className="sr-only"
           />
-          <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-all ${visibility ? 'bg-abidjan-orange' : 'bg-beige-200'}`}>
+          <div
+            role="switch"
+            aria-checked={visibility}
+            aria-hidden="true"
+            className={`w-10 h-6 rounded-full flex items-center px-1 transition-all ${visibility ? 'bg-abidjan-orange' : 'bg-beige-200'}`}
+          >
             <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${visibility ? 'translate-x-4' : ''}`} />
           </div>
           <span className="text-xs font-bold text-beige-muted">Rendre mes visites publiques</span>

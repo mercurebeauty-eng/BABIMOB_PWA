@@ -373,8 +373,8 @@ body {
 
 /* Marquee for Live Ticker */
 @keyframes marquee-slow {
-  0%   { transform: translateX(100vw); }
-  100% { transform: translateX(-200%); }
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(calc(-100% - 100vw)); }
 }
 
 .animate-marquee-slow {
