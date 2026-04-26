@@ -109,6 +109,7 @@ function AppPageContent() {
   const supabase = createClient();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const watchIdRef = useRef<number | null>(null);
+  const reachLoggedRef = useRef<Set<string>>(new Set());
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -132,6 +133,14 @@ function AppPageContent() {
   const [communityFeed, setCommunityFeed] = useState<any[]>([]);
   const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
+
+  // Fire-and-forget reach impression — deduplicated per user+source per session
+  const logReach = useCallback((userId: string, source: 'ticker' | 'map' | 'feed' | 'broadcast') => {
+    const key = `${userId}:${source}`;
+    if (reachLoggedRef.current.has(key)) return;
+    reachLoggedRef.current.add(key);
+    supabase.rpc('record_reach', { p_user_id: userId, p_source: source });
+  }, [supabase]);
 
   const handleGetDirections = useCallback((poi: POI) => {
     router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
@@ -176,7 +185,7 @@ function AppPageContent() {
 
         if (liveData) {
           setLivePois(Array.from(new Set(liveData.map(d => d.place_id))));
-          
+
           // Privacy Filter: Only show names if profile.is_public_visits is true
           const filteredTicker = liveData.map(d => ({
              ...d,
@@ -184,12 +193,18 @@ function AppPageContent() {
           })).slice(0, 5);
 
           setLiveTickerFeed(filteredTicker);
+
+          // Track ticker impressions for each visible public user
+          filteredTicker.forEach(d => {
+            const uid = (d.profile as any)?.id;
+            if (uid) logReach(uid, 'ticker');
+          });
         }
       }
     };
     map.on('moveend', loadPois);
     loadPois();
-  }, [supabase]);
+  }, [supabase, logReach]);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
@@ -239,16 +254,19 @@ function AppPageContent() {
       if (bc) {
         setBroadcasts(bc);
         // Derive Snap-style explorer markers from public broadcast users
+        const publicExplorers = bc.filter((p: any) => p.is_public_visits && p.broadcast_lat && p.broadcast_lon);
         setExplorers(
-          bc
-            .filter((p: any) => p.is_public_visits && p.broadcast_lat && p.broadcast_lon)
-            .map((p: any) => ({
-              lat: p.broadcast_lat,
-              lon: p.broadcast_lon,
-              name: p.display_name ?? 'Explorateur',
-              emoji: p.avatar_emoji ?? '🧭',
-            }))
+          publicExplorers.map((p: any) => ({
+            lat: p.broadcast_lat,
+            lon: p.broadcast_lon,
+            name: p.display_name ?? 'Explorateur',
+            emoji: p.avatar_emoji ?? '🧭',
+          }))
         );
+        // Track map impressions for each visible public explorer
+        publicExplorers.forEach((p: any) => logReach(p.id, 'map'));
+        // Track broadcast impressions for users with an active broadcast
+        bc.filter((p: any) => p.broadcast_text).forEach((p: any) => logReach(p.id, 'broadcast'));
       }
 
       // Fetch Global Community Activity (last 24h)
@@ -260,10 +278,15 @@ function AppPageContent() {
         `)
         .order('created_at', { ascending: false })
         .limit(10);
-      
+
       if (globalFeed) {
-        setCommunityFeed(globalFeed.filter((f: any) => f.profile?.is_public_visits));
-        
+        const publicFeed = globalFeed.filter((f: any) => f.profile?.is_public_visits);
+        setCommunityFeed(publicFeed);
+        // Track feed impressions for each visible user
+        publicFeed.forEach((f: any) => {
+          if (f.profile?.id) logReach(f.profile.id, 'feed');
+        });
+
         // Calculate trending (most frequent place_id in the last 24h)
         const counts: Record<string, { count: number, name: string }> = {};
         globalFeed.forEach((f: any) => {
@@ -278,7 +301,7 @@ function AppPageContent() {
       }
     }
     loadData();
-  }, [supabase]);
+  }, [supabase, logReach]);
 
   // Nearest stop to selected POI — for Phase 2 distance display
   useEffect(() => {

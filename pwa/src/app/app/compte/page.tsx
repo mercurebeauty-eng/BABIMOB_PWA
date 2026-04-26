@@ -76,8 +76,9 @@ export default async function ComptePage() {
   const nextMilestone = level === 1 ? 100 : level === 2 ? 400 : level === 3 ? 1000 : 5000;
   const progress = Math.min((levelScore / nextMilestone) * 100, 100);
 
-  // REACH metric (logical mock based on activity)
-  const reachVal = (total * 125) + (totalPoints * 4);
+  // REACH metric — real impressions from reach_events (ticker + map + feed + broadcast)
+  const { data: reachData } = await supabase.rpc('get_reach', { p_user_id: user.id, p_days: 30 });
+  const reachVal: number = reachData ?? 0;
   const reachStr = reachVal >= 1000 ? `${(reachVal / 1000).toFixed(1)}k` : reachVal.toString();
 
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
@@ -141,7 +142,7 @@ export default async function ComptePage() {
               <div className="text-2xl font-black text-beige-text">{reachStr}</div>
               <div className="text-[10px] uppercase font-bold tracking-widest text-beige-muted">Reach</div>
               <div className="absolute inset-x-3 bottom-2 text-[8px] text-beige-muted text-center font-medium uppercase tracking-wide opacity-70">
-                Vues estimées
+                Vues réelles · 30j
               </div>
            </div>
         </div>
