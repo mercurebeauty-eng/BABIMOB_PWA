@@ -145,8 +145,8 @@ export default function LandingPage() {
                 Disponible sur Telegram &amp; le web
               </div>
 
-              <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight mb-6 text-beige-text">
-                Bouge à <span className="text-abidjan-orange">Abidjan</span><br />
+              <h1 className="font-bm text-5xl md:text-6xl lg:text-7xl leading-[1.02] tracking-tight mb-6 text-beige-text">
+                Bouge à <span className="text-abidjan-orange-bm">Abidjan</span><br />
                 comme un vrai local.
               </h1>
 
@@ -209,6 +209,28 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ══ WAX STRIP ════════════════════════════════════════ */}
+      <div className="wax-strip wax-strip-orange h-2 w-full" aria-hidden="true" />
+
+      {/* ══ STATS ════════════════════════════════════════════ */}
+      <div className="bg-beige-text text-beige-50 py-10">
+        <div className="max-w-4xl mx-auto px-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {[
+            { v: '38', l: 'Lignes cartographiées' },
+            { v: '400+', l: 'Arrêts référencés' },
+            { v: '4', l: 'Types de transport' },
+            { v: '1 500+', l: 'Explorateurs actifs' },
+          ].map((s) => (
+            <div key={s.l}>
+              <div className="font-bm text-4xl text-abidjan-orange-bm leading-none mb-1">{s.v}</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-beige-200 opacity-70">{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="wax-strip wax-strip-green h-2 w-full" aria-hidden="true" />
+
       {/* ══ MARQUEE ══════════════════════════════════════════ */}
       <div className="border-y border-beige-200 bg-white overflow-hidden py-4 shadow-sm">
         <div className="flex items-center w-max animate-marquee">
@@ -230,7 +252,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <div className="text-sm font-bold uppercase tracking-widest text-abidjan-orange mb-4">Simple comme bonjour</div>
-            <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">3 étapes. C&apos;est tout.</h2>
+            <h2 className="font-bm text-4xl md:text-5xl tracking-tight mb-5">3 étapes. C&apos;est tout.</h2>
             <p className="text-xl text-beige-muted font-medium">Pas de compte. Pas de téléchargement. Juste ta position.</p>
           </div>
           
@@ -275,9 +297,9 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-2 text-xs font-bold text-abidjan-blue bg-abidjan-blue/10 border border-abidjan-blue/20 px-4 py-1.5 rounded-full mb-6">
               ✨ Nouveau
             </div>
-            <h2 className="font-display font-black text-4xl md:text-6xl tracking-tight mb-6">
+            <h2 className="font-bm text-4xl md:text-6xl tracking-tight mb-6">
               C&apos;COMMENT ?<br />
-              <span className="text-abidjan-orange">Le cœur social d&apos;Abidjan.</span>
+              <span className="text-abidjan-orange-bm">Le cœur social d&apos;Abidjan.</span>
             </h2>
             <p className="text-xl text-beige-muted font-medium leading-relaxed">
               BABIMOB n&apos;est plus seulement une carte. C&apos;est la communauté qui te dit la vérité sur le terrain.
@@ -317,7 +339,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="max-w-2xl mb-16">
             <div className="text-sm font-bold uppercase tracking-widest text-abidjan-green mb-4">Réseau cartographié</div>
-            <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">Tous les transports</h2>
+            <h2 className="font-bm text-4xl md:text-5xl tracking-tight mb-5">Tous les transports</h2>
             <p className="text-xl text-beige-muted font-medium">
               Gbaka bondé ou taxi confort — BABIMOB connaît les tarifs réels pour chaque véhicule.
             </p>
@@ -341,7 +363,7 @@ export default function LandingPage() {
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 bg-abidjan-gradient opacity-10" />
         <div className="max-w-4xl mx-auto px-5 text-center relative z-10">
-          <h2 className="font-display font-black text-5xl md:text-6xl tracking-tight mb-8">
+          <h2 className="font-bm text-5xl md:text-6xl tracking-tight mb-8">
             Prêt à dompter Abidjan ?
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">

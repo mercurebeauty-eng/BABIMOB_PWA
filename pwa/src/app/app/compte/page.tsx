@@ -104,24 +104,41 @@ export default async function ComptePage() {
         <SignOutButton />
       </div>
 
-      <div className="max-w-xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
-        
-        {/* PROFILE HEADER - Compact & Premium */}
-        <div className="flex flex-col items-center">
-           <div className="relative mb-4">
-              <div className="w-28 h-28 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-5xl ring-4 ring-abidjan-green/20 relative z-10">
-                {avatarEmoji}
+      {/* PROFILE HERO - ink background + wax pattern */}
+      <div className="relative overflow-hidden bg-beige-text text-beige-50 pt-16 pb-8 px-5">
+        <div className="wax-bg absolute inset-0 text-abidjan-orange-bm opacity-10 pointer-events-none" aria-hidden="true" />
+        <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center text-center">
+          <div className="relative mb-4">
+            <div className="w-24 h-24 rounded-[22px] bg-abidjan-orange-bm shadow-[0_8px_24px_rgba(242,108,26,0.45)] flex items-center justify-center text-5xl border-4 border-beige-text">
+              {avatarEmoji}
+            </div>
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-bm-amber text-beige-text px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-beige-text whitespace-nowrap">
+              NIV.{level}
+            </div>
+          </div>
+          <h1 className="font-bm text-3xl mt-3 text-white">{displayName}</h1>
+          <p className="text-xs font-bold mt-1 uppercase tracking-widest text-beige-200 opacity-60">
+            @{displayName.toLowerCase().replace(/\s/g, '_')} · {badgeName}
+          </p>
+          {/* Stats strip */}
+          <div className="mt-5 flex gap-3 w-full justify-center">
+            {[
+              { v: total.toString(), l: 'Check-ins' },
+              { v: Object.keys(communeFreq).length.toString(), l: 'Communes' },
+              { v: (badges?.length ?? 0).toString(), l: 'Badges' },
+              { v: totalPoints.toLocaleString(), l: 'Points' },
+            ].map((s) => (
+              <div key={s.l} className="flex-1 max-w-[80px] rounded-xl bg-white/8 border border-white/10 py-2 text-center">
+                <div className="font-bm text-lg text-white leading-none">{s.v}</div>
+                <div className="text-[9px] font-bold uppercase tracking-wider text-white/50 mt-0.5">{s.l}</div>
               </div>
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 bg-abidjan-orange text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-white">
-                Level {level}
-              </div>
-           </div>
-           
-           <h1 className="text-2xl font-black text-beige-text text-center">{displayName}</h1>
-           <p className="text-beige-muted text-xs font-bold mt-1 uppercase tracking-widest">
-              @{displayName.toLowerCase().replace(/\s/g, '_')} • {badgeName}
-           </p>
+            ))}
+          </div>
         </div>
+      </div>
+      <div className="wax-strip wax-strip-orange h-2 w-full" aria-hidden="true" />
+
+      <div className="max-w-xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
 
         {/* STATS STRIP */}
         <div className="grid grid-cols-2 gap-4">

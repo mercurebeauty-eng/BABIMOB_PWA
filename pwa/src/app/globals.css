@@ -13,6 +13,19 @@
   --text-main: #2D2721;
   --text-muted: #6b7280;
   --border-main: #e5e7eb;
+
+  /* BABIMOB design tokens */
+  --bm-orange: #F26C1A;
+  --bm-orange-deep: #D9510A;
+  --bm-green: #0EA85B;
+  --bm-green-deep: #0A8A4A;
+  --bm-cream: #F7F1E6;
+  --bm-cream-2: #FBF6EC;
+  --bm-ink: #1A1410;
+  --bm-ink-2: #3A3128;
+  --bm-muted: #8B7E6E;
+  --bm-gold: #E8B23C;
+  --bm-blue: #1E5BFF;
 }
 
 [data-theme='dark'] {
@@ -414,4 +427,124 @@ body {
 /* Utils & Leaflet Polish */
 .leaflet-control-attribution {
   display: none !important;
+}
+
+/* ── BABIMOB Design System v2 — Wax patterns & animations ─── */
+
+/* Ivorian wax-cloth dot motif */
+.wax-bg {
+  background-image:
+    radial-gradient(circle at 20% 30%, currentColor 1.5px, transparent 1.5px),
+    radial-gradient(circle at 80% 70%, currentColor 1.5px, transparent 1.5px),
+    radial-gradient(circle at 50% 90%, currentColor 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 30px 30px;
+  background-position: 0 0, 20px 20px, 10px 10px;
+}
+
+/* Diagonal stripe wax */
+.wax-stripe {
+  background-image: repeating-linear-gradient(
+    45deg,
+    currentColor 0,
+    currentColor 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
+
+/* Zigzag wax — CTA sections */
+.wax-zigzag {
+  background-image:
+    linear-gradient(135deg, currentColor 25%, transparent 25%),
+    linear-gradient(225deg, currentColor 25%, transparent 25%),
+    linear-gradient(315deg, currentColor 25%, transparent 25%),
+    linear-gradient(45deg, currentColor 25%, transparent 25%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+/* Horizontal wax strip — section divider */
+.wax-strip {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--bm-orange) 0, var(--bm-orange) 4px,
+    transparent 4px, transparent 8px,
+    var(--bm-orange) 8px, var(--bm-orange) 9px,
+    transparent 9px, transparent 16px
+  );
+}
+
+/* Pulsing dot (live indicators) */
+@keyframes bm-pulse-ring {
+  0%   { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.bm-pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: bm-pulse-ring 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  z-index: -1;
+}
+
+/* Live shimmer */
+@keyframes bm-shimmer-live {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.bm-shimmer { animation: bm-shimmer-live 1.4s ease-in-out infinite; }
+
+/* Slide-up entrance */
+@keyframes bm-slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.bm-slide-up { animation: bm-slide-up 0.4s ease-out backwards; }
+
+/* Compass needle gentle sway */
+@keyframes bm-compass {
+  0%, 100% { transform: rotate(-8deg); }
+  50%       { transform: rotate(12deg); }
+}
+.bm-compass-needle {
+  animation: bm-compass 3s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+/* Tap feedback */
+.bm-press {
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  cursor: pointer;
+}
+.bm-press:active { transform: scale(0.96); }
+
+/* Display font shorthand */
+.font-bm-display {
+  font-family: 'Archivo Black', 'Syne', system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+/* Wax divider strip — use as <div class="h-1.5 w-full wax-strip-orange"> */
+.wax-strip-orange { background: repeating-linear-gradient(90deg, #F26C1A 0, #F26C1A 4px, transparent 4px, transparent 8px, #F26C1A 8px, #F26C1A 9px, transparent 9px, transparent 16px); }
+.wax-strip-green  { background: repeating-linear-gradient(90deg, #0EA85B 0, #0EA85B 4px, transparent 4px, transparent 8px, #0EA85B 8px, #0EA85B 9px, transparent 9px, transparent 16px); }
+
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Bottom sheet handle */
+.bm-sheet-handle {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: rgba(0,0,0,0.12);
+  margin: 8px auto 4px;
+}
+
+/* Safe area aware padding */
+.pb-safe-extra {
+  padding-bottom: max(4rem, calc(2rem + env(safe-area-inset-bottom)));
 }

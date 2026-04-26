@@ -44,13 +44,17 @@ const config: Config = {
         },
         abidjan: {
           orange: '#FF7A00',
+          'orange-bm': '#F26C1A',
+          'orange-deep': '#D9510A',
           green: '#00A651',
+          'green-bm': '#0EA85B',
           blue: '#0066CC',
         }
       },
       fontFamily: {
         sans:    ['var(--font-dm-sans)', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['var(--font-syne)', 'system-ui', 'sans-serif']
+        display: ['var(--font-syne)', 'system-ui', 'sans-serif'],
+        bm:      ['var(--font-archivo-black)', '"Archivo Black"', 'var(--font-syne)', 'Impact', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'bm-gradient': 'linear-gradient(135deg, #f5a623 0%, #ff6b4a 100%)',
