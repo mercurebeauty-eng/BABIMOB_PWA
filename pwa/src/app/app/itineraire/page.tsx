@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import LocationInput from './LocationInput';
 import { fetchItinerary } from '@/lib/otp';
+import { createClient } from '@/lib/supabase/client';
 import type { Stop } from '@/lib/types';
 
 export default function ItinerairePage() {
@@ -14,8 +15,40 @@ export default function ItinerairePage() {
   const [endStop, setEndStop] = useState<Stop | null>(null);
   
   const [calculating, setCalculating] = useState(false);
+  const [wheelchair, setWheelchair] = useState(false);
   const [itineraries, setItineraries] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  const [prefs, setPrefs] = useState<string[]>([]);
+  const supabase = createClient();
+
+  // Parse toStop from URL
+  useEffect(() => {
+    const toParam = new URLSearchParams(window.location.search).get('toStop');
+    if (toParam) {
+      try {
+        const stop = JSON.parse(decodeURIComponent(toParam));
+        setEnd(stop.stop_name);
+        setEndStop(stop);
+      } catch (err) {
+        console.error("Failed to parse toStop", err);
+      }
+    }
+
+    const loadPrefs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).single();
+        if (data && data.preferred_transit_modes) {
+           setPrefs(data.preferred_transit_modes);
+        } else {
+           // By default all are enabled
+           setPrefs(['Gbaka', 'Woro-woro', 'Taxi', 'Saloni']);
+        }
+      }
+    };
+    loadPrefs();
+  }, [supabase]);
 
   const handleCalculate = async () => {
     if (!startStop || !endStop) {
@@ -29,7 +62,8 @@ export default function ItinerairePage() {
     try {
       const results = await fetchItinerary({
         from: { lat: startStop.stop_lat, lon: startStop.stop_lon },
-        to: { lat: endStop.stop_lat, lon: endStop.stop_lon }
+        to: { lat: endStop.stop_lat, lon: endStop.stop_lon },
+        wheelchair,
       });
       setItineraries(results);
       if (results.length === 0) setError("Aucun itinéraire trouvé.");
@@ -83,6 +117,22 @@ export default function ItinerairePage() {
               onChange={(val, stop) => { setEnd(val); if (stop) setEndStop(stop); }}
             />
 
+            <div className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100">
+               <div className="flex items-center gap-3">
+                  <span className="text-xl">♿</span>
+                  <div className="flex flex-col">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Accessibilité</span>
+                     <span className="text-[9px] font-bold text-beige-muted">Filtrer les trajets adaptés</span>
+                  </div>
+               </div>
+               <button
+                 onClick={() => setWheelchair(!wheelchair)}
+                 className={`w-12 h-6 rounded-full transition-all relative ${wheelchair ? 'bg-abidjan-blue' : 'bg-beige-200'}`}
+               >
+                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${wheelchair ? 'left-7' : 'left-1'}`} />
+               </button>
+            </div>
+
             {error && (
               <div className="p-4 bg-red-50 border-2 border-red-100 rounded-2xl text-xs font-bold text-red-600 uppercase tracking-widest text-center animate-in shake duration-300">
                 {error}
@@ -105,7 +155,12 @@ export default function ItinerairePage() {
 
           {/* Results List */}
           <div className="mt-8 space-y-4 pb-12">
-            {itineraries.map((iti, idx) => (
+            {itineraries.map((iti, idx) => {
+              const hasTransit = iti.legs.some((leg: any) => leg.mode === 'BUS' || leg.mode === 'TRANSIT');
+              const userBannedTransit = prefs.length > 0 && prefs.length < 4; // User disabled at least one mode
+              const showWarning = hasTransit && userBannedTransit;
+
+              return (
               <div key={idx} className="bg-white rounded-[2rem] border-2 border-beige-200 shadow-lg p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
@@ -136,6 +191,40 @@ export default function ItinerairePage() {
                   ))}
                 </div>
 
+                {/* SMART PREFERENCE WARNING */}
+                {(() => {
+                   const legModes = iti.legs.map((l: any) => l.mode === 'WALK' ? 'Marche' : 'Transport');
+                   const hasTransit = iti.legs.some((l: any) => l.mode !== 'WALK');
+                   
+                   // In a real app, we'd map OTP modes to internal names like 'Gbaka' or 'Bus'
+                   // For now, let's assume if they have a non-full preferences list, we warn about non-walk segments.
+                   const isDisallowed = hasTransit && prefs.length < 4 && prefs.length > 0;
+                   
+                   if (!isDisallowed) return null;
+
+                   return (
+                      <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-100 rounded-[1.5rem] flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
+                        <div className="flex gap-3 items-start">
+                           <span className="text-xl">⚠️</span>
+                           <div className="flex-1">
+                              <p className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-700 leading-tight mb-1">
+                                 Trajet Inhabituel
+                              </p>
+                              <p className="text-[11px] font-bold text-amber-800/80 leading-relaxed">
+                                 Ce trajet inclut des transports que tu as décochés dans tes préférences ({prefs.join(', ')}).
+                              </p>
+                           </div>
+                        </div>
+                        <Link 
+                          href="/app/compte" 
+                          className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-200/50 py-2 rounded-xl text-center hover:bg-amber-200 transition-colors"
+                        >
+                           Modifier mes préférences →
+                        </Link>
+                      </div>
+                   );
+                })()}
+
                 <div className="mt-6 pt-6 border-t border-beige-50">
                   <Link 
                     href={`/app?iti=${encodeURIComponent(JSON.stringify(iti))}`}
@@ -145,7 +234,7 @@ export default function ItinerairePage() {
                   </Link>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </div>

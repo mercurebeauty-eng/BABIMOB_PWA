@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export type FeedCheckin = {
   id: string;
-  stop_name: string;
+  place_name: string;
   commune: string | null;
   created_at: string;
   display_name: string;
@@ -37,7 +37,6 @@ export default function CcommentFeed({ initialCheckins }: { initialCheckins: Fee
           if (!c.is_public) return;
           setCheckins((prev) => [c, ...prev].slice(0, 30));
           setNewCount((n) => n + 1);
-          // Reset badge après 4 s
           setTimeout(() => setNewCount((n) => Math.max(0, n - 1)), 4000);
         }
       )
@@ -88,7 +87,7 @@ export default function CcommentFeed({ initialCheckins }: { initialCheckins: Fee
                 </span>
               )}
             </div>
-            <div className="text-sm font-black text-beige-text truncate">{c.stop_name}</div>
+            <div className="text-sm font-black text-beige-text truncate">{c.place_name}</div>
             {c.commune && (
               <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">
                 {c.commune}

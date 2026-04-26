@@ -4,8 +4,8 @@
   "description": "Gbaka, woro-woro et itinéraires en temps réel à Abidjan.",
   "start_url": "/app",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1565c0",
+  "background_color": "#FDFBF7",
+  "theme_color": "#FF7A00",
   "orientation": "portrait-primary",
   "lang": "fr",
   "icons": [

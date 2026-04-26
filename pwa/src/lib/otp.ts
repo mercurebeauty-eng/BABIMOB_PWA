@@ -10,16 +10,18 @@ export interface PlanParams {
   date?: string;
   time?: string;
   arriveBy?: boolean;
+  wheelchair?: boolean;
 }
 
 export async function fetchItinerary(params: PlanParams) {
   const query = `
-    query Plan($fromLat: Float!, $fromLon: Float!, $toLat: Float!, $toLon: Float!) {
+    query Plan($fromLat: Float!, $fromLon: Float!, $toLat: Float!, $toLon: Float!, $wheelchair: Boolean) {
       plan(
         from: { lat: $fromLat, lon: $fromLon }
         to: { lat: $toLat, lon: $toLon }
         numItineraries: 3
         transportModes: [{ mode: WALK }, { mode: BUS }, { mode: TRANSIT }]
+        wheelchair: $wheelchair
       ) {
         itineraries {
           duration
@@ -61,6 +63,7 @@ export async function fetchItinerary(params: PlanParams) {
     fromLon: params.from.lon,
     toLat: params.to.lat,
     toLon: params.to.lon,
+    wheelchair: params.wheelchair || false,
   };
 
   try {

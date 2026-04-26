@@ -6,14 +6,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-app: #ffffff;
+  --bg-card: #ffffff;
+  --bg-beige: #fcfcf9;
+  --text-main: #2D2721;
+  --text-muted: #6b7280;
+  --border-main: #e5e7eb;
+}
+
+[data-theme='dark'] {
+  --bg-app: #0c0e12;
+  --bg-card: #16191f;
+  --bg-beige: #0f1116;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --border-main: #2a2f3a;
+}
+
 html, body {
   height: 100%;
 }
 
 body {
   -webkit-font-smoothing: antialiased;
-  background: #ffffff;
-  color: #111827;
+  background: var(--bg-app);
+  color: var(--text-main);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Scrollbar discret (contexte clair) */
@@ -29,6 +48,15 @@ body {
 /* Override Leaflet pour un rendu plus propre */
 .leaflet-container {
   background: #f4f4f0;
+}
+
+/* Marqueur Elite POI — anneau pulsant */
+@keyframes poi-elite-ping {
+  0%       { transform: scale(1);   opacity: 0.55; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.poi-elite-ring {
+  animation: poi-elite-ping 2s ease-out infinite;
 }
 
 .bm-popup-wrapper .leaflet-popup-content-wrapper {
@@ -64,19 +92,19 @@ body {
 
 /* User location pulsing dot */
 @keyframes bm-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45); }
-  70%  { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35); }
+  70%  { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
   100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
 .bm-user-marker {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #3b82f6;
-  border: 2.5px solid white;
-  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
-  animation: bm-pulse 2s ease-in-out infinite;
+  border: 2px solid white;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
+  animation: bm-pulse 2.5s ease-in-out infinite;
 }
 
 /* Search overlay entrance */
@@ -153,6 +181,55 @@ body {
   bottom: 88px;
 }
 
+/* Hide attribution for a native-app look */
+.leaflet-control-attribution {
+  display: none;
+}
+
+/* ── Map Navigation Toolbar (Glassmorphism) ──────────────────── */
+.bm-nav-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 16px 0 0;
+}
+
+.bm-map-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid #ffffff;
+  border-radius: 14px;
+  box-shadow: 
+    0 4px 15px rgba(0,0,0,0.15),
+    0 2px 5px rgba(0,0,0,0.1);
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+}
+
+.bm-map-btn:hover {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.08);
+  transform: scale(1.06);
+}
+
+.bm-map-btn:active {
+  transform: scale(0.95);
+}
+
+.bm-map-btn--active {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.5);
+  color: #f5a623;
+}
+
 /* Smooth bottom sheet hardware acceleration */
 .bm-sheet {
   will-change: transform;
@@ -160,11 +237,167 @@ body {
   backface-visibility: hidden;
 }
 
+/* ── POI Circular Markers (Google/Snap Style) ─────────────────────────── */
+.bm-poi-container {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  transition: transform 150ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.bm-poi-container:hover {
+  transform: translate(-50%, -50%) scale(1.15) translateY(-4px);
+  z-index: 1000 !important;
+}
+
+.bm-poi-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bm-poi-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.bm-poi-label-under {
+  margin-top: 4px;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: #2D2721;
+  text-align: center;
+  transition: all 200ms ease;
+  /* Readability stroke over the map */
+  text-shadow: 
+    -1.5px -1.5px 0 #fff,
+     1.5px -1.5px 0 #fff,
+    -1.5px  1.5px 0 #fff,
+     1.5px  1.5px 0 #fff,
+     0px 2px 4px rgba(0,0,0,0.1);
+}
+
+.bm-poi-label-collapsed {
+  max-width: 65px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bm-poi-label-expanded {
+  max-width: 180px;
+  white-space: normal;
+  word-wrap: break-word;
+  font-size: 12px;
+  z-index: 1001 !important;
+}
+
+.bm-poi-container-selected {
+  z-index: 1001 !important;
+}
+
+/* Pro style */
+.bm-poi-circle-pro {
+  border: 2px solid #FF7A00 !important;
+  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.25);
+}
+
+/* Elite style */
+.bm-poi-circle-elite {
+  border: 3px solid #FF7A00 !important;
+  box-shadow: 0 8px 24px rgba(255, 122, 0, 0.35);
+}
+
+.bm-poi-label-under-elite {
+  font-size: 12.5px;
+  color: #FF7A00;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Elite Pulse Aura */
+@keyframes bm-poi-elite-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.45); }
+  70%  { box-shadow: 0 0 0 18px rgba(255, 122, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 122, 0, 0); }
+}
+
+.bm-poi-elite-pulse {
+  animation: bm-poi-elite-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── POI Presence Indicator (check-in silhouette) ────────────── */
+.bm-poi-presence {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1.5px solid rgba(245, 166, 35, 0.45);
+  border-radius: 999px;
+  padding: 2px 5px;
+  margin-bottom: 3px;
+  color: #f5a623;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.bm-poi-presence-count {
+  font-size: 8px;
+  font-weight: 800;
+  font-family: system-ui, sans-serif;
+  color: #f5a623;
+  line-height: 1;
+}
+
+/* Live Pulse Aura (Orange for active spots) */
+@keyframes bm-poi-live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(245, 166, 35, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
+}
+
+.bm-poi-live-pulse {
+  animation: bm-poi-live-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  border-color: #f5a623 !important;
+}
+
+/* Marquee for Live Ticker */
+@keyframes marquee-slow {
+  0%   { transform: translateX(100vw); }
+  100% { transform: translateX(-200%); }
+}
+
+.animate-marquee-slow {
+  animation: marquee-slow 30s linear infinite;
+  white-space: nowrap;
+}
+
+/* Leaflet Overrides for POI markers */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Respect prefers-reduced-motion — pause all decorative animations */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
+  .animate-marquee-slow,
   .animate-float,
-  .animate-phone-float {
+  .animate-phone-float,
+  .bm-poi-elite-pulse,
+  .bm-poi-live-pulse {
     animation: none !important;
   }
   .bm-search-overlay {
@@ -176,4 +409,9 @@ body {
   .bm-sheet {
     transition: none !important;
   }
+}
+
+/* Utils & Leaflet Polish */
+.leaflet-control-attribution {
+  display: none !important;
 }

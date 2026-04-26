@@ -1,19 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import CheckInButton from './CheckInButton';
 import FavoriteButton from './FavoriteButton';
+import StopLinesList from './StopLinesList';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 
 type Props = { params: Promise<{ stop_id: string }> };
-
-function timeAgo(iso: string): string {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1)  return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
-  if (mins < 1440) return `il y a ${Math.floor(mins / 60)} h`;
-  return `il y a ${Math.floor(mins / 1440)} j`;
-}
 
 export default async function ArretPage({ params }: Props) {
   const supabase = await createClient();
@@ -30,11 +22,7 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [
-    { data: lignes }, 
-    { data: favRow }, 
-    { data: recentCheckins }
-  ] = await Promise.all([
+  const [{ data: lignes }, { data: favRow }, { data: profile }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
       ? supabase
@@ -46,21 +34,18 @@ export default async function ArretPage({ params }: Props) {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from('checkins')
-      .select('id, user_id, created_at')
-      .eq('stop_id', stopId)
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
-      .limit(3)
+    user
+      ? supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).maybeSingle()
+      : Promise.resolve({ data: null })
   ]);
-  
+
   const isFavorited = !!favRow;
+  const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
       <BeigeMapBackground />
-      
+
       {/* Top nav */}
       <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
         <Link
@@ -94,9 +79,8 @@ export default async function ArretPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Actions - Je suis ici & Favoris */}
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <CheckInButton stopId={stop.stop_id} stopName={stop.stop_name} commune={stop.commune ?? null} />
+        {/* Actions - Favoris uniquement */}
+        <div className="mb-8 max-w-sm mx-auto">
           <FavoriteButton
             stopId={stop.stop_id}
             stopName={stop.stop_name}
@@ -108,79 +92,17 @@ export default async function ArretPage({ params }: Props) {
           />
         </div>
 
-        {/* Social - Qui est déjà allé ? */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 mb-8">
-           <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display font-black text-xl">C&apos;comment ici ?</h2>
-              <button className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-abidjan-blue/10 text-abidjan-blue rounded-full border border-abidjan-blue/20">
-                 Qui est déjà allé ?
-              </button>
-           </div>
-           
-           {(!recentCheckins || recentCheckins.length === 0) ? (
-             <p className="text-sm text-beige-muted font-medium bg-beige-50 rounded-2xl p-4 border border-beige-100 border-dashed text-center">
-                Personne n&apos;est passé par ici récemment. Sois le premier !
-             </p>
-           ) : (
-             <div className="space-y-4">
-                {recentCheckins.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
-                     <div className="w-8 h-8 rounded-full bg-beige-100 flex items-center justify-center text-sm shadow-inner">👤</div>
-                     <div className="flex-1">
-                        <div className="text-xs font-black text-beige-text">Un explorateur était ici</div>
-                        <div className="text-[10px] text-beige-muted font-bold">{timeAgo(c.created_at)}</div>
-                     </div>
-                  </div>
-                ))}
-             </div>
-           )}
-        </div>
-
-        {/* Lines section */}
-        <div className="flex items-center justify-between mb-4 px-2">
-          <h2 className="font-display font-black text-xl uppercase tracking-tight">Lignes passantes</h2>
-          {lignes && (
-            <span className="text-xs font-black text-beige-muted uppercase tracking-widest">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
-          )}
-        </div>
-
-        {(!lignes || lignes.length === 0) && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-10 flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-beige-50 flex items-center justify-center text-3xl">🚌</div>
-            <div className="text-sm text-beige-muted font-bold uppercase tracking-widest">Aucune ligne trouvée ici.</div>
+        {/* Lines section header */}
+        <div className="flex flex-col gap-4 mb-4 px-2">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-black text-xl uppercase tracking-tight">Lignes passantes</h2>
+            {lignes && (
+              <span className="text-xs font-black text-beige-muted uppercase tracking-widest">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
+            )}
           </div>
-        )}
+        </div>
 
-        <ul className="space-y-3">
-          {lignes?.map((l: any) => (
-            <li key={`${l.route_id}-${l.direction_id ?? 0}`}>
-              <Link
-                href={`/app/ligne/${encodeURIComponent(l.route_id)}${l.direction_id === 1 ? '?dir=1' : ''}`}
-                className="bg-white rounded-[2rem] border-2 border-beige-200 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all p-5 flex items-center justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <div className="font-black text-base text-beige-text truncate">
-                    {l.route_long_name}
-                  </div>
-                  <div className="text-xs font-bold text-beige-muted mt-1 uppercase tracking-wide">
-                    {l.agency_id}
-                    {l.trip_headsign && (
-                      <span className="ml-1 opacity-60">· {l.trip_headsign}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="bg-abidjan-orange/10 text-abidjan-orange text-[10px] font-black px-2.5 py-1 rounded-lg border border-abidjan-orange/20 uppercase tracking-widest">
-                    Ligne
-                  </div>
-                  <svg className="w-5 h-5 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <StopLinesList lines={lignes || []} preferredModes={prefs} />
       </div>
     </div>
   );

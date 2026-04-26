@@ -3,7 +3,10 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import SignOutButton from './SignOutButton';
 import ProfileEditor from './ProfileEditor';
+import PreferencesEditor from './PreferencesEditor';
+import PersonalHeatmap from './PersonalHeatmap';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
+import ProfileSocialTabs from '@/components/ProfileSocialTabs';
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -12,250 +15,296 @@ export default async function ComptePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, avatar_emoji')
+    .select('*')
     .eq('id', user.id)
     .maybeSingle();
+
+  const { data: badges } = await supabase
+    .from('user_badges')
+    .select('badge_key, awarded_at')
+    .eq('user_id', user.id);
+
+  const { data: following } = await supabase
+    .from('follows')
+    .select('id, profiles:following_id(id, display_name, avatar_emoji, is_verified_explorer)')
+    .eq('follower_id', user.id);
 
   const { count: checkinCount } = await supabase
     .from('checkins')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
-  const { data: communesData } = await supabase
+  const { data: checkinsDetail } = await supabase
     .from('checkins')
-    .select('commune')
+    .select('commune, place_name, lat, lon')
     .eq('user_id', user.id)
-    .not('commune', 'is', null)
-    .limit(50);
+    .order('created_at', { ascending: false })
+    .limit(300);
 
   const communeFreq: Record<string, number> = {};
-  communesData?.forEach((r: { commune: string | null }) => {
+  const categoryFreq: Record<string, number> = {
+    gastronome: 0,
+    shopping: 0,
+    culture: 0,
+    transport: 0,
+  };
+
+  checkinsDetail?.forEach((r) => {
     if (r.commune) communeFreq[r.commune] = (communeFreq[r.commune] ?? 0) + 1;
+    const name = (r.place_name || '').toLowerCase();
+    if (name.match(/maquis|resto|restaurant|bar|café/)) categoryFreq.gastronome++;
+    if (name.match(/marché|mall|magasin|boutique|supermarché|shopping/)) categoryFreq.shopping++;
+    if (name.match(/musée|cinéma|théâtre|école|université|faculté/)) categoryFreq.culture++;
+    if (name.match(/gare|arrêt|station|gbaka|woro/)) categoryFreq.transport++;
   });
+
   const topCommunes = Object.entries(communeFreq)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([c]) => c);
+  
+  const total = checkinCount ?? 0;
+  const totalPoints = profile?.total_points ?? 0;
+  
+  // STATS CALCULATIONS
+  const levelScore = (total * 2) + Math.floor(totalPoints / 5);
+  const level = levelScore >= 1000 ? 4 : levelScore >= 400 ? 3 : levelScore >= 100 ? 2 : 1;
+  const levelNames = ['Novice', 'Explorateur Émergent', 'Guide Urbain', 'Maître d\'Abidjan'];
+  const badgeName = levelNames[level - 1];
+  
+  const nextMilestone = level === 1 ? 100 : level === 2 ? 400 : level === 3 ? 1000 : 5000;
+  const progress = Math.min((levelScore / nextMilestone) * 100, 100);
+
+  // REACH metric (logical mock based on activity)
+  const reachVal = (total * 125) + (totalPoints * 4);
+  const reachStr = reachVal >= 1000 ? `${(reachVal / 1000).toFixed(1)}k` : reachVal.toString();
+
+  const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
+  const avatarEmoji = profile?.avatar_emoji ?? '🧭';
 
   const { data: favorites } = await supabase
     .from('user_favorites')
     .select('id, label, stop_id, route_id, kind')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(20);
-
-  const total = checkinCount ?? 0;
-  
-  // New Gamification System
-  const level = total >= 50 ? 4 : total >= 20 ? 3 : total >= 5 ? 2 : 1;
-  const levelNames = ['Novice', 'Explorateur', 'Guide', 'Maître'];
-  const badge = levelNames[level - 1];
-  
-  // Milestone for progress
-  const nextMilestone = level === 1 ? 5 : level === 2 ? 20 : level === 3 ? 50 : 100;
-  const progress = Math.min((total / nextMilestone) * 100, 100);
-
-  // User Archetype (Class)
-  let userClass = 'Nouvel arrivant';
-  if (total >= 5) {
-    if (topCommunes.includes('Abobo')) userClass = 'Abobo Force';
-    else if (topCommunes.includes('Cocody')) userClass = 'Citadin Chic';
-    else userClass = 'Grand Voyageur';
-  }
-
-  const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
-  const avatarEmoji = profile?.avatar_emoji ?? '🧭';
+    .limit(5);
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto relative bg-beige-50 text-beige-text font-sans">
       <BeigeMapBackground />
       
-      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
+      {/* Top nav */}
+      <div className="sticky top-0 z-30 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
         <Link href="/app" className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors" aria-label="Retour à la carte">
           <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
-        <span className="text-sm font-bold uppercase tracking-widest text-beige-muted flex-1">Mon profil</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">ABIDJAN LIVE</span>
         <SignOutButton />
       </div>
 
-      <div className="max-w-3xl mx-auto w-full px-5 py-8 grid gap-6 md:grid-cols-2 relative z-10">
+      <div className="max-w-xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
         
-        {/* PROFILE HEADER - Gamified */}
-        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 flex flex-col sm:flex-row items-center gap-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
-          <div className="relative z-10 w-24 h-24 rounded-3xl bg-beige-50 border-2 border-beige-200 flex items-center justify-center flex-shrink-0 shadow-xl shadow-black/5 ring-4 ring-beige-50">
-            <span className="text-5xl select-none">{avatarEmoji}</span>
-            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-abidjan-orange rounded-xl shadow-lg border-2 border-white flex items-center justify-center text-base font-black text-white">
-              {level}
-            </div>
-          </div>
-          <div className="relative z-10 flex-1 text-center sm:text-left">
-            <div className="text-2xl font-black text-beige-text mb-1 truncate max-w-xs sm:max-w-none">{displayName}</div>
-            <div className="text-sm text-beige-muted font-medium mb-3 truncate">{user.email}</div>
-            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-4">
-              <span className="text-[10px] font-black text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100 uppercase tracking-widest">Niveau {level} · {badge}</span>
-              <span className="text-[10px] font-black text-white bg-abidjan-blue px-3 py-1.5 rounded-full border border-abidjan-blue shadow-sm uppercase tracking-widest">Archetype: {userClass}</span>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="max-w-sm">
-               <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">
-                  <span>Prochain niveau</span>
-                  <span>{total} / {nextMilestone} visits</span>
-               </div>
-               <div className="h-3 bg-beige-50 rounded-full border border-beige-100 overflow-hidden">
-                  <div 
-                    className="h-full bg-abidjan-orange rounded-full transition-all duration-1000"
-                    style={{ width: `${progress}%` }}
-                  />
-               </div>
-            </div>
-          </div>
+        {/* PROFILE HEADER - Compact & Premium */}
+        <div className="flex flex-col items-center">
+           <div className="relative mb-4">
+              <div className="w-28 h-28 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-5xl ring-4 ring-abidjan-green/20 relative z-10">
+                {avatarEmoji}
+              </div>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 bg-abidjan-orange text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-white">
+                Level {level}
+              </div>
+           </div>
+           
+           <h1 className="text-2xl font-black text-beige-text text-center">{displayName}</h1>
+           <p className="text-beige-muted text-xs font-bold mt-1 uppercase tracking-widest">
+              @{displayName.toLowerCase().replace(/\s/g, '_')} • {badgeName}
+           </p>
         </div>
 
-        {/* EXPLORATIONS - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-blue/30">
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-xl">
-                  📍
-                </div>
-                <div className="text-sm uppercase tracking-widest text-beige-text font-black">Statistiques de voyage</div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
-                <div className="text-4xl font-black text-beige-text">{total}</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">visites</div>
-              </div>
-              <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
-                <div className="text-4xl font-black text-beige-text">{topCommunes.length}</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">communes</div>
-              </div>
-              <div className="text-center p-5 rounded-3xl bg-beige-50 border border-beige-100">
-                <div className="text-4xl font-black text-beige-text">#{level}</div>
-                <div className="text-[10px] uppercase tracking-widest text-beige-muted mt-2 font-bold">rang</div>
-              </div>
-            </div>
-
-            {topCommunes.length > 0 && (
-              <div className="pt-6 border-t border-beige-100">
-                <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-4">Communes fréquentées</div>
-                <div className="flex gap-2 flex-wrap">
-                  {topCommunes.map((c) => (
-                    <span key={c} className="text-xs font-bold bg-white border border-beige-200 text-beige-text px-4 py-2 rounded-full shadow-sm">{c}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {total === 0 && (
-              <p className="text-sm text-beige-muted font-medium text-center mt-2 py-6 bg-beige-50 rounded-3xl border border-beige-100 border-dashed">
-                Fais ton premier check-in sur un arrêt pour commencer à explorer ! 📍
-              </p>
-            )}
-          </div>
+        {/* STATS STRIP */}
+        <div className="grid grid-cols-2 gap-4">
+           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5">
+              <div className="text-xl mb-1 mt-1">🏆</div>
+              <div className="text-2xl font-black text-beige-text">{badges?.length || 0}</div>
+              <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Badges</div>
+           </div>
+           <div className="bg-white rounded-3xl border-2 border-beige-200 p-6 flex flex-col items-center shadow-lg shadow-black/5">
+              <div className="text-xl mb-1 mt-1">📊</div>
+              <div className="text-2xl font-black text-beige-text">{reachStr}</div>
+              <div className="text-[10px] uppercase font-black tracking-widest text-beige-muted">Reach</div>
+           </div>
         </div>
 
-        {/* FAVORITES - Span 1 */}
-        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-red-500/30 flex flex-col h-full">
-          <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center text-xl">❤️</div>
-                <div className="text-sm uppercase tracking-widest text-beige-text font-black">Favoris</div>
-              </div>
-              <span className="text-xs font-black bg-beige-50 px-3 py-1 rounded-lg text-beige-muted border border-beige-100">{favorites?.length ?? 0}</span>
-            </div>
+        {/* ROAD TO VERIFIED EXPLORER */}
+        {!profile?.is_verified_explorer && (
+          <div className="bg-abidjan-orange/5 border-2 border-dashed border-abidjan-orange/30 rounded-[2.5rem] p-8 relative overflow-hidden group">
+             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform">
+                <span className="text-6xl">✓</span>
+             </div>
+             
+             <div className="flex flex-col gap-6 relative z-10">
+                <div>
+                   <h3 className="text-sm font-black uppercase tracking-widest text-abidjan-orange mb-1">Objectif : Explorateur Vérifié</h3>
+                   <p className="text-[11px] font-bold text-beige-muted leading-relaxed uppercase tracking-widest">Gagne l&apos;accès au Live Feed complet et aux avantages Elite.</p>
+                </div>
 
-            {!favorites || favorites.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center py-6 bg-beige-50 rounded-3xl border border-beige-100 border-dashed">
-                <p className="text-xs text-beige-muted font-bold leading-relaxed px-4">
-                  Appuie sur le cœur sur un arrêt pour le sauvegarder ici.
+                <div className="space-y-4">
+                   {[
+                      { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
+                      { label: "5 Communes visitées", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
+                      { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
+                   ].map((goal, idx) => {
+                      const pct = Math.min((goal.current / goal.target) * 100, 100);
+                      const isDone = pct >= 100;
+                      return (
+                         <div key={idx}>
+                            <div className="flex justify-between items-end mb-2">
+                               <div className="flex items-center gap-2">
+                                  <span className={isDone ? "" : "grayscale opacity-50"}>{goal.emoji}</span>
+                                  <span className={`text-[10px] font-black uppercase tracking-widest ${isDone ? 'text-abidjan-green' : 'text-beige-text'}`}>
+                                     {goal.label} {isDone && "✓"}
+                                  </span>
+                               </div>
+                               <span className="text-[9px] font-black text-beige-muted">{goal.current} / {goal.target}</span>
+                            </div>
+                            <div className="h-1.5 bg-white rounded-full overflow-hidden border border-beige-100">
+                               <div 
+                                 className={`h-full transition-all duration-[1500ms] ${isDone ? 'bg-abidjan-green' : 'bg-abidjan-orange opacity-40'}`}
+                                 style={{ width: `${pct}%` }}
+                               />
+                            </div>
+                         </div>
+                      );
+                   })}
+                </div>
+                
+                <p className="text-[9px] font-black text-abidjan-orange italic uppercase tracking-wider text-center mt-2">
+                   Plus que {Math.max(500 - totalPoints, 0)} points pour y arriver !
                 </p>
+             </div>
+          </div>
+        )}
+
+        {/* PERSONAL HEATMAP SECTION */}
+        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 overflow-hidden shadow-xl shadow-black/5">
+           <div className="p-6 border-b border-beige-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-lg">🌍</div>
+                 <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Ma Carte Personnelle</span>
               </div>
-            ) : (
-              <ul className="space-y-3 flex-1">
-                {favorites.map((fav) => (
-                  <li key={fav.id}>
-                    <Link
-                      href={
-                        fav.kind === 'stop' && fav.stop_id
-                          ? `/app/arret/${encodeURIComponent(fav.stop_id)}`
-                          : fav.kind === 'route' && fav.route_id
-                          ? `/app/ligne/${encodeURIComponent(fav.route_id)}`
-                          : '/app'
-                      }
-                      className="flex items-center gap-4 bg-beige-50 hover:bg-white border border-beige-100 hover:border-red-500/30 rounded-2xl px-4 py-3.5 transition-all shadow-sm"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-black text-beige-text truncate">{fav.label}</div>
-                        <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{fav.kind === 'stop' ? 'Arrêt' : 'Ligne'}</div>
-                      </div>
-                      <svg className="w-4 h-4 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-abidjan-green animate-pulse" />
+                 <span className="text-[9px] font-black uppercase text-abidjan-green tracking-widest">Live Area</span>
+              </div>
+           </div>
+           <div className="h-48 bg-beige-50">
+              <PersonalHeatmap checkins={(checkinsDetail as any[]) || []} />
+           </div>
+           <div className="p-5 text-center bg-beige-50/50">
+              <p className="text-[11px] text-beige-muted font-bold italic">
+                 Le plus actif à <span className="font-black text-beige-text">{topCommunes[0] || 'Abidjan'}</span> cette semaine
+              </p>
+           </div>
         </div>
 
-        {/* PROFILE EDITOR - Span 1 */}
-        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30 flex flex-col">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-xl">✏️</div>
-            <div className="text-sm uppercase tracking-widest text-beige-text font-black">Mon profil</div>
-          </div>
-          <ProfileEditor
-            userId={user.id}
-            initialName={displayName}
-            initialEmoji={avatarEmoji}
-          />
+        {/* VISITS & SOCIAL TABS */}
+        <ProfileSocialTabs 
+          userId={user.id} 
+          initialVisits={(checkinsDetail as any[]) || []}
+          initialFollowing={(following as any[]) || []}
+          heatmapData={[]} // No longer needed here
+          currentTier={profile?.sub_tier || 'free'}
+        />
+
+        {/* MESSAGING - NEW ENTRY POINT */}
+        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5 group hover:border-abidjan-blue/30 transition-all">
+           <Link href="/app/chat" className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                 <div className="w-14 h-14 rounded-2xl bg-abidjan-blue/10 text-abidjan-blue flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                    ✉️
+                 </div>
+                 <div>
+                    <div className="text-sm font-black uppercase tracking-widest text-beige-text">Ma Messagerie</div>
+                    <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-1">Discussions & Broadcasts</div>
+                 </div>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-beige-50 flex items-center justify-center text-beige-muted group-hover:bg-abidjan-blue group-hover:text-white transition-all">
+                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                 </svg>
+              </div>
+           </Link>
         </div>
 
-        {/* PREFERENCES - Span 1 */}
-        <div className="md:col-span-1 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-green/30 flex flex-col h-full">
-          <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-xl">⚙️</div>
-              <div className="text-sm uppercase tracking-widest text-beige-text font-black">Préférences</div>
-            </div>
+        {/* FAVORITES PREVIEW */}
+        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-6 shadow-xl shadow-black/5">
+           <div className="flex items-center justify-between mb-4 px-2">
+             <div className="flex items-center gap-3">
+               <span className="text-lg">⭐</span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-beige-text">Mes Favoris</span>
+             </div>
+             <Link href="/app/itineraire" className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">Voir tout</Link>
+           </div>
 
-            <div className="flex flex-wrap gap-2 flex-1">
-              {['🚐 Gbaka', '🚖 Woro-woro', '🚕 Taxi', '🛺 Saloni'].map((t) => (
-                <button key={t} className="text-xs font-black bg-beige-50 border-2 border-beige-100 hover:border-abidjan-orange hover:bg-abidjan-orange/10 hover:text-abidjan-orange text-beige-muted px-4 py-2.5 rounded-2xl transition-all shadow-sm">
-                  {t}
-                </button>
+           <div className="space-y-2">
+              {favorites?.map(f => (
+                 <Link
+                   key={f.id}
+                   href={
+                     f.kind === 'stop' && f.stop_id ? `/app/arret/${encodeURIComponent(f.stop_id)}`
+                     : f.kind === 'place' && f.stop_id ? `/app/place/${encodeURIComponent(f.stop_id)}`
+                     : f.kind === 'route' && f.route_id ? `/app/ligne/${encodeURIComponent(f.route_id)}`
+                     : '/app'
+                   }
+                   className="flex items-center justify-between p-4 bg-beige-50 rounded-2xl border border-beige-100 hover:border-abidjan-orange/30 transition-all"
+                 >
+                    <span className="text-[11px] font-black text-beige-text">{f.label}</span>
+                    <span className="text-[8px] font-black uppercase text-beige-muted border border-beige-200 px-2 py-0.5 rounded-full">
+                      {f.kind === 'stop' ? 'Arrêt' : f.kind === 'place' ? 'Lieu' : 'Ligne'}
+                    </span>
+                 </Link>
               ))}
-            </div>
-            <div className="mt-6 p-4 bg-beige-50 rounded-2xl border border-beige-100 border-dashed">
-               <p className="text-[10px] text-beige-muted font-bold uppercase tracking-widest leading-relaxed">Le mode personnalisation sera bientôt actif pour tes calculs d&apos;itinéraires.</p>
-            </div>
-          </div>
+              {(!favorites || favorites.length === 0) && (
+                 <div className="py-8 text-center text-[10px] font-bold text-beige-muted uppercase tracking-widest border-2 border-dashed border-beige-100 rounded-3xl">
+                    Aucun favori enregistré
+                 </div>
+              )}
+           </div>
         </div>
 
-        {/* PRIVACY - Span 2 */}
-        <div className="md:col-span-2 group relative rounded-[2.5rem] overflow-hidden bg-white border-2 border-beige-200 p-8 shadow-xl shadow-black/5 transition-all duration-500 hover:border-abidjan-orange/30">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-beige-50 text-beige-text flex items-center justify-center text-2xl border border-beige-100 shadow-inner">
-                👁️‍🗨️
+        {/* PROFILE & PREFERENCES - Bottom Grid */}
+        <div className="grid md:grid-cols-2 gap-6 pb-20">
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-xl">✏️</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-text font-black">Mon profil</div>
               </div>
-              <div className="text-center sm:text-left">
-                <div className="text-lg font-black text-beige-text">Visibilité Publique</div>
-                <div className="text-sm text-beige-muted font-medium mt-1">Tes check-ins sont visibles par les autres explorateurs.</div>
+              <ProfileEditor
+                userId={user.id}
+                initialName={displayName}
+                initialEmoji={avatarEmoji}
+                initialPhone={profile?.phone_number || ''}
+                initialConsent={profile?.phone_marketing_consent}
+                initialVisibility={profile?.is_public_visits}
+              />
+           </div>
+
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-abidjan-green/10 text-abidjan-green flex items-center justify-center text-xl">⚙️</div>
+                <div className="text-[10px] uppercase tracking-widest text-beige-text font-black">Préférences</div>
               </div>
-            </div>
-            <div className="w-16 h-9 bg-abidjan-orange rounded-full flex items-center px-1.5 cursor-pointer shadow-lg shadow-abidjan-orange/30 hover:scale-105 transition-all group-active:scale-95">
-              <div className="w-6 h-6 bg-white rounded-full shadow-md translate-x-7 transition-transform" />
-            </div>
-          </div>
+              <PreferencesEditor 
+                userId={user.id} 
+                initialPreferences={profile?.preferred_transit_modes || []} 
+              />
+           </div>
         </div>
+
       </div>
     </div>
   );
 }
+
