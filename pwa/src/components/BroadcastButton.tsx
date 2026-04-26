@@ -6,10 +6,11 @@ import PremiumWall from './PremiumWall';
 
 type Props = {
   userId: string;
-  currentTier: 'free' | 'messenger' | 'social' | 'pro';
+  currentTier: 'free' | 'messenger' | 'social' | 'pro' | 'elite';
+  isAdmin?: boolean;
 };
 
-export default function BroadcastButton({ userId, currentTier }: Props) {
+export default function BroadcastButton({ userId, currentTier, isAdmin = false }: Props) {
   const supabase = createClient();
   const [showWall, setShowWall] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -17,10 +18,10 @@ export default function BroadcastButton({ userId, currentTier }: Props) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
-  const isPro = currentTier === 'pro';
+  const canBroadcast = isAdmin || currentTier === 'pro' || currentTier === 'elite';
 
   function open() {
-    if (!isPro) { setShowWall(true); return; }
+    if (!canBroadcast) { setShowWall(true); return; }
     setText('');
     setGeoError(null);
     setSuccess(false);
@@ -56,15 +57,15 @@ export default function BroadcastButton({ userId, currentTier }: Props) {
       <button
         onClick={open}
         className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xl transition-all active:scale-95 ${
-          isPro
+          canBroadcast
             ? 'bg-abidjan-orange text-white shadow-abidjan-orange/30 animate-pulse'
             : 'bg-white text-beige-muted border-2 border-beige-100'
         }`}
-        title="Diffuser ma position (Pro)"
+        title={canBroadcast ? 'Diffuser ma position' : 'Diffuser ma position (Pro)'}
       >
         <span className="relative">
           📢
-          {!isPro && <span className="absolute -top-2 -right-2 text-[10px] bg-abidjan-orange text-white px-1 rounded-md">PRO</span>}
+          {!canBroadcast && <span className="absolute -top-2 -right-2 text-[10px] bg-abidjan-orange text-white px-1 rounded-md">PRO</span>}
         </span>
       </button>
 

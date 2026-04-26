@@ -524,7 +524,7 @@ function AppPageContent() {
 
       {/* ── Live Ticker ── */}
       {/* Feature restricted to Verified Explorers/Premium viewers */}
-      {(profile?.is_verified_explorer || profile?.sub_tier === 'pro' || profile?.sub_tier === 'elite') && liveTickerFeed.length > 0 && (
+      {(profile?.is_admin || profile?.is_verified_explorer || profile?.sub_tier === 'pro' || profile?.sub_tier === 'elite') && liveTickerFeed.length > 0 && (
         <div className="absolute top-0 left-0 right-0 z-[600] pointer-events-none">
            <div className="bg-gradient-to-b from-black/20 to-transparent pt-1 pb-8 px-4 overflow-hidden">
               <div className="flex gap-4 animate-marquee-slow">
@@ -656,7 +656,11 @@ function AppPageContent() {
       {/* Broadcast FAB — floating action button, always visible bottom-right */}
       {profile && !sheetExpanded && (
         <div className="absolute bottom-28 right-5 z-[600] animate-in fade-in zoom-in duration-300">
-          <BroadcastButton userId={profile.id} currentTier={profile.sub_tier} />
+          <BroadcastButton
+            userId={profile.id}
+            currentTier={profile.sub_tier ?? 'free'}
+            isAdmin={profile.is_admin === true}
+          />
         </div>
       )}
 
