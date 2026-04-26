@@ -33,7 +33,7 @@ type Props = {
   routeColor?: string;
   legs?: ItineraryLeg[] | null;
   hotspots?: { lat: number; lon: number; intensity: number }[];
-  explorers?: { lat: number; lon: number; name: string }[];
+  explorers?: { lat: number; lon: number; name: string; emoji?: string }[];
   poiCheckins?: Record<string, number>;
   livePois?: string[];
   broadcasts?: { id: string; display_name: string; avatar_emoji: string; broadcast_text: string; broadcast_lat: number; broadcast_lon: number }[];
@@ -252,7 +252,7 @@ export default function Map({
     });
   }, [hotspots]);
 
-  // ── Explorers (Social) ─────────────────────────────────────────────────────
+  // ── Explorers (Snap-style avatar markers) ─────────────────────────────────
   useEffect(() => {
     const layer = explorersLayerRef.current;
     if (!layer) return;
@@ -260,19 +260,29 @@ export default function Map({
     layer.clearLayers();
 
     explorers.forEach((exp) => {
-      const icon = L.divIcon({
-        className: 'custom-explorer-marker',
-        html: `
-          <div class="relative flex items-center justify-center">
-            <div class="absolute w-4 h-4 bg-abidjan-blue/20 rounded-full animate-ping"></div>
-            <div class="w-3 h-3 bg-abidjan-blue rounded-full border-2 border-white shadow-sm"></div>
+      const emoji = exp.emoji ?? '🧭';
+      const label = exp.name.length > 10 ? exp.name.slice(0, 10) + '…' : exp.name;
+
+      const html = `
+        <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 14px rgba(0,0,0,0.22));cursor:pointer;">
+          <div style="width:46px;height:46px;border-radius:50%;background:white;border:3px solid #FF7A00;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 2px 10px rgba(255,122,0,0.28);">
+            ${emoji}
           </div>
-        `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+          <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid white;margin-top:-1px;"></div>
+          <div style="background:rgba(24,24,24,0.82);color:white;font-size:9px;font-weight:800;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;white-space:nowrap;">
+            ${escapeHtml(label)}
+          </div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [46, 72],
+        iconAnchor: [23, 57],
       });
 
-      L.marker([exp.lat, exp.lon], { icon }).addTo(layer);
+      L.marker([exp.lat, exp.lon], { icon, zIndexOffset: 1500 }).addTo(layer);
     });
   }, [explorers]);
 

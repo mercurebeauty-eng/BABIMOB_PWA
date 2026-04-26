@@ -199,18 +199,6 @@ function AppPageContent() {
     }
   }, [heatMode, hotspots.length]);
 
-  // Mock live explorers around Abidjan for visual feel
-  useEffect(() => {
-    const mockExplorers = [
-      { lat: 5.3484, lon: -4.0305, name: 'Jean', level: 3, class: 'Gbaka Master' },
-      { lat: 5.3310, lon: -4.0210, name: 'Awa', level: 2, class: 'Citadine' },
-      { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4, class: 'Légende Abobo' },
-      { lat: 5.3150, lon: -4.0150, name: 'Marie', level: 1, class: 'Novice' },
-    ];
-    // Simulate: Only show Level 2+ explorers (50+ check-ins) for social discovery
-    setExplorers(mockExplorers.filter(e => e.level >= 2));
-  }, []);
-
   // Geolocation
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
   const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
@@ -240,15 +228,28 @@ function AppPageContent() {
         setProfile(data);
       }
 
-      // Fetch active broadcasts (last 4 hours)
+      // Fetch active broadcasts (last 4 hours) — includes lat/lon for map rendering
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
       const { data: bc } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, sub_tier')
+        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier, is_public_visits')
         .not('last_broadcast_at', 'is', null)
         .gt('last_broadcast_at', fourHoursAgo);
-      
-      if (bc) setBroadcasts(bc);
+
+      if (bc) {
+        setBroadcasts(bc);
+        // Derive Snap-style explorer markers from public broadcast users
+        setExplorers(
+          bc
+            .filter((p: any) => p.is_public_visits && p.broadcast_lat && p.broadcast_lon)
+            .map((p: any) => ({
+              lat: p.broadcast_lat,
+              lon: p.broadcast_lon,
+              name: p.display_name ?? 'Explorateur',
+              emoji: p.avatar_emoji ?? '🧭',
+            }))
+        );
+      }
 
       // Fetch Global Community Activity (last 24h)
       const { data: globalFeed } = await supabase
