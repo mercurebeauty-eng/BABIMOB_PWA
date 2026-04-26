@@ -69,7 +69,7 @@ export default function BroadcastButton({ userId, currentTier }: Props) {
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => !loading && setShowModal(false)}>
+        <div className="fixed inset-0 z-[700] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => !loading && setShowModal(false)}>
           <div className="w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">📢</span>
