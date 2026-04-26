@@ -11,7 +11,7 @@ const PersonalHeatmap = dynamic(() => import('./PersonalHeatmap'), { ssr: false 
 type Visit = {
   id: string;
   created_at: string;
-  stop_name: string;
+  place_name: string;
   commune: string | null;
   place_id: string | null;
   notes: string | null;
@@ -134,7 +134,7 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
                    </div>
                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-black text-beige-text truncate">{v.stop_name}</span>
+                        <span className="text-sm font-black text-beige-text truncate">{v.place_name}</span>
                         <span className="text-[10px] font-bold text-beige-muted whitespace-nowrap">
                            {new Date(v.created_at).toLocaleDateString('fr-FR')}
                         </span>

@@ -36,7 +36,7 @@ export default function ChatRoom({ me, other }: Props) {
 
     // 2. Realtime Subscription
     const channel = supabase
-      .channel('chat-room')
+      .channel(`chat-${[me.id, other.id].sort().join('-')}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
