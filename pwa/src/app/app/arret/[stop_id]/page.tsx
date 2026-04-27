@@ -5,11 +5,9 @@ import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
-import dynamic from 'next/dynamic';
+import Map from '@/components/MapWrapper';
 import FavoriteButton from './FavoriteButton';
 import StopLinesList from './StopLinesList';
-
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
 type Props = { params: Promise<{ stop_id: string }> };
 
