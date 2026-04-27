@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import type { Stop, ArretProche } from '@/lib/types';
+import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Ic } from '@/components/ui/Ic';
@@ -20,6 +20,7 @@ import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
 import { useCommunityData } from '@/hooks/useCommunityData';
+import { useMapPois } from '@/hooks/useMapPois';
 
 function formatDistance(m: number) {
   if (m < 1000) return `${Math.round(m)}m`;
@@ -67,17 +68,13 @@ function AppPageContent() {
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [hotspots, setHotspots] = useState<any[]>([]);
 
-  const [pois, setPois] = useState<POI[]>([]);
-  const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
-  const [livePois, setLivePois] = useState<string[]>([]);
-  const [liveTickerFeed, setLiveTickerFeed] = useState<any[]>([]);
   const [heatMode, setHeatMode] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [poiNearestStop, setPoiNearestStop] = useState<any>(null);
-  const mapRef = useRef<any>(null);
 
   const { logReach } = useReachTracking();
   const { profile, broadcasts, explorers, communityFeed, trendingPlaces } = useCommunityData({ logReach });
+  const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady } = useMapPois({ logReach });
   const {
     userLoc,
     nearbyStops,
@@ -104,54 +101,6 @@ function AppPageContent() {
       stop_lon: poi.lon,
     }))}`);
   }, [router]);
-
-  const handleMapReady = useCallback((map: any) => {
-    mapRef.current = map;
-    const loadPois = async () => {
-      const b = map.getBounds();
-      const mod = await import('@/lib/poi');
-      const fetchedPois = await mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast());
-      setPois(fetchedPois);
-      if (fetchedPois.length > 0) {
-        const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
-        const { data } = await supabase
-          .from('checkins').select('place_id')
-          .in('place_id', fetchedPois.map(p => p.id))
-          .gte('created_at', since7d);
-        if (data) {
-          const counts: Record<string, number> = {};
-          data.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
-          setPoiCheckins(counts);
-        }
-        const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
-        const { data: liveData } = await supabase
-          .from('checkins').select('place_id, profile:profiles(id, display_name, is_public_visits)')
-          .in('place_id', fetchedPois.map(p => p.id))
-          .gte('created_at', since3h)
-          .order('created_at', { ascending: false });
-
-
-        if (liveData) {
-          setLivePois(Array.from(new Set(liveData.map(d => d.place_id))));
-
-          // Privacy Filter: Only show names if profile.is_public_visits is true
-          const filteredTicker = liveData.map(d => ({
-             ...d,
-             display_name: (d.profile as any)?.is_public_visits ? (d.profile as any).display_name : "Un explorateur"
-          })).slice(0, 5);
-
-          setLiveTickerFeed(filteredTicker);
-          // Track ticker impressions for each visible public user
-          filteredTicker.forEach(d => {
-            const uid = (d.profile as any)?.id;
-            if (uid) logReach(uid, 'ticker');
-          });
-        }
-      }
-    };
-    map.on('moveend', loadPois);
-    loadPois();
-  }, [supabase, logReach]);
 
   useEffect(() => {
     if (heatMode && hotspots.length === 0) {
