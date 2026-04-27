@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Vehicle } from '@/components/ui/Vehicle';
+import Vehicle from '@/components/ui/Vehicle';
 import { Ic } from '@/components/ui/Ic';
 
 const SLIDES = [
