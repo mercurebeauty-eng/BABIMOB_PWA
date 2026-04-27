@@ -56,6 +56,7 @@ function AppPageContent() {
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
+  const [isSatellite, setIsSatellite] = useState(false);
 
   const { heatMode, setHeatMode, hotspots } = useHotspots();
   const { activeItinerary, setActiveItinerary } = useItinerary();
@@ -158,6 +159,7 @@ function AppPageContent() {
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
         selectedPoiId={selectedPoi?.id ?? null}
+        satellite={isSatellite}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheet('half'); }}
         onMapReady={handleMapReady}
@@ -220,7 +222,7 @@ function AppPageContent() {
       {/* ── Floating Action Stack (Right) ── */}
       <div className="absolute top-[calc(env(safe-area-inset-top,0px)+72px)] right-4 z-[500] flex flex-col gap-2">
         {[
-          { icon: <Ic.Layers s={20} />, action: () => {}, label: 'Couches' },
+          { icon: <Ic.Layers s={20} />, action: () => setIsSatellite(v => !v), label: 'Couches', active: isSatellite },
           { icon: <Ic.Locate s={20} />, action: locateMe, label: 'Moi', active: !!userLoc, loading: geoLoading },
           { icon: <Ic.Compass s={20} />, action: () => router.push('/app/boussole'), label: 'Boussole' },
         ].map((btn, i) => (
