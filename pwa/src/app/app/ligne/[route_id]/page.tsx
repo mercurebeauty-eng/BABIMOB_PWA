@@ -5,7 +5,7 @@ import RouteMapWrapper from './RouteMapWrapper';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
-import { Vehicle } from '@/components/ui/Vehicle';
+import Vehicle from '@/components/ui/Vehicle';
 
 type Props = {
   params: Promise<{ route_id: string }>;
