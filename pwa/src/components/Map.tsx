@@ -264,14 +264,21 @@ export default function Map({
                 layout
               >
                 {checkinCount > 0 && (
-                  <div className="bm-poi-presence">
+                  <div className="bm-poi-presence" style={{ background: 'var(--orange)' }}>
                      <span className="bm-poi-presence-count">{checkinCount}</span>
                   </div>
                 )}
-                <div className={`bm-poi-circle ${isElite ? 'bm-poi-circle-elite bm-poi-elite-pulse' : isPro ? 'bm-poi-circle-pro' : ''} ${isLive ? 'bm-poi-live-pulse' : ''}`} style={{ width: isElite ? 40 : 28, height: isElite ? 40 : 28 }}>
-                  <span className="bm-poi-emoji" style={{ fontSize: isElite ? 22 : 16 }}>{p.logo_emoji || '📍'}</span>
+                <div className={`bm-poi-circle ${isElite ? 'bm-poi-circle-elite bm-poi-elite-pulse' : isPro ? 'bm-poi-circle-pro' : ''} ${isLive ? 'bm-poi-live-pulse' : ''}`} 
+                     style={{ 
+                       width: isElite ? 44 : 32, 
+                       height: isElite ? 44 : 32,
+                       background: 'white',
+                       border: isElite ? '3px solid var(--gold)' : isPro ? '2px solid var(--orange)' : '1.5px solid var(--line-strong)'
+                     }}>
+                  <span className="bm-poi-emoji" style={{ fontSize: isElite ? 24 : 18 }}>{p.logo_emoji || '📍'}</span>
                 </div>
-                <div className={`bm-poi-label-under ${isElite ? 'bm-poi-label-under-elite' : ''} ${isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed'}`}>
+                <div className={`bm-poi-label-under ${isElite ? 'bm-poi-label-under-elite' : ''} ${isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed'}`}
+                     style={{ background: 'white', color: 'var(--ink)', fontFamily: 'var(--font-archivo-black)' }}>
                   {p.name}
                 </div>
               </motion.div>
@@ -290,11 +297,13 @@ export default function Map({
                 className="flex flex-col items-center cursor-pointer"
                 style={{ filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.22))' }}
               >
-                <div className="w-[46px] h-[46px] rounded-full bg-white border-[3px] border-abidjan-orange flex items-center justify-center text-2xl shadow-lg shadow-abidjan-orange/30">
+                <div className="w-[48px] h-[48px] rounded-full bg-white border-[3px] border-abidjan-orange flex items-center justify-center text-2xl shadow-lg shadow-abidjan-orange/30"
+                     style={{ borderColor: 'var(--orange)' }}>
                   {exp.emoji ?? '🧭'}
                 </div>
                 <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[9px] border-l-transparent border-r-transparent border-t-white -mt-px" />
-                <div className="bg-black/80 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5 whitespace-nowrap">
+                <div className="bg-black/80 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5 whitespace-nowrap"
+                     style={{ background: 'var(--ink)', fontFamily: 'var(--font-archivo-black)' }}>
                   {label}
                 </div>
               </motion.div>
@@ -308,17 +317,17 @@ export default function Map({
             <motion.div 
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="relative group cursor-pointer"
+              className="bm-broadcast-bubble group cursor-pointer"
             >
-              <div className="absolute -top-14 -left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-4 py-2 rounded-[20px] shadow-xl border border-gray-100 flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-lg">{bc.avatar_emoji}</div>
+              <div className="bm-broadcast-card animate-in fade-in zoom-in duration-300" 
+                   style={{ border: '2px solid var(--orange)', background: 'white', borderRadius: '1.5rem', padding: '10px 16px' }}>
+                 <div className="w-10 h-10 rounded-full bg-cream-2 flex items-center justify-center text-xl shadow-inner" style={{ background: 'var(--cream-2)' }}>{bc.avatar_emoji}</div>
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-abidjan-orange uppercase tracking-widest">{bc.display_name}</span>
-                    <span className="text-[12px] font-bold text-gray-800">{bc.broadcast_text}</span>
+                    <span className="bm-broadcast-name" style={{ color: 'var(--orange)', fontFamily: 'var(--font-archivo-black)', fontSize: '10px' }}>{bc.display_name}</span>
+                    <span className="bm-broadcast-text" style={{ color: 'var(--ink)', fontSize: '13px', fontWeight: 700 }}>{bc.broadcast_text}</span>
                  </div>
-                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b border-r border-gray-100 rotate-45"></div>
               </div>
-              <div className="w-4 h-4 bg-abidjan-orange rounded-full border-2 border-white shadow-lg animate-pulse" style={{ marginTop: '16px' }}></div>
+              <div className="bm-broadcast-dot" style={{ background: 'var(--orange)', width: '14px', height: '14px', border: '3px solid white' }}></div>
             </motion.div>
           </Marker>
         ))}
@@ -326,7 +335,7 @@ export default function Map({
         {/* User Location */}
         {userLocation && (
           <Marker longitude={userLocation[1]} latitude={userLocation[0]} style={{ zIndex: 2000 }}>
-            <div className="bm-user-marker"></div>
+            <div className="bm-user-marker" style={{ background: 'var(--orange)', width: '14px', height: '14px', border: '3px solid white' }}></div>
           </Marker>
         )}
 

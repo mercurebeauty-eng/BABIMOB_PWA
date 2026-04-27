@@ -72,17 +72,19 @@ export default function BroadcastButton({ userId, currentTier, isAdmin = false }
     <>
       <button
         onClick={handleOpen}
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xl transition-all active:scale-95 ${
+        className={`w-16 h-16 rounded-3xl flex items-center justify-center text-2xl shadow-2xl transition-all active:scale-90 ${
           canBroadcast
-            ? 'bg-abidjan-orange text-white shadow-abidjan-orange/30 animate-pulse'
-            : 'bg-white text-beige-muted border-2 border-beige-100'
+            ? 'bg-abidjan-orange text-white shadow-abidjan-orange/40 ring-4 ring-white'
+            : 'bg-white text-beige-muted border-2 border-beige-100 shadow-xl'
         }`}
+        style={{ background: canBroadcast ? 'var(--orange)' : 'white' }}
         title={canBroadcast ? 'Diffuser ma position' : 'Diffuser ma position (Pro)'}
       >
         <div className="relative">
-          <Ic.Send s={24} />
+          <Ic.Send s={28} />
           {!canBroadcast && (
-            <span className="absolute -top-3 -right-3 text-[8px] bg-abidjan-orange text-white px-1.5 py-0.5 rounded-full font-black">
+            <span className="absolute -top-4 -right-4 text-[9px] bg-abidjan-orange text-white px-2 py-1 rounded-full font-black border-2 border-white shadow-sm"
+                  style={{ background: 'var(--orange)' }}>
               PRO
             </span>
           )}
@@ -91,20 +93,22 @@ export default function BroadcastButton({ userId, currentTier, isAdmin = false }
 
       {showModal && (
         <div 
-          className="fixed inset-0 z-[700] flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm" 
+          className="fixed inset-0 z-[1000] flex items-center justify-center p-5 bg-ink/60 backdrop-blur-xl animate-in fade-in duration-300" 
+          style={{ background: 'rgba(26,20,16,0.6)' }}
           onClick={() => !loading && setShowModal(false)}
         >
           <div 
-            className="w-full max-w-sm bg-white rounded-[2.5rem] p-6 shadow-2xl space-y-4" 
+            className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] space-y-6 border border-white/20" 
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center text-xl">
-                <Ic.Send s={20} />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner"
+                   style={{ background: 'var(--cream-2)', color: 'var(--orange)' }}>
+                <Ic.Send s={24} />
               </div>
               <div>
-                <div className="text-sm font-black uppercase tracking-widest text-beige-text">Diffuser un statut</div>
-                <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest">Visible sur la carte · 4h</div>
+                <div className="text-lg font-black uppercase tracking-tight text-beige-text" style={{ color: 'var(--ink)', fontFamily: 'var(--font-archivo-black)' }}>Diffuser un statut</div>
+                <div className="text-[11px] text-beige-muted font-bold uppercase tracking-widest opacity-60">Visible sur la carte · 4h</div>
               </div>
             </div>
 
@@ -113,40 +117,43 @@ export default function BroadcastButton({ userId, currentTier, isAdmin = false }
               onChange={e => setText(e.target.value.slice(0, 80))}
               placeholder="Ex : Venez me rejoindre au maquis !"
               rows={3}
-              className="w-full bg-beige-50 border-2 border-beige-100 focus:border-abidjan-orange rounded-2xl px-4 py-3 text-sm font-medium outline-none resize-none transition-all"
+              className="w-full bg-cream-2 border-2 border-transparent focus:border-abidjan-orange rounded-[1.5rem] px-5 py-4 text-base font-bold outline-none resize-none transition-all placeholder:opacity-30"
+              style={{ background: 'var(--cream-2)', color: 'var(--ink)' }}
               autoFocus
             />
-            <div className="text-right text-[10px] text-beige-muted font-bold -mt-2">
+            <div className="text-right text-[11px] text-beige-muted font-black -mt-2 opacity-40">
               {text.length}/80
             </div>
 
             {geoError && (
-              <p className="text-[11px] text-red-500 font-bold bg-red-50 p-2 rounded-lg border border-red-100">
-                ⚠️ {geoError}
+              <p className="text-[12px] text-red-500 font-bold bg-red-50 p-3 rounded-2xl border border-red-100 flex items-center gap-2">
+                <span>⚠️</span> {geoError}
               </p>
             )}
 
             {success ? (
-              <div className="py-2 text-center text-sm font-black text-abidjan-green uppercase tracking-widest animate-bounce">
+              <div className="py-4 text-center text-base font-black text-abidjan-green uppercase tracking-widest animate-bounce"
+                   style={{ color: 'var(--green)' }}>
                 ✓ Diffusé avec succès !
               </div>
             ) : (
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <button
                   onClick={() => setShowModal(false)}
                   disabled={loading}
-                  className="flex-1 py-3 rounded-2xl border-2 border-beige-200 text-[10px] font-black uppercase tracking-widest text-beige-muted hover:bg-beige-50 transition-all"
+                  className="flex-1 py-4 rounded-2xl border-2 border-beige-200 text-[11px] font-black uppercase tracking-widest text-beige-muted hover:bg-beige-50 transition-all active:scale-95"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleSend}
                   disabled={!text.trim() || loading}
-                  className="flex-2 py-3 rounded-2xl bg-abidjan-orange text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-abidjan-orange/20 disabled:opacity-50 active:scale-95 transition-all"
+                  className="flex-[1.5] py-4 rounded-2xl bg-abidjan-orange text-white text-[11px] font-black uppercase tracking-widest shadow-xl shadow-abidjan-orange/30 disabled:opacity-30 active:scale-95 transition-all"
+                  style={{ background: 'var(--orange)' }}
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="flex items-center justify-center gap-3">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       GPS...
                     </span>
                   ) : 'Diffuser'}
