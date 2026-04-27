@@ -16,6 +16,9 @@ import BroadcastButton from '@/components/BroadcastButton';
 import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
+import { useReachTracking } from '@/hooks/useReachTracking';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
+import { useStopSearch } from '@/hooks/useStopSearch';
 
 function formatDistance(m: number) {
   if (m < 1000) return `${Math.round(m)}m`;
@@ -54,17 +57,11 @@ function AppPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const watchIdRef = useRef<number | null>(null);
-  const reachLoggedRef = useRef<Set<string>>(new Set());
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
   const controls = useAnimation();
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
@@ -76,10 +73,6 @@ function AppPageContent() {
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [livePois, setLivePois] = useState<string[]>([]);
   const [liveTickerFeed, setLiveTickerFeed] = useState<any[]>([]);
-  const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
-  const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
   const [heatMode, setHeatMode] = useState(false);
   const [communityFeed, setCommunityFeed] = useState<any[]>([]);
   const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
@@ -87,18 +80,25 @@ function AppPageContent() {
   const [poiNearestStop, setPoiNearestStop] = useState<any>(null);
   const mapRef = useRef<any>(null);
 
-
-
-
-
-
-  // Fire-and-forget reach impression — deduplicated per user+source per session
-  const logReach = useCallback((userId: string, source: 'ticker' | 'map' | 'feed' | 'broadcast') => {
-    const key = `${userId}:${source}`;
-    if (reachLoggedRef.current.has(key)) return;
-    reachLoggedRef.current.add(key);
-    supabase.rpc('record_reach', { p_user_id: userId, p_source: source });
-  }, [supabase]);
+  const { logReach } = useReachTracking();
+  const {
+    userLoc,
+    nearbyStops,
+    setNearbyStops,
+    loading: geoLoading,
+    error: geoError,
+    locateMe,
+  } = useGeoLocation({
+    onPositionAcquired: () => setSelected(null),
+    onLocate: () => setSheet('half'),
+  });
+  const {
+    query,
+    setQuery,
+    results,
+    searching: isSearching,
+    clear: clearSearch,
+  } = useStopSearch();
 
   const handleGetDirections = useCallback((poi: POI) => {
     router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
@@ -255,92 +255,21 @@ function AppPageContent() {
     ? [selected]
     : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
 
-  const handleSearchChange = useCallback((q: string) => {
-    setQuery(q);
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    if (q.trim().length < 2) { setResults([]); return; }
-    searchTimerRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      const words = q.trim().split(/\s+/).filter(w => w.length >= 2);
-      let stopsQuery = supabase.from('gtfs_stops').select('stop_id, stop_name, stop_lat, stop_lon, commune');
-      words.forEach(word => { stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`); });
-      const { data: searchResults } = await stopsQuery.limit(12);
-      setIsSearching(false);
-      setResults((searchResults ?? []).map(s => ({ ...s, type: 'stop' })));
-    }, 250);
-  }, [supabase]);
-
   const handleSelectStop = useCallback((stop: Stop) => {
     setSelected(stop);
     setSheet('half');
     setSearchOpen(false);
-    setQuery('');
-    setResults([]);
-  }, []);
+    clearSearch();
+  }, [clearSearch]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
     setNearbyStops([]);
     setSheet('peek');
-  }, []);
-
-
-  const handleLocateMe = useCallback(async () => {
-    if (!navigator.geolocation) {
-      setGeoError("La géolocalisation n'est pas disponible sur cet appareil.");
-      return;
-    }
-
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-
-    setGeoLoading(true);
-    setGeoError(null);
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setUserLoc([lat, lon]);
-        setSelected(null);
-
-        const { data, error } = await supabase.rpc('arrets_proches', {
-          p_lat: lat,
-          p_lon: lon,
-          p_radius_m: 800,
-          p_limit: 15,
-        });
-
-        setGeoLoading(false);
-        if (!error && data) {
-          setNearbyStops(data as ArretProche[]);
-          setSheet('half');
-        }
-
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          (p) => setUserLoc([p.coords.latitude, p.coords.longitude]),
-          () => {},
-          { enableHighAccuracy: true }
-        );
-      },
-      (err) => {
-        setGeoLoading(false);
-        setGeoError(err.code === err.PERMISSION_DENIED ? "Autorise la localisation." : "Erreur GPS.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, [supabase]);
-
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    };
-  }, []);
+  }, [setNearbyStops]);
 
   const openSearch = () => setSearchOpen(true);
-  const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
+  const closeSearch = () => { setSearchOpen(false); clearSearch(); };
 
   const TICKER = [
     ['Cocody', 'fluide', 'var(--green)'],
@@ -438,7 +367,7 @@ function AppPageContent() {
       <div className="absolute top-[calc(env(safe-area-inset-top,0px)+72px)] right-4 z-[500] flex flex-col gap-2">
         {[
           { icon: <Ic.Layers s={20} />, action: () => {}, label: 'Couches' },
-          { icon: <Ic.Locate s={20} />, action: handleLocateMe, label: 'Moi', active: !!userLoc, loading: geoLoading },
+          { icon: <Ic.Locate s={20} />, action: locateMe, label: 'Moi', active: !!userLoc, loading: geoLoading },
           { icon: <Ic.Compass s={20} />, action: () => router.push('/app/boussole'), label: 'Boussole' },
         ].map((btn, i) => (
           <button
@@ -673,7 +602,7 @@ function AppPageContent() {
           <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="fixed inset-0 z-[1000] bg-beige-50 flex flex-col">
             <div className="bg-white px-5 pt-12 pb-6 border-b border-beige-200 flex items-center gap-4">
               <button onClick={closeSearch} className="p-2 text-beige-text"><Ic.Back s={24} /></button>
-              <input autoFocus value={query} onChange={(e) => handleSearchChange(e.target.value)} placeholder="Chercher un lieu..." className="flex-1 text-lg font-black outline-none placeholder-beige-200 bg-transparent" />
+              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un lieu..." className="flex-1 text-lg font-black outline-none placeholder-beige-200 bg-transparent" />
               {isSearching && <div className="w-5 h-5 border-2 border-abidjan-orange border-t-transparent rounded-full animate-spin" />}
             </div>
             <div className="flex-1 overflow-y-auto p-5">
