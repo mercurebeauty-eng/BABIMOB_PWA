@@ -3,49 +3,68 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
+import PremiumWall from './PremiumWall';
 
 type Props = {
   userId: string;
-  canBroadcast: boolean;
-  onBroadcast?: () => void;
+  currentTier: 'free' | 'messenger' | 'social' | 'pro' | 'elite';
+  isAdmin?: boolean;
 };
 
-export default function BroadcastButton({ userId, canBroadcast, onBroadcast }: Props) {
+export default function BroadcastButton({ userId, currentTier, isAdmin = false }: Props) {
   const supabase = createClient();
-  const [open, setOpen] = useState(false);
+  const [showWall, setShowWall] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const canBroadcast = isAdmin || currentTier === 'pro' || currentTier === 'elite';
 
   function handleOpen() {
+    if (!canBroadcast) {
+      setShowWall(true);
+      return;
+    }
     setText('');
-    setError(null);
+    setGeoError(null);
     setSuccess(false);
-    setOpen(true);
+    setShowModal(true);
   }
 
   async function handleSend() {
     if (!text.trim() || loading) return;
     setLoading(true);
-    setError(null);
+    setGeoError(null);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        await supabase.from('profiles').update({
+        const { error } = await supabase.from('profiles').update({
           last_broadcast_at: new Date().toISOString(),
           broadcast_text: text.trim(),
           broadcast_lat: pos.coords.latitude,
           broadcast_lon: pos.coords.longitude,
         }).eq('id', userId);
-        setLoading(false);
-        setSuccess(true);
-        onBroadcast?.();
-        setTimeout(() => setOpen(false), 1600);
+
+        if (error) {
+          setGeoError("Erreur lors de l'envoi. Réessaie plus tard.");
+          setLoading(false);
+        } else {
+          setLoading(false);
+          setSuccess(true);
+          setTimeout(() => setShowModal(false), 1800);
+        }
       },
-      () => {
+      (err) => {
         setLoading(false);
-        setError('GPS refusé — active la localisation et réessaie.');
-      }
+        if (err.code === 1) {
+          setGeoError('Localisation refusée — active le GPS et réessaie.');
+        } else {
+          setGeoError('Impossible d\'obtenir ta position.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
@@ -53,92 +72,99 @@ export default function BroadcastButton({ userId, canBroadcast, onBroadcast }: P
     <>
       <button
         onClick={handleOpen}
-        title={canBroadcast ? 'Diffuser ma position' : 'Diffuser (Pro)'}
-        style={{
-          width: 44, height: 44, borderRadius: 14, border: 'none',
-          background: canBroadcast ? 'var(--orange)' : 'var(--cream)',
-          color: canBroadcast ? 'white' : 'var(--muted)',
-          boxShadow: canBroadcast ? '0 4px 16px rgba(242,108,26,0.35)' : '0 2px 8px rgba(0,0,0,0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', flexShrink: 0, position: 'relative',
-          animation: canBroadcast ? 'bm-pulse-slow 3s ease-in-out infinite' : 'none',
-        }}
+        className={`w-16 h-16 rounded-3xl flex items-center justify-center text-2xl shadow-2xl transition-all active:scale-90 ${
+          canBroadcast
+            ? 'bg-abidjan-orange text-white shadow-abidjan-orange/40 ring-4 ring-white'
+            : 'bg-white text-beige-muted border-2 border-beige-100 shadow-xl'
+        }`}
+        style={{ background: canBroadcast ? 'var(--orange)' : 'white' }}
+        title={canBroadcast ? 'Diffuser ma position' : 'Diffuser ma position (Pro)'}
       >
-        <Ic.Send s={18} />
-        {!canBroadcast && (
-          <span style={{
-            position: 'absolute', top: -4, right: -4,
-            background: 'var(--orange)', color: 'white',
-            fontSize: 7, fontWeight: 900, borderRadius: 4, padding: '1px 3px',
-            textTransform: 'uppercase', letterSpacing: 0.3,
-          }}>PRO</span>
-        )}
+        <div className="relative">
+          <Ic.Send s={28} />
+          {!canBroadcast && (
+            <span className="absolute -top-4 -right-4 text-[9px] bg-abidjan-orange text-white px-2 py-1 rounded-full font-black border-2 border-white shadow-sm"
+                  style={{ background: 'var(--orange)' }}>
+              PRO
+            </span>
+          )}
+        </div>
       </button>
 
-      {open && (
-        <div
-          onClick={() => !loading && setOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(26,20,16,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end' }}
+      {showModal && (
+        <div 
+          className="fixed inset-0 z-[1000] flex items-center justify-center p-5 bg-ink/60 backdrop-blur-xl animate-in fade-in duration-300" 
+          style={{ background: 'rgba(26,20,16,0.6)' }}
+          onClick={() => !loading && setShowModal(false)}
         >
-          <div
+          <div 
+            className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] space-y-6 border border-white/20" 
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', padding: '24px 20px calc(32px + env(safe-area-inset-bottom, 0px))', boxShadow: '0 -8px 40px rgba(0,0,0,0.2)' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'color-mix(in oklab, var(--orange) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
-                <Ic.Send s={20} />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner"
+                   style={{ background: 'var(--cream-2)', color: 'var(--orange)' }}>
+                <Ic.Send s={24} />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Diffuser un statut</div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginTop: 1 }}>Visible sur la carte · 4 heures</div>
+                <div className="text-lg font-black uppercase tracking-tight text-beige-text" style={{ color: 'var(--ink)', fontFamily: 'var(--font-archivo-black)' }}>Diffuser un statut</div>
+                <div className="text-[11px] text-beige-muted font-bold uppercase tracking-widest opacity-60">Visible sur la carte · 4h</div>
               </div>
             </div>
 
-            {!canBroadcast ? (
-              <div style={{ textAlign: 'center', padding: '20px 0 4px' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>Fonctionnalité Pro</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>Passe à BabiMob Pro pour diffuser ta position en direct sur la carte.</div>
-              </div>
-            ) : success ? (
-              <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--green)' }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>✓</div>
-                <div style={{ fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.5 }}>Diffusé sur la carte !</div>
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value.slice(0, 80))}
+              placeholder="Ex : Venez me rejoindre au maquis !"
+              rows={3}
+              className="w-full bg-cream-2 border-2 border-transparent focus:border-abidjan-orange rounded-[1.5rem] px-5 py-4 text-base font-bold outline-none resize-none transition-all placeholder:opacity-30"
+              style={{ background: 'var(--cream-2)', color: 'var(--ink)' }}
+              autoFocus
+            />
+            <div className="text-right text-[11px] text-beige-muted font-black -mt-2 opacity-40">
+              {text.length}/80
+            </div>
+
+            {geoError && (
+              <p className="text-[12px] text-red-500 font-bold bg-red-50 p-3 rounded-2xl border border-red-100 flex items-center gap-2">
+                <span>⚠️</span> {geoError}
+              </p>
+            )}
+
+            {success ? (
+              <div className="py-4 text-center text-base font-black text-abidjan-green uppercase tracking-widest animate-bounce"
+                   style={{ color: 'var(--green)' }}>
+                ✓ Diffusé avec succès !
               </div>
             ) : (
-              <>
-                <textarea
-                  value={text}
-                  onChange={e => setText(e.target.value.slice(0, 80))}
-                  placeholder="Ex: Je suis au marché de Cocody !"
-                  rows={3}
-                  style={{ width: '100%', background: 'white', border: '1.5px solid var(--line)', borderRadius: 14, padding: '12px 14px', fontSize: 14, fontWeight: 500, color: 'var(--ink)', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  autoFocus
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, marginBottom: 14 }}>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{text.length}/80</span>
-                  {error && <span style={{ fontSize: 11, color: '#e53935', fontWeight: 700 }}>{error}</span>}
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button
-                    onClick={() => setOpen(false)}
-                    style={{ flex: 1, padding: '13px 0', borderRadius: 14, border: '1.5px solid var(--line)', background: 'transparent', color: 'var(--muted)', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={handleSend}
-                    disabled={!text.trim() || loading}
-                    style={{ flex: 2, padding: '13px 0', borderRadius: 14, border: 'none', background: text.trim() && !loading ? 'var(--orange)' : 'var(--line)', color: text.trim() && !loading ? 'white' : 'var(--muted)', fontSize: 13, fontWeight: 900, cursor: text.trim() && !loading ? 'pointer' : 'default', textTransform: 'uppercase', letterSpacing: 0.5 }}
-                  >
-                    {loading ? '…' : 'Diffuser'}
-                  </button>
-                </div>
-              </>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowModal(false)}
+                  disabled={loading}
+                  className="flex-1 py-4 rounded-2xl border-2 border-beige-200 text-[11px] font-black uppercase tracking-widest text-beige-muted hover:bg-beige-50 transition-all active:scale-95"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={!text.trim() || loading}
+                  className="flex-[1.5] py-4 rounded-2xl bg-abidjan-orange text-white text-[11px] font-black uppercase tracking-widest shadow-xl shadow-abidjan-orange/30 disabled:opacity-30 active:scale-95 transition-all"
+                  style={{ background: 'var(--orange)' }}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      GPS...
+                    </span>
+                  ) : 'Diffuser'}
+                </button>
+              </div>
             )}
           </div>
         </div>
       )}
+
+      <PremiumWall isOpen={showWall} onClose={() => setShowWall(false)} requiredTier="pro" />
     </>
   );
 }

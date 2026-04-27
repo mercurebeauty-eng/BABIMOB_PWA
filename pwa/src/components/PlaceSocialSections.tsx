@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Ic } from './ui/Ic';
 
 type Checkin = {
   id: string;
@@ -32,10 +33,10 @@ type Props = {
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1)  return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
-  if (mins < 1440) return `il y a ${Math.floor(mins / 60)} h`;
-  return `il y a ${Math.floor(mins / 1440)} j`;
+  if (mins < 1)  return "À L'INSTANT";
+  if (mins < 60) return `${mins} MIN`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}H`;
+  return `${Math.floor(mins / 1440)} J`;
 }
 
 export default function PlaceSocialSections({ placeId, initialCheckins, initialAdvice, userId, isVerifiedExplorer }: Props) {
@@ -82,30 +83,51 @@ export default function PlaceSocialSections({ placeId, initialCheckins, initialA
   }
 
   return (
-    <div className="space-y-6">
-      {/* 1. SOCIAL TRACES - Qui est passé par ici ? */}
-      <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8">
-         <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-black text-xl">Derniers explorateurs</h2>
-            <div className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-abidjan-blue/10 text-abidjan-blue rounded-full border border-abidjan-blue/20">
-               {publicCheckins.length} traces visibles
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      
+      {/* 1. SOCIAL TRACES */}
+      <div style={{ 
+        background: '#fff', padding: 24, borderRadius: 28,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+      }}>
+         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Ic.Pin s={18} color="var(--orange)" />
+              <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>DERNIERS PASSAGES</h2>
+            </div>
+            <div style={{ 
+              fontSize: 10, fontWeight: 900, background: 'var(--cream-2)', 
+              padding: '4px 10px', borderRadius: 12, color: 'var(--muted)'
+            }}>
+               {publicCheckins.length} VISIBLES
             </div>
          </div>
 
          {publicCheckins.length === 0 ? (
-           <p className="text-sm text-beige-muted font-medium bg-beige-50 rounded-2xl p-4 border border-beige-100 border-dashed text-center">
-              Les traces sont privées par défaut. Sois le premier à partager ton passage ! 📍
-           </p>
+           <div style={{ 
+             padding: 20, borderRadius: 20, background: 'var(--cream-2)', 
+             textAlign: 'center', fontSize: 13, color: 'var(--muted)', fontWeight: 600,
+             border: '1.5px dashed rgba(0,0,0,0.05)'
+           }}>
+              Sois le premier à partager ton passage ! 📍
+           </div>
          ) : (
-           <div className="space-y-4">
+           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {publicCheckins.map((c) => (
-                <div key={c.id} className="flex items-center gap-3">
-                   <div className="w-10 h-10 rounded-full bg-beige-50 flex items-center justify-center text-lg shadow-inner ring-2 ring-beige-100">
+                <div key={c.id} className="press" style={{ 
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  background: 'var(--cream-2)', padding: 12, borderRadius: 20
+                }}>
+                   <div style={{ 
+                     width: 40, height: 40, borderRadius: '50%', background: '#fff', 
+                     display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                     fontSize: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                   }}>
                       {c.avatar_emoji}
                    </div>
-                   <div className="flex-1">
-                      <div className="text-xs font-black text-beige-text">{c.display_name} était ici</div>
-                      <div className="text-[10px] text-beige-muted font-bold">{timeAgo(c.created_at)}</div>
+                   <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{c.display_name}</div>
+                      <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', marginTop: 2 }}>{timeAgo(c.created_at)}</div>
                    </div>
                 </div>
               ))}
@@ -113,63 +135,86 @@ export default function PlaceSocialSections({ placeId, initialCheckins, initialA
          )}
       </div>
 
-      {/* 2. QUI EST DÉJÀ ALLÉ ? (Q&A / Avis) */}
-      <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8">
-         <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-black text-xl">Qui est déjà allé ?</h2>
-            <span className="text-xs font-black bg-beige-50 px-3 py-1 rounded-lg text-beige-muted border border-beige-100">COMMUNAUTÉ</span>
+      {/* 2. COMMUNITY Q&A */}
+      <div style={{ 
+        background: '#fff', padding: 24, borderRadius: 28,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+      }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+            <Ic.Chat s={18} color="var(--orange)" />
+            <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>C'EST COMMENT ?</h2>
          </div>
 
-         {/* Input simple pour poser une question / donner un avis */}
          {userId ? (
-            <div className="mb-8 p-1 bg-beige-50 rounded-2xl border-2 border-beige-100 focus-within:border-abidjan-orange transition-all">
-               <div className="flex items-center gap-2 px-3 py-3">
+            <div style={{ 
+              marginBottom: 24, padding: 4, borderRadius: 24, 
+              background: 'var(--cream-2)', border: '1.5px solid rgba(0,0,0,0.05)'
+            }}>
+               <div style={{ display: 'flex', gap: 12, padding: 8 }}>
                   <textarea 
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
-                    placeholder="Pose une question ou demande un avis..."
-                    className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-beige-muted/60 resize-none font-medium"
-                    rows={2}
+                    placeholder="Une question ? Un avis sur le lieu ?"
+                    style={{ 
+                      flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                      padding: 12, fontSize: 14, fontWeight: 600, color: 'var(--ink)',
+                      minHeight: 60, resize: 'none'
+                    }}
                   />
                   <button 
                     onClick={handlePostAdvice}
                     disabled={loading || !newContent.trim()}
-                    className="p-3 bg-abidjan-orange text-white rounded-xl shadow-lg shadow-abidjan-orange/20 active:scale-95 disabled:opacity-50 transition-all"
+                    className="press"
+                    style={{ 
+                      width: 48, height: 48, borderRadius: 16, background: 'var(--orange)', 
+                      color: '#fff', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(242,108,26,0.2)', fontSize: 20
+                    }}
                   >
-                    {loading ? '...' : '✈️'}
+                    {loading ? '...' : '🚀'}
                   </button>
                </div>
             </div>
          ) : (
-            <div className="mb-8 p-4 bg-beige-50 rounded-2xl border border-beige-100 text-center">
-               <p className="text-xs text-beige-muted font-bold">Connecte-toi pour interagir avec la communauté.</p>
+            <div style={{ 
+              marginBottom: 24, padding: 20, borderRadius: 20, background: 'var(--cream-2)', 
+              textAlign: 'center', border: '1.5px dashed rgba(0,0,0,0.05)'
+            }}>
+               <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', margin: 0 }}>CONNECTE-TOI POUR INTERAGIR</p>
             </div>
          )}
 
-         {/* Liste des avis/questions */}
-         <div className="space-y-6">
+         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {advice.map((item) => (
-               <div key={item.id} className="relative group">
-                  <div className="flex gap-4">
-                     <div className="w-9 h-9 rounded-xl bg-beige-50 flex items-center justify-center text-base shadow-sm ring-1 ring-beige-100 flex-shrink-0">
-                        {item.profiles?.avatar_emoji ?? '👤'}
+               <div key={item.id} style={{ display: 'flex', gap: 14 }}>
+                  <div style={{ 
+                    width: 36, height: 36, borderRadius: 12, background: 'var(--cream-2)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                    fontSize: 18, flexShrink: 0 
+                  }}>
+                     {item.profiles?.avatar_emoji ?? '👤'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'INCONNU'}</span>
+                        <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
                      </div>
-                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                           <span className="text-xs font-black text-beige-text">{item.profiles?.display_name ?? 'Inconnu'}</span>
-                           <span className="text-[10px] text-beige-muted font-bold">· {timeAgo(item.created_at)}</span>
-                        </div>
-                        <p className="text-sm text-beige-text/80 font-medium leading-relaxed bg-beige-50/50 p-3 rounded-2xl rounded-tl-none border border-beige-100/50">
-                           {item.content}
-                        </p>
+                     <div style={{ 
+                       background: 'var(--cream-2)', padding: '12px 16px', borderRadius: 20,
+                       borderTopLeftRadius: 4, fontSize: 14, fontWeight: 500, color: 'var(--ink)',
+                       lineHeight: 1.5
+                     }}>
+                        {item.content}
                      </div>
                   </div>
                </div>
             ))}
+            
             {advice.length === 0 && (
-              <div className="text-center py-6">
-                <span className="text-3xl block mb-2 opacity-30">💬</span>
-                <p className="text-xs text-beige-muted font-bold italic">Aucune question pour le moment. Sois le premier !</p>
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.3 }}>💬</div>
+                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Aucune discussion pour le moment</p>
               </div>
             )}
          </div>

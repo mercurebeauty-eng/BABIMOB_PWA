@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Ic } from '@/components/ui/Ic';
+import Vehicle from '@/components/ui/Vehicle';
+import { Pill } from '@/components/ui/Pill';
 import Link from 'next/link';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import LocationInput from './LocationInput';
@@ -13,6 +18,7 @@ export default function ItinerairePage() {
   const [startStop, setStartStop] = useState<Stop | null>(null);
   const [end, setEnd] = useState('');
   const [endStop, setEndStop] = useState<Stop | null>(null);
+  const router = useRouter();
   
   const [calculating, setCalculating] = useState(false);
   const [wheelchair, setWheelchair] = useState(false);
@@ -153,89 +159,54 @@ export default function ItinerairePage() {
             </button>
           </div>
 
-          {/* Results List */}
-          <div className="mt-8 space-y-4 pb-12">
-            {itineraries.map((iti, idx) => {
-              const hasTransit = iti.legs.some((leg: any) => leg.mode === 'BUS' || leg.mode === 'TRANSIT');
-              const userBannedTransit = prefs.length > 0 && prefs.length < 4; // User disabled at least one mode
-              const showWarning = hasTransit && userBannedTransit;
+          <div className="space-y-4 mt-8">
+              {itineraries.map((itinerary, idx) => {
+                const primaryMode = itinerary.legs.find((l: any) => l.mode !== 'WALK')?.mode || 'WALK';
+                const kind = primaryMode.toLowerCase() as any;
+                const isFastest = idx === 0;
 
-              return (
-              <div key={idx} className="bg-white rounded-[2rem] border-2 border-beige-200 shadow-lg p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black text-beige-text">{Math.round(iti.duration / 60)}</span>
-                    <span className="text-xs font-bold text-beige-muted uppercase tracking-widest">min</span>
-                  </div>
-                  <div className="text-[10px] font-black text-beige-muted bg-beige-50 px-3 py-1.5 rounded-full border border-beige-100">
-                    {Math.round(iti.walkDistance)}m de marche
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide">
-                  {iti.legs.map((leg: any, lidx: number) => (
-                    <div key={lidx} className="flex items-center gap-2 flex-shrink-0">
-                      <div 
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-black"
-                        style={{ 
-                          backgroundColor: leg.route?.color ? `#${leg.route.color}15` : '#f3f4f6',
-                          borderColor: leg.route?.color ? `#${leg.route.color}30` : '#e5e7eb',
-                          color: leg.route?.color ? `#${leg.route.color}` : '#4b5563'
-                        }}
-                      >
-                        <span>{leg.mode === 'WALK' ? '🚶' : leg.mode === 'BUS' ? '🚐' : '🚌'}</span>
-                        {leg.route?.shortName && <span>{leg.route.shortName}</span>}
-                      </div>
-                      {lidx < iti.legs.length - 1 && <span className="text-beige-200">→</span>}
-                    </div>
-                  ))}
-                </div>
-
-                {/* SMART PREFERENCE WARNING */}
-                {(() => {
-                   const legModes = iti.legs.map((l: any) => l.mode === 'WALK' ? 'Marche' : 'Transport');
-                   const hasTransit = iti.legs.some((l: any) => l.mode !== 'WALK');
-                   
-                   // In a real app, we'd map OTP modes to internal names like 'Gbaka' or 'Bus'
-                   // For now, let's assume if they have a non-full preferences list, we warn about non-walk segments.
-                   const isDisallowed = hasTransit && prefs.length < 4 && prefs.length > 0;
-                   
-                   if (!isDisallowed) return null;
-
-                   return (
-                      <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-100 rounded-[1.5rem] flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
-                        <div className="flex gap-3 items-start">
-                           <span className="text-xl">⚠️</span>
-                           <div className="flex-1">
-                              <p className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-700 leading-tight mb-1">
-                                 Trajet Inhabituel
-                              </p>
-                              <p className="text-[11px] font-bold text-amber-800/80 leading-relaxed">
-                                 Ce trajet inclut des transports que tu as décochés dans tes préférences ({prefs.join(', ')}).
-                              </p>
-                           </div>
-                        </div>
-                        <Link 
-                          href="/app/compte" 
-                          className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-200/50 py-2 rounded-xl text-center hover:bg-amber-200 transition-colors"
-                        >
-                           Modifier mes préférences →
-                        </Link>
-                      </div>
-                   );
-                })()}
-
-                <div className="mt-6 pt-6 border-t border-beige-50">
-                  <Link 
-                    href={`/app?iti=${encodeURIComponent(JSON.stringify(iti))}`}
-                    className="w-full flex items-center justify-center gap-2 bg-abidjan-blue text-white font-black py-4 rounded-2xl shadow-lg shadow-abidjan-blue/20 hover:scale-[1.02] transition-transform text-sm uppercase tracking-widest"
+                return (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="press"
+                    onClick={() => {
+                      const params = new URLSearchParams();
+                      params.set('itinerary', JSON.stringify(itinerary));
+                      router.push(`/app?${params.toString()}`);
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: 14, borderRadius: 18,
+                      background: isFastest ? 'color-mix(in oklab, var(--green) 12%, transparent)' : 'var(--cream)',
+                      border: isFastest ? '1.5px solid var(--green)' : '1px solid var(--line)',
+                      cursor: 'pointer'
+                    }}
                   >
-                    🚀 Voir sur la carte
-                  </Link>
-                </div>
-              </div>
-            )})}
-          </div>
+                    <Vehicle kind={kind} size={40} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
+                          {primaryMode === 'BUS' ? 'Gbaka direct' : primaryMode === 'TAXI' ? 'Taxi / Woro' : 'Trajet mixte'}
+                        </span>
+                        {isFastest && <Pill color="var(--green)" size="sm">RAPIDE</Pill>}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                        {itinerary.legs.length - 1} changements · {Math.round(itinerary.duration / 60)} min
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)' }}>
+                        {primaryMode === 'BUS' ? '200F' : primaryMode === 'TAXI' ? '500F' : '350F'}
+                      </div>
+                      <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>tarif estimé</div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
         </div>
       </div>
     </div>

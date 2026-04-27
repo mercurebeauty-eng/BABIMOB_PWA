@@ -1,22 +1,40 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
+import Image from 'next/image';
+import { useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import type { Stop, ArretProche } from '@/lib/types';
+import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Vehicle } from '@/components/ui/Vehicle';
+import { useRouter } from 'next/navigation';
+import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
+import Vehicle from '@/components/ui/Vehicle';
 import BroadcastButton from '@/components/BroadcastButton';
+import PoiCheckInButton from '@/components/PoiCheckInButton';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReachTracking } from '@/hooks/useReachTracking';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
+import { useStopSearch } from '@/hooks/useStopSearch';
+import { useCommunityData } from '@/hooks/useCommunityData';
+import { useMapPois } from '@/hooks/useMapPois';
+import { useHotspots } from '@/hooks/useHotspots';
+import { useItinerary } from '@/hooks/useItinerary';
+
+
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
-    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid color-mix(in oklab, var(--orange) 20%, transparent)', borderTopColor: 'var(--orange)', animation: 'spin 0.8s linear infinite' }} />
-      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>Chargement de la ville…</span>
+    <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Image src="/icons/icon-192.png" alt="BABIMOB" width={64} height={64} className="rounded-2xl shadow-lg shadow-abidjan-orange/20" />
+        <div className="text-center">
+          <div className="text-base font-black uppercase tracking-[0.2em] text-beige-text">BABIMOB</div>
+          <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-0.5">Chargement de la ville…</div>
+        </div>
+        <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
+      </div>
     </div>
   ),
 });
@@ -33,91 +51,55 @@ export default function AppPage() {
 
 function AppPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const supabase = createClient();
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
-  const [hotspots] = useState<any[]>([]);
-  const [explorers, setExplorers] = useState<any[]>([]);
-  const [pois, setPois] = useState<POI[]>([]);
-  const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
-  const [broadcasts, setBroadcasts] = useState<any[]>([]);
-  const [livePois, setLivePois] = useState<string[]>([]);
-  const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
-  const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const mapRef = useRef<any>(null);
+  const [isSatellite, setIsSatellite] = useState(false);
 
-  const sheetH = sheet === 'peek' ? 240 : sheet === 'half' ? 440 : 620;
+  const { heatMode, setHeatMode, hotspots } = useHotspots();
+  const { activeItinerary, setActiveItinerary } = useItinerary();
 
-  const handleMapReady = useCallback((map: any) => {
-    mapRef.current = map;
-    const loadPois = async () => {
-      const b = map.getBounds();
-      const mod = await import('@/lib/poi');
-      const fetchedPois = await mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast());
-      setPois(fetchedPois);
-      if (fetchedPois.length > 0) {
-        const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
-        const { data } = await supabase
-          .from('checkins').select('place_id')
-          .in('place_id', fetchedPois.map(p => p.id))
-          .gte('created_at', since7d);
-        if (data) {
-          const counts: Record<string, number> = {};
-          data.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
-          setPoiCheckins(counts);
-        }
-        const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
-        const { data: liveData } = await supabase
-          .from('checkins').select('place_id')
-          .in('place_id', fetchedPois.map(p => p.id))
-          .gte('created_at', since3h);
-        if (liveData) setLivePois(Array.from(new Set(liveData.map((d: any) => d.place_id))));
-      }
-    };
-    map.on('moveend', loadPois);
-    loadPois();
-  }, [supabase]);
+  const { logReach } = useReachTracking();
+  const { profile, broadcasts, explorers, communityFeed, trendingPlaces } = useCommunityData({ logReach });
+  const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady } = useMapPois({ logReach });
+  const {
+    userLoc,
+    nearbyStops,
+    setNearbyStops,
+    loading: geoLoading,
+    error: geoError,
+    locateMe,
+  } = useGeoLocation({
+    onPositionAcquired: () => setSelected(null),
+    onLocate: () => setSheet('half'),
+  });
+  const {
+    query,
+    setQuery,
+    results,
+    searching: isSearching,
+    clear: clearSearch,
+  } = useStopSearch();
 
-  useEffect(() => {
-    const itiParam = searchParams.get('iti');
-    if (itiParam) {
-      try { setActiveItinerary(JSON.parse(decodeURIComponent(itiParam))); } catch { /* noop */ }
-    }
-  }, [searchParams]);
+  const handleGetDirections = useCallback((poi: POI) => {
+    router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
+      stop_name: poi.name,
+      stop_lat: poi.lat,
+      stop_lon: poi.lon,
+    }))}`);
+  }, [router]);
 
-  useEffect(() => {
-    async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(data);
-      }
-      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
-      const { data: bc } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier')
-        .not('last_broadcast_at', 'is', null)
-        .gt('last_broadcast_at', fourHoursAgo);
-      if (bc) setBroadcasts(bc);
-    }
-    loadData();
-    setExplorers([
-      { lat: 5.3484, lon: -4.0305, name: 'Jean', level: 3 },
-      { lat: 5.3310, lon: -4.0210, name: 'Awa', level: 2 },
-      { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4 },
-    ]);
-  }, [supabase]);
+  const sheetH = sheet === 'full' ? 620 : sheet === 'half' ? 440 : 240;
+
+  const cycleSheet = useCallback(() => {
+    setSheet(current => {
+      if (current === 'peek') return 'half';
+      if (current === 'half') return 'full';
+      return 'peek';
+    });
+  }, []);
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
@@ -128,46 +110,21 @@ function AppPageContent() {
     ? [selected]
     : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
 
-  const handleSearchChange = useCallback((q: string) => {
-    setQuery(q);
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    if (q.trim().length < 2) { setResults([]); return; }
-    searchTimerRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      const words = q.trim().split(/\s+/).filter(w => w.length >= 2);
-      let stopsQuery = supabase.from('gtfs_stops').select('stop_id, stop_name, stop_lat, stop_lon, commune');
-      words.forEach(word => { stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`); });
-      const { data: searchResults } = await stopsQuery.limit(12);
-      setIsSearching(false);
-      setResults((searchResults ?? []).map(s => ({ ...s, type: 'stop' })));
-    }, 250);
-  }, [supabase]);
-
   const handleSelectStop = useCallback((stop: Stop) => {
     setSelected(stop);
     setSheet('half');
     setSearchOpen(false);
-    setQuery('');
-    setResults([]);
-  }, []);
+    clearSearch();
+  }, [clearSearch]);
 
-  const handleLocateMe = useCallback(async () => {
-    if (!navigator.geolocation) return;
-    setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      setUserLoc([lat, lon]);
-      setSelected(null);
-      const { data } = await supabase.rpc('arrets_proches', { p_lat: lat, p_lon: lon, p_radius_m: 800, p_limit: 10 });
-      setGeoLoading(false);
-      if (data) { setNearbyStops(data as ArretProche[]); setSheet('half'); }
-    }, () => setGeoLoading(false), { enableHighAccuracy: true, timeout: 10000 });
-  }, [supabase]);
+  const clearSelection = useCallback(() => {
+    setSelected(null);
+    setNearbyStops([]);
+    setSheet('peek');
+  }, [setNearbyStops]);
 
-  const initials = profile?.display_name
-    ? profile.display_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
-    : 'MK';
+  const openSearch = () => setSearchOpen(true);
+  const closeSearch = () => { setSearchOpen(false); clearSearch(); };
 
   const TICKER = [
     ['Cocody', 'fluide', 'var(--green)'],
@@ -176,10 +133,12 @@ function AppPageContent() {
     ['Adjamé Liberté', 'Gbaka 200F', 'var(--ink)'],
     ['Riviera 2', 'fluide', 'var(--green)'],
     ['Cocody', 'fluide', 'var(--green)'],
-    ['Yop → Plateau', '15 min', 'var(--green)'],
-    ['Pont HKB', 'embouteillé', 'var(--orange-deep)'],
-    ['Adjamé Liberté', 'Gbaka 200F', 'var(--ink)'],
-    ['Riviera 2', 'fluide', 'var(--green)'],
+  ];
+
+  const RECENT = [
+    { from: 'Cocody Saint-Jean', to: 'Plateau', tarif: '300F' },
+    { from: 'Adjamé Liberté', to: 'Yopougon Selmer', tarif: '200F' },
+    { from: 'Riviera 2', to: 'Marcory Zone 4', tarif: '500F' },
   ];
 
   const TRANSPORT_DEMO = [
@@ -187,12 +146,6 @@ function AppPageContent() {
     { kind: 'woro' as const, line: 'Cocody', eta: '4 min', color: 'var(--green)' },
     { kind: 'taxi' as const, line: 'Plateau', eta: 'sur place', color: 'var(--gold)' },
     { kind: 'saloni' as const, line: 'quartier', eta: '1 min', color: 'var(--blue)' },
-  ];
-
-  const RECENT = [
-    { from: 'Cocody Saint-Jean', to: 'Plateau', tarif: '300F' },
-    { from: 'Adjamé Liberté', to: 'Yopougon Selmer', tarif: '200F' },
-    { from: 'Riviera 2', to: 'Marcory Zone 4', tarif: '500F' },
   ];
 
   return (
@@ -206,6 +159,7 @@ function AppPageContent() {
         className="absolute inset-0"
         selectedStopId={selected?.stop_id ?? null}
         selectedPoiId={selectedPoi?.id ?? null}
+        satellite={isSatellite}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheet('half'); }}
         onMapReady={handleMapReady}
@@ -219,197 +173,331 @@ function AppPageContent() {
         broadcasts={broadcasts}
       />
 
-      {/* TOP BAR */}
-      <div style={{ position: 'absolute', top: 'max(56px, env(safe-area-inset-top, 0px) + 16px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 500 }}>
-        <button style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <Ic.Menu s={20} />
-        </button>
-
-        {searchOpen ? (
-          <div style={{ flex: 1, height: 44, borderRadius: 14, background: 'var(--cream)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px' }}>
-            <Ic.Search s={18} />
-            <input
-              autoFocus
-              value={query}
-              onChange={e => handleSearchChange(e.target.value)}
-              placeholder="Arrêt, quartier ou lieu…"
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, fontWeight: 500, color: 'var(--ink)', fontFamily: 'inherit' }}
-            />
-            <button onClick={() => { setSearchOpen(false); setQuery(''); setResults([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex' }}>
-              <Ic.X s={18} />
-            </button>
+      {/* ── Live Ticker (Top Over Map) ── */}
+      {liveTickerFeed.length > 0 && (
+        <div className="absolute top-[env(safe-area-inset-top,0px)] left-0 right-0 z-[300] pointer-events-none">
+          <div className="bg-gradient-to-b from-black/20 to-transparent pt-2 pb-8 px-4 overflow-hidden">
+            <div className="flex gap-4 animate-marquee-slow">
+              {liveTickerFeed.map((checkin, i) => (
+                <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm">
+                  <span className="text-sm">{(checkin.profile as any)?.avatar_emoji || '👤'}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                    {checkin.display_name} est à <span className="text-abidjan-orange">{checkin.place_name}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <button onClick={() => setSearchOpen(true)} style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
-            <Ic.Search s={18} />
-            <span style={{ flex: 1, textAlign: 'left' }}>Où vas-tu, Babi ?</span>
-            <Link href="/app/chat" onClick={e => e.stopPropagation()} style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, textDecoration: 'none' }}>IA</Link>
-          </button>
-        )}
-
-        <Link href="/app/compte" style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none', flexShrink: 0 }}>
-          {initials}
-        </Link>
-      </div>
-
-      {/* SEARCH RESULTS */}
-      {searchOpen && (results.length > 0 || isSearching || query.length >= 2) && (
-        <div className="bm-search-overlay no-scrollbar" style={{ position: 'absolute', top: 'calc(max(56px, env(safe-area-inset-top, 0px) + 16px) + 54px)', left: 16, right: 16, zIndex: 500, background: 'var(--cream-2)', borderRadius: 18, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', border: '1px solid var(--line)', maxHeight: 320, overflowY: 'auto' }}>
-          {isSearching ? (
-            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>Recherche…</div>
-          ) : results.length === 0 ? (
-            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>Aucun résultat pour « {query} »</div>
-          ) : results.map((r, i) => (
-            <button key={r.stop_id ?? i} onClick={() => handleSelectStop(r)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--line)' : 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                <Ic.Pin s={18} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
-                {r.commune && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.commune}</div>}
-              </div>
-              <Ic.Arrow s={16} />
-            </button>
-          ))}
         </div>
       )}
 
-      {/* RIGHT FABs */}
-      <div style={{ position: 'absolute', right: 16, top: 'max(120px, env(safe-area-inset-top, 0px) + 80px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 400 }}>
-        {profile && (
-          <BroadcastButton
-            userId={profile.id}
-            canBroadcast={profile.sub_tier === 'pro' || profile.sub_tier === 'elite'}
-          />
-        )}
-        <button className="press" onClick={handleLocateMe} style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: geoLoading ? 'var(--orange)' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Ic.Locate s={18} />
+      {/* ── Top Floating Bar (Header) ── */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-4 right-4 z-[500] flex gap-2.5">
+        <button
+          onClick={() => {}} // TODO: Menu
+          className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-2xl rounded-xl shadow-lg border border-beige-200/50 text-ink active:scale-95 transition-all"
+        >
+          <Ic.Menu s={22} />
         </button>
+        
+        <button
+          onClick={openSearch}
+          className="flex-1 h-11 flex items-center gap-3 bg-white/90 backdrop-blur-2xl rounded-xl shadow-lg border border-beige-200/50 px-4 text-left active:scale-[0.98] transition-all"
+        >
+          <Ic.Search s={18} color="var(--muted)" />
+          <span className="text-sm font-semibold text-muted flex-1 truncate">
+            {selected ? selected.stop_name : "Où vas-tu, Babi ?"}
+          </span>
+          <span className="text-[9px] font-black text-abidjan-orange bg-abidjan-orange/10 px-1.5 py-0.5 rounded-md tracking-widest">IA</span>
+        </button>
+
+        <Link
+          href="/app/compte"
+          className="w-11 h-11 flex items-center justify-center bg-abidjan-orange rounded-xl shadow-lg shadow-abidjan-orange/30 text-white font-black text-sm active:scale-95 transition-all"
+        >
+          {profile?.display_name?.slice(0, 2).toUpperCase() || 'MK'}
+        </Link>
       </div>
 
-      {/* LIVE TICKER */}
-      <div style={{ position: 'absolute', top: 'max(110px, env(safe-area-inset-top, 0px) + 70px)', left: 0, right: 0, zIndex: 300, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
-          {TICKER.map(([place, status, c], i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
-              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
-              <span style={{ fontWeight: 700 }}>{place}</span>
-              <span style={{ color: 'var(--muted)' }}>· {status}</span>
-            </div>
-          ))}
+      {/* ── Floating Action Stack (Right) ── */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+72px)] right-4 z-[500] flex flex-col gap-2">
+        {[
+          { icon: <Ic.Layers s={20} />, action: () => setIsSatellite(v => !v), label: 'Couches', active: isSatellite },
+          { icon: <Ic.Locate s={20} />, action: locateMe, label: 'Moi', active: !!userLoc, loading: geoLoading },
+          { icon: <Ic.Compass s={20} />, action: () => router.push('/app/boussole'), label: 'Boussole' },
+        ].map((btn, i) => (
+          <button
+            key={i}
+            onClick={btn.action}
+            disabled={btn.loading}
+            className={`w-11 h-11 flex items-center justify-center rounded-xl shadow-lg border transition-all active:scale-90 ${
+              btn.active 
+                ? 'bg-abidjan-blue text-white border-abidjan-blue' 
+                : 'bg-white/90 text-ink border-beige-200/50 backdrop-blur-2xl'
+            }`}
+          >
+            {btn.loading ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : btn.icon}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Live Ticker ── */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+68px)] left-0 right-0 z-[400] pointer-events-none">
+        <div className="flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_15%,black_85%,transparent)]">
+          <div className="ticker flex gap-12 py-2 text-abidjan-orange text-[13px] font-black whitespace-nowrap">
+            <span>PLATEAU : Trafic fluide sur le pont Houphouët</span>
+            <span>COCODY : Gbaka en panne carrefour la vie</span>
+            <span>YOP : 15 min d'attente à la gare Siporex</span>
+            <span>ADJAMÉ : Forte affluence à Liberté</span>
+            {/* Repeat for seamless loop */}
+            <span>PLATEAU : Trafic fluide sur le pont Houphouët</span>
+            <span>COCODY : Gbaka en panne carrefour la vie</span>
+            <span>YOP : 15 min d'attente à la gare Siporex</span>
+            <span>ADJAMÉ : Forte affluence à Liberté</span>
+          </div>
         </div>
       </div>
 
-      {/* BOTTOM SHEET */}
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: sheetH, transition: 'height 0.35s cubic-bezier(0.32,0.72,0,1)', background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 400, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div onClick={() => setSheet(s => s === 'peek' ? 'half' : s === 'half' ? 'full' : 'peek')} style={{ cursor: 'pointer', paddingTop: 4, flexShrink: 0 }}>
-          <div className="sheet-handle" />
+      {/* ── Broadcast FAB ── */}
+      {profile && sheet === 'peek' && (
+        <div className="absolute bottom-64 right-5 z-[450] animate-in fade-in zoom-in duration-300">
+          <BroadcastButton userId={profile.id} currentTier={profile.sub_tier ?? 'free'} isAdmin={profile.is_admin} />
+        </div>
+      )}
+
+      {/* ── Modular Bottom Sheet ── */}
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.1}
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 50 || info.velocity.y > 200) {
+            if (sheet === 'full') setSheet('half');
+            else if (sheet === 'half') setSheet('peek');
+          } else if (info.offset.y < -50 || info.velocity.y < -200) {
+            if (sheet === 'peek') setSheet('half');
+            else if (sheet === 'half') setSheet('full');
+          }
+        }}
+        animate={{ height: sheetH }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
+        className="absolute bottom-0 left-0 right-0 z-[600] bg-white rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-beige-100 flex flex-col overflow-hidden"
+      >
+        {/* 1-Click Height Selectors */}
+        <div className="flex flex-col items-center pt-3 pb-2">
+          <div className="flex gap-1.5 p-1 bg-beige-50/50 rounded-full mb-3">
+            {[
+              { id: 'peek', label: 'Bas', h: 240 },
+              { id: 'half', label: 'Milieu', h: 440 },
+              { id: 'full', label: 'Plein', h: 620 }
+            ].map(lvl => (
+              <button
+                key={lvl.id}
+                onClick={() => setSheet(lvl.id as any)}
+                className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                  sheet === lvl.id ? 'bg-abidjan-orange text-white shadow-md' : 'text-beige-muted hover:text-beige-text'
+                }`}
+              >
+                {lvl.label}
+              </button>
+            ))}
+          </div>
+          <div onClick={cycleSheet} className="w-12 h-1.5 bg-beige-200/60 rounded-full cursor-pointer active:scale-x-125 transition-transform" />
         </div>
 
-        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 120px' }}>
-
-          {selected ? (
-            /* SELECTED STOP */
-            <div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase' }}>Arrêt sélectionné</div>
-                  <div className="font-display" style={{ fontSize: 22 }}>{selected.stop_name}</div>
-                  {selected.commune && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{selected.commune}</div>}
+        {/* Scrollable Area */}
+        <div className="flex-1 overflow-y-auto px-6 pb-20 overscroll-contain scrollbar-hide">
+          {selectedPoi ? (
+            /* POI PREVIEW */
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-beige-50 border border-beige-100 shadow-sm">
+                    {selectedPoi.logo_emoji || '📍'}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-beige-text leading-tight">{selectedPoi.name}</h2>
+                    <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{selectedPoi.commune || 'Abidjan'}</div>
+                  </div>
                 </div>
-                <button onClick={() => setSelected(null)} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0 }}>
-                  <Ic.X s={16} />
+                <button onClick={() => setSelectedPoi(null)} className="p-2 bg-beige-50 rounded-xl text-beige-200">
+                  <Ic.X s={20} />
                 </button>
               </div>
-              <Link href={`/app/arret/${encodeURIComponent(selected.stop_id)}`} className="press" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 16, background: 'var(--orange)', color: '#fff', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>
-                Voir les détails & tarifs <Ic.Arrow s={18} />
-              </Link>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <PoiCheckInButton placeId={selectedPoi.id} placeName={selectedPoi.name} commune={selectedPoi.commune} lat={selectedPoi.lat} lon={selectedPoi.lon} />
+                <button onClick={() => handleGetDirections(selectedPoi)} className="bg-abidjan-orange text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-abidjan-orange/20">🚀 S'y rendre</button>
+              </div>
+
+              {selectedPoi.description && <p className="text-sm text-beige-muted font-medium leading-relaxed mb-6">{selectedPoi.description}</p>}
+
+              <Link href={`/app/place/${selectedPoi.id}`} className="block text-center text-xs font-black text-abidjan-blue uppercase tracking-widest py-4 bg-abidjan-blue/5 rounded-2xl">Profil Complet →</Link>
+            </div>
+          ) : activeItinerary ? (
+            /* ITINERARY STEPS */
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-black text-beige-text">Ton trajet</h2>
+                <button onClick={() => setActiveItinerary(null)} className="p-2 bg-beige-50 rounded-xl text-beige-200"><Ic.X s={20} /></button>
+              </div>
+              <div className="space-y-6 relative before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-1 before:bg-beige-100 before:rounded-full">
+                {activeItinerary.legs.map((leg: any, idx: number) => (
+                  <div key={idx} className="flex gap-6 relative z-10">
+                    <div className="w-10 h-10 rounded-2xl bg-white border-2 border-beige-100 flex items-center justify-center text-xl shadow-sm">
+                      {leg.mode === 'WALK' ? '🚶' : '🚐'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-black text-beige-text">{leg.mode === 'WALK' ? 'Marcher' : `Ligne ${leg.route?.shortName || ''}`}</div>
+                      <div className="text-xs font-bold text-beige-muted truncate">Vers {leg.to.name}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : selected ? (
+            /* STOP DETAIL */
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-start justify-between mb-8">
+                <div>
+                  <h2 className="text-xl font-black text-beige-text leading-tight">{selected.stop_name}</h2>
+                  <div className="text-xs text-beige-muted font-bold uppercase tracking-widest mt-1">{selected.commune}</div>
+                </div>
+                <button onClick={clearSelection} className="p-2 bg-beige-50 rounded-xl text-beige-200"><Ic.X s={20} /></button>
+              </div>
+              <button onClick={() => router.push(`/app/arret/${selected.stop_id}`)} className="w-full bg-abidjan-orange text-white font-black py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 text-sm uppercase tracking-widest">Voir les lignes</button>
             </div>
           ) : (
-            /* DEFAULT SHEET */
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <h3 className="font-display" style={{ fontSize: 22, margin: 0 }}>Près de toi</h3>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>COCODY · 250m</span>
-              </div>
-
-              {/* Transport scroll */}
-              <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
-                {(nearbyStops.length > 0
-                  ? nearbyStops.slice(0, 4).map((s, i) => ({
-                      kind: (['gbaka', 'woro', 'taxi', 'saloni'] as const)[i % 4],
-                      line: s.stop_name,
-                      eta: `${Math.round(s.distance_m)}m`,
-                      color: ['var(--orange)', 'var(--green)', 'var(--gold)', 'var(--blue)'][i % 4],
-                      stopId: s.stop_id,
-                    }))
-                  : TRANSPORT_DEMO
-                ).map((v, i) => (
-                  <div key={i} className="press" onClick={() => 'stopId' in v && v.stopId ? handleSelectStop({ stop_id: v.stopId, stop_name: v.line, stop_lat: 0, stop_lon: 0, commune: null } as any) : undefined} style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Vehicle kind={v.kind} size={32} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: v.color }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: v.color }}>{v.eta}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.line}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{v.kind}</div>
+            /* DEFAULT LIST (NEARBY STOPS) */
+            <div className="animate-in fade-in duration-500">
+              {/* PRÈS DE TOI */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <div className="text-[11px] font-black text-muted tracking-widest uppercase">
+                    {nearbyStops.length > 0 
+                      ? `À ${formatDistance(nearbyStops[0].distance_m)} — ${nearbyStops[0].stop_name}` 
+                      : 'PRÈS DE TOI'}
                   </div>
-                ))}
-              </div>
-
-              {/* Babi IA CTA */}
-              <Link href="/app/chat" className="press" style={{ display: 'block', padding: 16, borderRadius: 18, marginBottom: 14, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
-                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>🗺️</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BABI IA</div>
-                    <div className="font-display" style={{ fontSize: 17, marginTop: 2 }}>Où vas-tu ?<br/>Demande en nouchi.</div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-green font-black">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green shimmer" />
+                    LIVE
                   </div>
-                  <Ic.Arrow s={22} />
                 </div>
-              </Link>
 
-              {/* Recent */}
-              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase', margin: '8px 4px 8px' }}>RÉCENTS</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                {RECENT.map((r, i) => (
-                  <Link key={i} href="/app/chat" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                      <Ic.Route s={18} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Tarif moyen · {r.tarif}</div>
-                    </div>
-                    <Ic.Arrow s={16} />
-                  </Link>
-                ))}
-              </div>
-
-              {/* Community pulse */}
-              <Link href="/app/ccomment" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
-                <div style={{ display: 'flex' }}>
-                  {['var(--orange)', 'var(--green)', 'var(--blue)', 'var(--gold)'].map((c, i) => (
-                    <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                      {['K', 'A', 'M', 'D'][i]}
+                <div className="no-scrollbar flex gap-3 overflow-x-auto -mx-6 px-6 pb-2">
+                  {([
+                    { kind: 'gbaka', line: 'G04', eta: '2 min', color: 'var(--orange)' },
+                    { kind: 'woro', line: 'W12', eta: '5 min', color: 'var(--green)' },
+                    { kind: 'taxi', line: 'Taxi', eta: '1 min', color: 'var(--blue)' },
+                    { kind: 'saloni', line: 'Saloni', eta: '8 min', color: 'var(--gold)' },
+                  ] as const).map((v, i) => (
+                    <div key={i} className="flex-shrink-0 w-[130px] p-4 rounded-[22px] bg-beige-50 border border-beige-100 active:scale-95 transition-all">
+                      <Vehicle kind={v.kind} size={28} />
+                      <div className="mt-3 text-sm font-black text-ink truncate">{v.line}</div>
+                      <div className="text-[11px] font-black mt-1" style={{ color: v.color }}>{v.eta}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Babis sont en ligne</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Demande ton C'comment</div>
+              </div>
+
+              {/* AI SEARCH CTA */}
+              <button className="w-full relative overflow-hidden p-5 rounded-[24px] bg-abidjan-orange text-white active:scale-[0.98] transition-all group mb-6">
+                <div className="wax-bg absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity" />
+                <div className="relative flex items-center justify-center gap-3">
+                  <Ic.Search s={20} color="#fff" />
+                  <span className="text-sm font-black uppercase tracking-widest">Démarrer le trajet IA</span>
                 </div>
-                <Ic.Arrow s={18} />
-              </Link>
-            </>
+              </button>
+
+              {/* RÉCENTS */}
+              <div className="mb-6">
+                <div className="text-[10px] font-black text-muted tracking-widest uppercase mb-3 px-1">RÉCENTS</div>
+                <div className="space-y-2">
+                  {[
+                    { name: 'Adjamé Liberté', sub: 'Gbaka · 200F' },
+                    { name: 'Cocody Saint-Jean', sub: 'Woro · 150F' },
+                  ].map((r, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-2xl bg-beige-50/50 border border-beige-100/50 active:bg-beige-50 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-muted">
+                        <Ic.History s={18} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-ink">{r.name}</div>
+                        <div className="text-[11px] text-muted font-semibold">{r.sub}</div>
+                      </div>
+                      <Ic.Arrow s={14} color="var(--line-strong)" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* COMMUNITY PULSE */}
+              <div className="relative p-5 rounded-[28px] bg-abidjan-blue text-white overflow-hidden active:scale-[0.98] transition-all">
+                <div className="wax-zigzag absolute inset-0 opacity-10" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex -space-x-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="w-6 h-6 rounded-full border-2 border-abidjan-blue bg-beige-200" />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">247k Babis en ligne</span>
+                  </div>
+                  <div className="font-display text-lg leading-tight">COCODY COULE.<br/>PLATEAU BOUCHONNE.</div>
+                </div>
+              </div>
+
+            </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* ── Search Overlay ── */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="fixed inset-0 z-[1000] bg-beige-50 flex flex-col">
+            <div className="bg-white px-5 pt-12 pb-6 border-b border-beige-200 flex items-center gap-4">
+              <button onClick={closeSearch} className="p-2 text-beige-text"><Ic.Back s={24} /></button>
+              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un lieu..." className="flex-1 text-lg font-black outline-none placeholder-beige-200 bg-transparent" />
+              {isSearching && <div className="w-5 h-5 border-2 border-abidjan-orange border-t-transparent rounded-full animate-spin" />}
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {results.map((r, i) => (
+                <button key={i} onClick={() => handleSelectStop(r)} className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-beige-100 mb-2 text-left">
+                  <div className="w-10 h-10 rounded-xl bg-beige-50 flex items-center justify-center"><Ic.Pin s={18} /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-black text-sm text-beige-text truncate">{r.stop_name}</div>
+                    <div className="text-[10px] text-beige-muted font-bold uppercase">{r.commune}</div>
+                  </div>
+                </button>
+              ))}
+              {!query && (
+                <div className="space-y-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-beige-muted">Récents</div>
+                  {RECENT.map((r, i) => (
+                    <div key={i} className="bg-white p-4 rounded-2xl border border-beige-100 flex items-center gap-3">
+                      <span className="text-lg">📍</span>
+                      <div className="text-sm font-bold text-beige-text">{r.from} → {r.to}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        .animate-marquee-slow {
+          display: flex;
+          width: fit-content;
+          animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+          0% { transform: translateX(100vw); }
+          100% { transform: translateX(-100%); }
+        }
+      `}</style>
     </div>
   );
 }

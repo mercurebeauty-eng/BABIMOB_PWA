@@ -1,23 +1,24 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import BeigeMapBackground from '@/components/BeigeMapBackground';
+import PlaceHeroMap from '@/components/PlaceHeroMap';
 import CheckInButtonPlace from '@/components/CheckInButtonPlace';
 import PlaceSocialSections from '@/components/PlaceSocialSections';
+import { Ic } from '@/components/ui/Ic';
 
 type Props = { params: Promise<{ id: string }> };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  food:          'Restauration',
-  shop:          'Commerce',
-  service:       'Service',
-  health:        'Santé',
-  entertainment: 'Loisirs',
-  other:         'Lieu',
+  food:          'RESTAURATION',
+  shop:          'COMMERCE',
+  service:       'SERVICE',
+  health:        'SANTÉ',
+  entertainment: 'LOISIRS',
+  other:         'LIEU',
 };
 
 function formatDist(m: number) {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+  return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
 export default async function PlacePage({ params }: Props) {
@@ -68,194 +69,206 @@ export default async function PlacePage({ params }: Props) {
   const now = new Date();
   const isActive = (d: string | null) => !d || new Date(d) > now;
   const sponsoredActive = place.is_sponsored && isActive(place.sponsor_expires_at);
-  const campaignActive  = place.has_campaign  && isActive(place.campaign_expires_at);
-  const color           = place.cover_color ?? '#FF7A00';
+  const color = place.cover_color ?? 'var(--orange)';
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
-      <BeigeMapBackground />
+    <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', position: 'relative' }}>
+      
+      {/* MAP HERO */}
+      <div style={{ position: 'relative' }}>
+        <PlaceHeroMap lat={place.lat} lon={place.lon} emoji={place.logo_emoji ?? '📍'} name={place.name} id={place.id} />
 
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
-        <Link href="/app" className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors" aria-label="Retour">
-          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-black text-beige-text truncate">{place.name}</div>
-          <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest">
-            {CATEGORY_LABELS[place.category] ?? 'Lieu'}{place.commune ? ` · ${place.commune}` : ''}
-          </div>
+        {/* TOP HEADER OVERLAY */}
+        <div style={{ position: 'absolute', top: 20, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+          <Link href="/app" className="press" style={{ 
+            width: 44, height: 44, borderRadius: '50%', background: '#fff', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: 'none'
+          }}>
+            <Ic.Back s={22} />
+          </Link>
+          
+          {sponsoredActive && (
+             <div style={{ 
+               background: 'rgba(255,255,255,0.9)', padding: '6px 12px', borderRadius: 20,
+               display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900,
+               boxShadow: '0 4px 12px rgba(0,0,0,0.05)', color: color
+             }}>
+               <span style={{ fontSize: 14 }}>{place.sponsor_tier === 'elite' ? '⭐' : '✓'}</span>
+               {place.sponsor_tier === 'elite' ? 'ÉLITE' : 'PRO'}
+             </div>
+          )}
         </div>
-        {sponsoredActive && (
-          <span
-            className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border flex-shrink-0"
-            style={{ background: `${color}15`, color, borderColor: `${color}30` }}
-          >
-            {place.sponsor_tier === 'elite' ? '⭐ Elite' : '✓ Pro'}
-          </span>
-        )}
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-5 py-8 space-y-6 relative z-10">
-
-        {/* Hero */}
-        <div
-          className="rounded-[2.5rem] p-8 flex items-center gap-6 shadow-xl relative overflow-hidden"
-          style={{ background: `${color}12`, border: `2px solid ${color}20` }}
-        >
-          {sponsoredActive && place.sponsor_tier === 'elite' && (
-            <div
-              className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10 pointer-events-none"
-              style={{ background: color }}
-            />
-          )}
-          <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0 shadow-lg relative z-10"
-            style={{ background: `${color}18`, border: `2px solid ${color}25` }}
-          >
-            {place.logo_emoji}
-          </div>
-          <div className="flex-1 min-w-0 relative z-10">
-            <h1 className="text-xl font-black text-beige-text leading-tight mb-2">{place.name}</h1>
-            {place.description && (
-              <p className="text-sm text-beige-muted font-medium leading-relaxed">{place.description}</p>
-            )}
-            {place.address && (
-              <div className="text-xs text-beige-muted font-bold mt-2 flex items-center gap-1">
-                <span>📍</span> {place.address}
+      <div className="no-scrollbar" style={{ position: 'relative', marginTop: -40, padding: '0 20px 100px 20px' }}>
+        
+        {/* TITLE CARD */}
+        <div className="slide-up" style={{ 
+          background: '#fff', padding: 24, borderRadius: 28, 
+          boxShadow: '0 10px 40px rgba(26,20,16,0.08)',
+          marginBottom: 20, position: 'relative'
+        }}>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ 
+              width: 72, height: 72, borderRadius: 20, 
+              background: 'var(--cream)', display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', fontSize: 36,
+              border: '1.5px solid var(--cream-2)'
+            }}>
+              {place.logo_emoji ?? '📍'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1, marginBottom: 4 }}>
+                {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune.toUpperCase()}` : ''}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Action Check-in */}
-        <div className="max-w-md mx-auto w-full">
-           <CheckInButtonPlace 
-             placeId={place.id} 
-             placeName={place.name} 
-             commune={place.commune ?? null} 
-             lat={place.lat}
-             lon={place.lon}
-           />
-        </div>
-
-        {/* Campagne active */}
-        {campaignActive && place.campaign_label && (
-          <div className="bg-abidjan-orange/10 border-2 border-abidjan-orange/30 rounded-2xl px-5 py-4 flex items-center gap-3 animate-in fade-in duration-300">
-            <span className="text-2xl flex-shrink-0">🔥</span>
-            <div>
-              <div className="text-[10px] font-black text-abidjan-orange uppercase tracking-widest">Promotion en cours</div>
-              <div className="text-sm font-black text-beige-text mt-0.5">{place.campaign_label}</div>
-              {place.campaign_expires_at && (
-                <div className="text-[10px] text-beige-muted font-bold mt-1">
-                  Jusqu'au {new Date(place.campaign_expires_at).toLocaleDateString('fr-FR')}
-                </div>
-              )}
+              <h1 className="font-display" style={{ fontSize: 24, margin: 0, lineHeight: 1.1 }}>{place.name}</h1>
             </div>
           </div>
-        )}
 
-        {/* Offres */}
-        {offers && offers.length > 0 && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-6 space-y-3">
-            <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-2">Offres du moment</div>
-            {offers.map((offer) => (
-              <div key={offer.id} className="flex items-center gap-4 bg-beige-50 rounded-2xl px-4 py-4 border border-beige-100">
+          {place.description && (
+            <p style={{ marginTop: 16, fontSize: 14, color: 'var(--muted)', lineHeight: 1.5, margin: '16px 0 0 0' }}>
+              {place.description}
+            </p>
+          )}
+
+          {place.address && (
+            <div style={{ 
+              marginTop: 16, padding: '12px 16px', borderRadius: 16, 
+              background: 'var(--cream-2)', display: 'flex', gap: 10, alignItems: 'center' 
+            }}>
+              <Ic.Pin s={16} color="var(--muted)" />
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{place.address}</div>
+            </div>
+          )}
+        </div>
+
+        {/* CHECK-IN CTA */}
+        <div className="slide-up" style={{ marginBottom: 24, animationDelay: '0.1s' }}>
+          <CheckInButtonPlace 
+            placeId={place.id} 
+            placeName={place.name} 
+            commune={place.commune ?? null} 
+            lat={place.lat}
+            lon={place.lon}
+          />
+        </div>
+
+        {/* OFFRES & PROMOS */}
+        {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
+          <div className="slide-up" style={{ 
+            background: '#fff', padding: 24, borderRadius: 28, marginBottom: 24,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.03)', animationDelay: '0.2s'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <Ic.Bolt s={20} color="var(--orange)" />
+              <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>OFFRES & ÉVÉNEMENTS</h2>
+            </div>
+
+            {place.has_campaign && place.campaign_label && (
+              <div style={{ 
+                background: 'var(--orange)', color: '#fff', padding: 16, 
+                borderRadius: 20, marginBottom: 12, position: 'relative', overflow: 'hidden' 
+              }}>
+                <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, opacity: 0.9 }}>CAMPAGNE EN COURS</div>
+                  <div className="font-display" style={{ fontSize: 18, marginTop: 4 }}>{place.campaign_label}</div>
+                </div>
+              </div>
+            )}
+
+            {offers?.map((offer) => (
+              <div key={offer.id} style={{ 
+                background: 'var(--cream-2)', padding: 16, borderRadius: 20, 
+                display: 'flex', gap: 14, alignItems: 'center', marginBottom: 10
+              }}>
                 {offer.discount_pct && (
-                  <div className="w-14 h-14 rounded-xl bg-abidjan-orange text-white flex flex-col items-center justify-center flex-shrink-0 shadow-md">
-                    <span className="text-lg font-black leading-none">-{offer.discount_pct}%</span>
+                  <div style={{ 
+                    width: 50, height: 50, borderRadius: 12, background: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, fontWeight: 900, color: 'var(--orange)',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                  }}>
+                    -{offer.discount_pct}%
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-black text-beige-text">{offer.title}</div>
-                  {offer.description && (
-                    <div className="text-xs text-beige-muted font-medium mt-0.5">{offer.description}</div>
-                  )}
-                  {offer.valid_until && (
-                    <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">
-                      Jusqu'au {new Date(offer.valid_until).toLocaleDateString('fr-FR')}
-                    </div>
-                  )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{offer.title}</div>
+                  {offer.description && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{offer.description}</div>}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Contact */}
+        {/* CONTACT QUICK LINKS */}
         {(place.phone || place.whatsapp || place.instagram || place.website) && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-6">
-            <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-4">Contact</div>
-            <div className="flex flex-wrap gap-3">
-              {place.whatsapp && (
-                <a
-                  href={`https://wa.me/${place.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-abidjan-green/10 border-2 border-abidjan-green/30 text-abidjan-green font-black text-sm px-5 py-3 rounded-2xl transition-all hover:bg-abidjan-green/20 active:scale-95"
-                >
-                  <span className="text-lg">💬</span> WhatsApp
-                </a>
-              )}
-              {place.phone && (
-                <a
-                  href={`tel:${place.phone}`}
-                  className="flex items-center gap-2 bg-abidjan-blue/10 border-2 border-abidjan-blue/30 text-abidjan-blue font-black text-sm px-5 py-3 rounded-2xl transition-all hover:bg-abidjan-blue/20 active:scale-95"
-                >
-                  <span className="text-lg">📞</span> Appeler
-                </a>
-              )}
-              {place.instagram && (
-                <a
-                  href={`https://instagram.com/${place.instagram.replace('@', '')}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-purple-50 border-2 border-purple-200 text-purple-600 font-black text-sm px-5 py-3 rounded-2xl transition-all hover:bg-purple-100 active:scale-95"
-                >
-                  <span className="text-lg">📸</span> Instagram
-                </a>
-              )}
-              {place.website && (
-                <a
-                  href={place.website}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-beige-50 border-2 border-beige-200 text-beige-muted font-black text-sm px-5 py-3 rounded-2xl transition-all hover:bg-beige-100 active:scale-95"
-                >
-                  <span className="text-lg">🌐</span> Site web
-                </a>
-              )}
-            </div>
+          <div className="slide-up" style={{ 
+            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24,
+            animationDelay: '0.3s'
+          }}>
+            {place.whatsapp && (
+              <a href={`https://wa.me/${place.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div className="press" style={{ background: '#25D366', color: '#fff', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>💬</span>
+                  <span style={{ fontSize: 12, fontWeight: 800 }}>WHATSAPP</span>
+                </div>
+              </a>
+            )}
+            {place.phone && (
+              <a href={`tel:${place.phone}`} style={{ textDecoration: 'none' }}>
+                <div className="press" style={{ background: 'var(--ink)', color: '#fff', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>📞</span>
+                  <span style={{ fontSize: 12, fontWeight: 800 }}>APPELER</span>
+                </div>
+              </a>
+            )}
+            {place.instagram && (
+              <a href={`https://instagram.com/${place.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div className="press" style={{ background: '#E4405F', color: '#fff', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>📸</span>
+                  <span style={{ fontSize: 12, fontWeight: 800 }}>INSTAGRAM</span>
+                </div>
+              </a>
+            )}
+            {place.website && (
+              <a href={place.website} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div className="press" style={{ background: '#fff', color: 'var(--ink)', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                  <span style={{ fontSize: 20 }}>🌐</span>
+                  <span style={{ fontSize: 12, fontWeight: 800 }}>SITE WEB</span>
+                </div>
+              </a>
+            )}
           </div>
         )}
 
-        {/* Arrêts de transport proches */}
+        {/* ARRÊTS PROCHES */}
         {nearbyStops && nearbyStops.length > 0 && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-6">
-            <div className="text-[10px] uppercase tracking-widest text-beige-muted font-black mb-4">
-              Arrêts de transport proches
+          <div className="slide-up" style={{ 
+            background: '#fff', padding: 24, borderRadius: 28, marginBottom: 24,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.03)', animationDelay: '0.4s'
+          }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <Ic.Route s={20} color="var(--orange)" />
+              <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>ARRÊTS À PROXIMITÉ</h2>
             </div>
-            <div className="space-y-3">
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {(nearbyStops as any[]).map((stop) => (
-                <Link
-                  key={stop.stop_id}
-                  href={`/app/arret/${encodeURIComponent(stop.stop_id)}`}
-                  className="flex items-center gap-4 bg-beige-50 hover:bg-white border border-beige-100 hover:border-abidjan-orange/30 rounded-2xl px-4 py-3.5 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
-                    🚐
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-black text-beige-text truncate group-hover:text-abidjan-orange transition-colors">
-                      {stop.stop_name}
+                <Link key={stop.stop_id} href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ textDecoration: 'none' }}>
+                  <div className="press" style={{ 
+                    background: 'var(--cream-2)', padding: '12px 16px', borderRadius: 20,
+                    display: 'flex', alignItems: 'center', gap: 14
+                  }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                      🚐
                     </div>
-                    {stop.commune && (
-                      <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-0.5">
-                        {stop.commune}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-[10px] font-black text-abidjan-blue bg-abidjan-blue/10 px-2 py-1 rounded-lg flex-shrink-0 tabular-nums">
-                    {formatDist(stop.distance_m)}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{stop.stop_name}</div>
+                      <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--orange)', marginTop: 2 }}>{formatDist(stop.distance_m)}</div>
+                    </div>
+                    <Ic.Arrow s={18} color="var(--muted)" />
                   </div>
                 </Link>
               ))}
@@ -263,42 +276,17 @@ export default async function PlacePage({ params }: Props) {
           </div>
         )}
 
-        {/* Sections Sociales (Traces et Q&A) */}
-        <PlaceSocialSections 
-          placeId={id} 
-          initialCheckins={checkins || []} 
-          initialAdvice={(advice as any[]) || []}
-          userId={user?.id || null}
-          isVerifiedExplorer={!!userProfile?.is_verified_explorer}
-        />
+        {/* SECTIONS SOCIALES */}
+        <div className="slide-up" style={{ animationDelay: '0.5s' }}>
+          <PlaceSocialSections 
+            placeId={id} 
+            initialCheckins={checkins || []} 
+            initialAdvice={(advice as any[]) || []}
+            userId={user?.id || null}
+            isVerifiedExplorer={!!userProfile?.is_verified_explorer}
+          />
+        </div>
 
-        {/* CTA inscription commerçant */}
-        {!sponsoredActive && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-dashed border-beige-200 p-8 text-center">
-            <div className="text-3xl mb-4">🚀</div>
-            <div className="text-base font-black text-beige-text mb-2">Vous êtes ce commerce ?</div>
-            <p className="text-sm text-beige-muted font-medium mb-6 leading-relaxed px-4">
-              Revendiquez cette fiche et gagnez en visibilité auprès des{' '}
-              <strong className="text-abidjan-orange">voyageurs d&apos;Abidjan</strong>.
-            </p>
-            <div className="space-y-3 text-left">
-              <div className="flex justify-between items-center bg-beige-50 rounded-2xl px-5 py-3.5 border border-beige-100">
-                <div>
-                  <div className="text-sm font-black text-beige-text">Pro</div>
-                  <div className="text-[10px] text-beige-muted font-bold">Profil complet + marqueur coloré</div>
-                </div>
-                <span className="text-sm font-black text-abidjan-orange whitespace-nowrap">8 000 FCFA / mois</span>
-              </div>
-              <div className="flex justify-between items-center bg-abidjan-orange/5 rounded-2xl px-5 py-3.5 border-2 border-abidjan-orange/20">
-                <div>
-                  <div className="text-sm font-black text-beige-text">⭐ Elite</div>
-                  <div className="text-[10px] text-beige-muted font-bold">Marqueur animé + campagnes + priorité</div>
-                </div>
-                <span className="text-sm font-black text-abidjan-orange whitespace-nowrap">28 000 FCFA / mois</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

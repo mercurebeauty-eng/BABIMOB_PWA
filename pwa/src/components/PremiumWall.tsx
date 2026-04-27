@@ -56,7 +56,7 @@ export default function PremiumWall({ isOpen, onClose, requiredTier }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[800] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-beige-text/40 backdrop-blur-md" onClick={onClose} />
       
       <div className="relative w-full max-w-lg bg-beige-50 rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 duration-500">

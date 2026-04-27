@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import FavoriteButton from './FavoriteButton';
-import StopLinesList from './StopLinesList';
 import { Ic } from '@/components/ui/Ic';
+import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
+import Map from '@/components/MapWrapper';
+import FavoriteButton from './FavoriteButton';
+import StopLinesList from './StopLinesList';
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -39,42 +41,21 @@ export default async function ArretPage({ params }: Props) {
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
-
-      {/* HERO */}
-      <div style={{ background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden', paddingTop: 'max(56px, env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 28, paddingLeft: 20, paddingRight: 20 }}>
-        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.12, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <Link href="/app" style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cream)', background: 'rgba(255,255,255,0.1)', textDecoration: 'none' }}>
-              <Ic.Back s={20} />
-            </Link>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Pill color="var(--orange)">GARE GBAKA</Pill>
-              <Pill color="var(--green)">ACTIVE</Pill>
-            </div>
-          </div>
-          <h1 className="font-display" style={{ fontSize: 28, color: '#fff', lineHeight: 1.05, marginBottom: 6 }}>{stop.stop_name}</h1>
-          {stop.commune && (
-            <p style={{ fontSize: 13, color: 'rgba(247,241,230,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{stop.commune} · Abidjan</p>
-          )}
-        </div>
-      </div>
-
-      <WaxStrip color="var(--orange)" height={6} />
-
-      {/* CONTENT */}
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 100px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-        {/* Favorite + coords */}
-        <div style={{ padding: 16, borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 }}>
-              {stop.stop_lat.toFixed(4)}, {stop.stop_lon.toFixed(4)}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-              {lignes ? lignes.length : 0} ligne{(lignes?.length ?? 0) !== 1 ? 's' : ''} passante{(lignes?.length ?? 0) !== 1 ? 's' : ''}
-            </div>
-          </div>
+      
+      {/* Hero map */}
+      <div style={{ position: 'relative', height: 240, flexShrink: 0, overflow: 'hidden' }}>
+        <Map
+          center={[stop.stop_lat, stop.stop_lon]}
+          zoom={16}
+          className="w-full h-full"
+          stops={[stop]}
+          selectedStopId={stop.stop_id}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, var(--cream) 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 56, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
+          <Link href="/app" style={{ width: 40, height: 40, borderRadius: 12, border: 'none', background: 'var(--cream)', color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', textDecoration: 'none' }}>
+            <Ic.Back s={20} />
+          </Link>
           {user && (
             <FavoriteButton
               stopId={stop.stop_id}
@@ -87,47 +68,117 @@ export default async function ArretPage({ params }: Props) {
             />
           )}
         </div>
+      </div>
 
-        {/* Live tarifs (static for now) */}
-        <div style={{ borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="font-display" style={{ fontSize: 17 }}>Tarifs réels</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>
+      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 100px', marginTop: -40, position: 'relative', zIndex: 2 }}>
+        {/* Title card */}
+        <div style={{ background: 'var(--cream-2)', borderRadius: 22, padding: 18, border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <Pill color="var(--orange)">GARE GBAKA</Pill>
+            <Pill color="var(--green)">ACTIVE</Pill>
+          </div>
+          <div className="font-display" style={{ fontSize: 28, lineHeight: 1.05 }}>{stop.stop_name}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Abidjan · Côte d'Ivoire</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, fontSize: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--orange)', fontWeight: 700 }}>
+              <Ic.Star s={14} fill /> 4.6
+            </div>
+            <span style={{ color: 'var(--muted)' }}>· 1 247 avis</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <WaxStrip color="var(--orange)" height={4} />
+        </div>
+
+        {/* Tarifs réels — live */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Tarifs réels aujourd'hui</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', fontWeight: 800 }}>
               <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
               EN DIRECT
             </div>
           </div>
-          {[
-            { dest: 'Yopougon Selmer', price: '200F', conf: 14 },
-            { dest: 'Plateau', price: '300F', conf: 28 },
-            { dest: 'Abobo', price: '250F', conf: 9 },
-          ].map((t, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < 2 ? '1px solid var(--line)' : 'none' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                <Ic.Route s={18} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { dest: 'Yopougon Selmer', price: '200F', conf: 14, trend: 'stable' },
+              { dest: 'Plateau', price: '300F', conf: 28, trend: 'up' },
+            ].map((t, i) => (
+              <div key={i} className="press" style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: 14, borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)'
+              }}>
+                <Vehicle kind="gbaka" size={32} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.dest}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Confirmé par {t.conf} Babis</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)' }}>{t.price}</div>
+                  <div style={{ fontSize: 10, color: t.trend === 'up' ? 'var(--orange-deep)' : 'var(--muted)', fontWeight: 800 }}>
+                    {t.trend === 'up' ? '↗ +50F' : '— stable'}
+                  </div>
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.dest}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Confirmé par {t.conf} Babis</div>
-              </div>
-              <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)' }}>{t.price}</div>
-            </div>
-          ))}
-          <div style={{ padding: 12 }}>
-            <button className="press" style={{ width: '100%', padding: 12, borderRadius: 12, border: '1.5px dashed var(--orange)', background: 'transparent', color: 'var(--orange)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Ic.Plus s={16} /> Confirmer un tarif
+            ))}
+            <button className="press" style={{
+              width: '100%', padding: 14, borderRadius: 16, border: '2px dashed var(--line-strong)',
+              background: 'transparent', color: 'var(--muted)', fontSize: 12, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4
+            }}>
+              <Ic.Plus s={16} />
+              CONFIRMER UN TARIF
             </button>
           </div>
         </div>
 
-        {/* Lines */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div className="font-display" style={{ fontSize: 18 }}>Lignes passantes</div>
-            {lignes && <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>}
+        {/* Lines list */}
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Lignes passantes</h3>
           </div>
           <StopLinesList lines={lignes || []} preferredModes={prefs} stopId={stopId} />
         </div>
+
+        {/* C'COMMENT ? */}
+        <div style={{ marginTop: 32, paddingBottom: 40 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>C'comment ?</h3>
+            <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 800 }}>VOIR TOUT</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { user: 'Koffi S.', text: 'Gare bien organisée ce matin. Pas trop de rang.', time: 'il y a 12 min', color: 'var(--orange)' },
+              { user: 'Marie-Noëlle', text: 'Attention, le tarif pour Plateau est passé à 300F.', time: 'il y a 45 min', color: 'var(--green)' },
+            ].map((r, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: r.color, color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{r.user[0]}</div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800 }}>{r.user}</span>
+                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{r.time}</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.4 }}>{r.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Bottom CTA */}
+      <div style={{ position: 'sticky', bottom: 0, padding: '16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)', background: 'var(--cream)', borderTop: '1px solid var(--line)', zIndex: 100 }}>
+        <button className="press wax-bg" style={{
+          width: '100%', height: 56, borderRadius: 18, border: 'none',
+          background: 'var(--ink)', color: 'var(--cream)',
+          fontSize: 14, fontWeight: 800, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        }}>
+          SUIVRE CETTE LIGNE EN DIRECT
+          <Ic.Route s={20} />
+        </button>
       </div>
     </div>
   );

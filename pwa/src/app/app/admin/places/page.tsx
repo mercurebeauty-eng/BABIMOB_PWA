@@ -27,6 +27,8 @@ export default function AdminPlacesPage() {
     lon: -4.020,
     commune: '',
     description: '',
+    phone: '',
+    whatsapp: '',
     sponsor_tier: '' as any,
     is_sponsored: false
   });
@@ -132,6 +134,8 @@ export default function AdminPlacesPage() {
       lon: place.lon,
       commune: place.commune || '',
       description: place.description || '',
+      phone: place.phone || '',
+      whatsapp: place.whatsapp || '',
       sponsor_tier: place.sponsor_tier || 'standard',
       is_sponsored: place.is_sponsored
     });
@@ -141,7 +145,7 @@ export default function AdminPlacesPage() {
   const resetForm = () => {
     setFormData({
       name: '', category: 'shop', logo_emoji: '🏪', lat: 5.345, lon: -4.020,
-      commune: '', description: '', sponsor_tier: '', is_sponsored: false
+      commune: '', description: '', phone: '', whatsapp: '', sponsor_tier: '', is_sponsored: false
     });
   };
 
@@ -215,10 +219,18 @@ export default function AdminPlacesPage() {
                   <label className="block text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">Catégorie</label>
                   <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})}
                     className="w-full bg-beige-50 border-2 border-beige-100 rounded-2xl px-5 py-4 text-sm outline-none appearance-none cursor-pointer">
-                    <option value="shop">🛍️ Boutique</option>
-                    <option value="food">🍽️ Restaurant/Bar</option>
-                    <option value="service">💼 Service/Banque</option>
-                    <option value="health">💊 Santé</option>
+                    <option value="food">🍽️ Restaurant / Maquis / Bar</option>
+                    <option value="shop">🛍️ Boutique / Commerce</option>
+                    <option value="market">🏪 Marché / Supermarché</option>
+                    <option value="service">💼 Service / Banque / Agence</option>
+                    <option value="health">💊 Santé / Pharmacie</option>
+                    <option value="education">🎓 École / Université</option>
+                    <option value="entertainment">🎭 Loisirs / Cinéma / Sport</option>
+                    <option value="hotel">🏨 Hôtel / Résidence</option>
+                    <option value="transport">🚏 Transport / Gare</option>
+                    <option value="worship">⛪ Lieu de culte</option>
+                    <option value="tech">💻 Tech / Coworking</option>
+                    <option value="beauty">💅 Beauté / Salon</option>
                   </select>
                 </div>
                 <div>
@@ -233,6 +245,28 @@ export default function AdminPlacesPage() {
                   className="w-full bg-beige-50 border-2 border-beige-100 rounded-2xl px-5 py-4 text-sm" placeholder="Lat" /></div>
                 <div><input required type="number" step="any" value={formData.lon} onChange={e => setFormData({...formData, lon: parseFloat(e.target.value)})}
                   className="w-full bg-beige-50 border-2 border-beige-100 rounded-2xl px-5 py-4 text-sm" placeholder="Lon" /></div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">Commune</label>
+                <input type="text" value={formData.commune} onChange={e => setFormData({...formData, commune: e.target.value})}
+                  className="w-full bg-beige-50 border-2 border-beige-100 rounded-2xl px-5 py-4 text-sm focus:border-abidjan-orange outline-none transition-all"
+                  placeholder="Ex: Cocody, Yopougon…" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">📞 Téléphone</label>
+                  <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})}
+                    className="w-full bg-beige-50 border-2 border-beige-100 rounded-2xl px-5 py-4 text-sm focus:border-abidjan-orange outline-none transition-all"
+                    placeholder="+225 07 00 00 00 00" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-beige-muted mb-2">💬 WhatsApp</label>
+                  <input type="tel" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})}
+                    className="w-full bg-beige-50 border-2 border-beige-100 rounded-2xl px-5 py-4 text-sm focus:border-abidjan-orange outline-none transition-all"
+                    placeholder="+225 07 00 00 00 00" />
+                </div>
               </div>
 
               <div>
@@ -270,10 +304,19 @@ export default function AdminPlacesPage() {
               <div className="flex gap-2">
                  <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
                    className="bg-beige-50 border-2 border-beige-100 rounded-xl px-3 py-2.5 text-xs font-bold font-sans outline-none">
-                    <option value="all">Toutes Séries</option>
+                    <option value="all">Toutes catégories</option>
                     <option value="food">🍽️ Food</option>
                     <option value="shop">🛍️ Shop</option>
-                    <option value="health">💊 Health</option>
+                    <option value="market">🏪 Marché</option>
+                    <option value="service">💼 Service</option>
+                    <option value="health">💊 Santé</option>
+                    <option value="education">🎓 Éducation</option>
+                    <option value="entertainment">🎭 Loisirs</option>
+                    <option value="hotel">🏨 Hôtel</option>
+                    <option value="transport">🚏 Transport</option>
+                    <option value="worship">⛪ Culte</option>
+                    <option value="tech">💻 Tech</option>
+                    <option value="beauty">💅 Beauté</option>
                  </select>
                  <select value={filterTier} onChange={e => setFilterTier(e.target.value)}
                    className="bg-beige-50 border-2 border-beige-100 rounded-xl px-3 py-2.5 text-xs font-bold font-sans outline-none">

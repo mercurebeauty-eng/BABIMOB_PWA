@@ -7,9 +7,6 @@ import type { POI } from '@/lib/poi';
 
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
 
-const SVG_LAYERS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
-const SVG_GPS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
-const SVG_COMPASS = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`;
 const SVG_PERSON = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21a8 8 0 10-16 0h16z"/></svg>`;
 
 type ItineraryLeg = {
@@ -25,6 +22,7 @@ type Props = {
   className?: string;
   selectedStopId?: string | null;
   selectedPoiId?: string | null;
+  satellite?: boolean;
   onStopClick?: (stop: any) => void;
   onPoiClick?: (poi: POI) => void;
   onMapReady?: (map: L.Map) => void;
@@ -66,6 +64,7 @@ export default function Map({
   className = 'absolute inset-0',
   selectedStopId = null,
   selectedPoiId = null,
+  satellite = false,
   onStopClick,
   onMapReady,
   userLocation = null,
@@ -89,6 +88,8 @@ export default function Map({
   const poisLayerRef = useRef<L.LayerGroup | null>(null);
   const broadcastsLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const baseTileRef = useRef<L.TileLayer | null>(null);
+  const satTileRef = useRef<L.TileLayer | null>(null);
   const onStopClickRef = useRef(onStopClick);
   const userLocationRef = useRef(userLocation);
   const poiCheckinsRef = useRef(poiCheckins);
@@ -131,52 +132,8 @@ export default function Map({
       { attribution: 'Tiles &copy; Esri', maxZoom: 20 }
     );
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    const NavControl = L.Control.extend({
-      options: { position: 'topright' },
-      onAdd() {
-        const c = L.DomUtil.create('div', 'bm-nav-toolbar');
-        L.DomEvent.disableClickPropagation(c);
-        L.DomEvent.disableScrollPropagation(c);
-
-        const layerBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
-        layerBtn.title = 'Vue satellite';
-        layerBtn.innerHTML = SVG_LAYERS;
-        let isSat = false;
-        L.DomEvent.on(layerBtn, 'click', () => {
-          isSat = !isSat;
-          if (isSat) {
-            map.removeLayer(baseLayer);
-            satLayer.addTo(map);
-            layerBtn.classList.add('bm-map-btn--active');
-          } else {
-            map.removeLayer(satLayer);
-            baseLayer.addTo(map);
-            layerBtn.classList.remove('bm-map-btn--active');
-          }
-        });
-
-        const gpsBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
-        gpsBtn.title = 'Ma position';
-        gpsBtn.innerHTML = SVG_GPS;
-        L.DomEvent.on(gpsBtn, 'click', () => {
-          const loc = userLocationRef.current;
-          if (loc) map.flyTo(loc, 16, { duration: 1.2 });
-        });
-
-        const compassBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
-        compassBtn.title = 'Vue Abidjan';
-        compassBtn.innerHTML = SVG_COMPASS;
-        L.DomEvent.on(compassBtn, 'click', () => {
-          map.flyTo(ABIDJAN_CENTER, 12, { duration: 1.2 });
-        });
-
-        return c;
-      },
-    });
-
-    new NavControl().addTo(map);
+    baseTileRef.current = baseLayer;
+    satTileRef.current = satLayer;
 
     const markersLayer = L.layerGroup().addTo(map);
     const hotspotsLayer = L.layerGroup().addTo(map);
@@ -198,6 +155,8 @@ export default function Map({
     return () => {
       map.remove();
       mapRef.current = null;
+      baseTileRef.current = null;
+      satTileRef.current = null;
       markersLayerRef.current = null;
       hotspotsLayerRef.current = null;
       explorersLayerRef.current = null;
@@ -208,6 +167,21 @@ export default function Map({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Satellite toggle ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    const base = baseTileRef.current;
+    const sat = satTileRef.current;
+    if (!map || !base || !sat) return;
+    if (satellite) {
+      if (map.hasLayer(base)) map.removeLayer(base);
+      if (!map.hasLayer(sat)) sat.addTo(map);
+    } else {
+      if (map.hasLayer(sat)) map.removeLayer(sat);
+      if (!map.hasLayer(base)) base.addTo(map);
+    }
+  }, [satellite]);
 
   // ── Recentrage ─────────────────────────────────────────────────────────────
   useEffect(() => {
