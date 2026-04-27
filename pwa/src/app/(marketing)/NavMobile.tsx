@@ -35,7 +35,7 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 top-[80px] z-40 bg-beige-50/95 backdrop-blur-xl flex flex-col pt-8 px-6 overflow-y-auto">
+        <div className="fixed inset-0 top-[80px] z-40 bg-white flex flex-col pt-8 px-6 overflow-y-auto">
           <nav className="flex flex-col gap-2">
             {[
               ['#comment',    'Comment ça marche'],
@@ -46,7 +46,7 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
                 key={label}
                 href={href}
                 onClick={close}
-                className="font-display font-bold text-2xl py-4 border-b border-beige-200/50 text-beige-text hover:text-abidjan-orange transition-colors"
+                className="font-display font-black text-2xl py-5 border-b border-gray-100 text-[#1a1a1a] hover:text-abidjan-orange transition-colors"
               >
                 {label}
               </a>
@@ -66,9 +66,9 @@ export default function NavMobile({ tgUrl }: { tgUrl: string }) {
             <Link
               href="/app"
               onClick={close}
-              className="flex items-center justify-center py-4 rounded-full bg-abidjan-orange text-white font-bold text-lg shadow-lg shadow-abidjan-orange/20"
+              className="flex items-center justify-center py-4 rounded-full bg-abidjan-orange text-white font-bold text-lg shadow-lg shadow-abidjan-orange/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
             >
-              Ouvrir la carte →
+              Commencer à se déplacer
             </Link>
           </div>
         </div>

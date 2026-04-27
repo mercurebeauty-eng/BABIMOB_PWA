@@ -8,8 +8,8 @@ import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PoiCheckInButton from '@/components/PoiCheckInButton';
-import PoiFavoriteButton from '@/components/PoiFavoriteButton';
+import { Vehicle } from '@/components/ui/Vehicle';
+import { Ic } from '@/components/ui/Ic';
 import BroadcastButton from '@/components/BroadcastButton';
 import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
 
@@ -25,80 +25,18 @@ const Map = dynamic(() => import('@/components/Map'), {
         </div>
         <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
       </div>
+    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid color-mix(in oklab, var(--orange) 20%, transparent)', borderTopColor: 'var(--orange)', animation: 'spin 0.8s linear infinite' }} />
+      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>Chargement de la ville…</span>
     </div>
   ),
 });
 
 const ABIDJAN_CENTER: [number, number] = [5.345, -4.020];
-const SUGGESTIONS = ['Adjamé gare', 'Angré', 'Yopougon mairie', 'Riviera 2', 'Plateau'];
-
-function formatDistance(m: number): string {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
-}
-
-/* ── SVG icons ──────────────────────────────────────────────────────────── */
-const IconSearch = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" strokeLinecap="round" />
-  </svg>
-);
-
-const IconX = ({ size = 'w-4 h-4' }: { size?: string }) => (
-  <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-    <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-  </svg>
-);
-
-const IconChevronLeft = () => (
-  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-    <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const IconLocate = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
-    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" strokeWidth="3" />
-    <circle cx="12" cy="12" r="8" />
-  </svg>
-);
-
-const IconUser = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
-  </svg>
-);
-
-const IconPin = () => (
-  <svg className="w-5 h-5 text-abidjan-orange" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-  </svg>
-);
-
-const IconMap = () => (
-  <svg className="w-12 h-12 text-beige-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M9 3L3 6v15l6-3 6 3 6-3V3l-6 3-6-3z" strokeLinejoin="round" />
-    <path d="M9 3v15M15 6v15" strokeLinecap="round" />
-  </svg>
-);
-
-const IconRoute = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 12h18M12 3l9 9-9 9" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const IconList = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 export default function AppPage() {
   return (
-    <Suspense fallback={<div className="flex-1 bg-beige-50 animate-pulse" />}>
+    <Suspense fallback={<div style={{ flex: 1, background: 'var(--cream)' }} />}>
       <AppPageContent />
     </Suspense>
   );
@@ -115,25 +53,22 @@ function AppPageContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [selected, setSelected] = useState<Stop | null>(null);
-  const [sheetExpanded, setSheetExpanded] = useState(false);
-  const [sheetTab, setSheetTab] = useState<'explorer' | 'activite'>('explorer');
+  const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
   const controls = useAnimation();
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
-  const [heatMode, setHeatMode] = useState(false);
-  const [hotspots, setHotspots] = useState<any[]>([]);
+  const [hotspots] = useState<any[]>([]);
   const [explorers, setExplorers] = useState<any[]>([]);
   const [pois, setPois] = useState<POI[]>([]);
   const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
-  const [poiNearestStop, setPoiNearestStop] = useState<{ stop_name: string; distance_m: number } | null>(null);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [livePois, setLivePois] = useState<string[]>([]);
-  const [liveTickerFeed, setLiveTickerFeed] = useState<any[]>([]);
-  const [communityFeed, setCommunityFeed] = useState<any[]>([]);
-  const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
+  const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
+  const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
   const mapRef = useRef<any>(null);
 
   // Fire-and-forget reach impression — deduplicated per user+source per session
@@ -151,8 +86,8 @@ function AppPageContent() {
       stop_lon: poi.lon,
     }))}`);
   }, [router]);
+  const sheetH = sheet === 'peek' ? 240 : sheet === 'half' ? 440 : 620;
 
-  // POI Discovery logic — also fetches check-in counts after each POI load
   const handleMapReady = useCallback((map: any) => {
     mapRef.current = map;
     const loadPois = async () => {
@@ -160,27 +95,20 @@ function AppPageContent() {
       const mod = await import('@/lib/poi');
       const fetchedPois = await mod.fetchNearbyPOIs(b.getSouth(), b.getNorth(), b.getWest(), b.getEast());
       setPois(fetchedPois);
-
       if (fetchedPois.length > 0) {
-        // 1. Fetch total checkins (7 days) for the numbers on icons
         const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
-        const { data: allData } = await supabase
-          .from('checkins')
-          .select('place_id, place_name, persona_name:profiles(display_name)')
+        const { data } = await supabase
+          .from('checkins').select('place_id')
           .in('place_id', fetchedPois.map(p => p.id))
           .gte('created_at', since7d);
-        
-        if (allData) {
+        if (data) {
           const counts: Record<string, number> = {};
-          allData.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
+          data.forEach((c: any) => { counts[c.place_id] = (counts[c.place_id] ?? 0) + 1; });
           setPoiCheckins(counts);
         }
-
-        // 2. Fetch live checkins (last 3 hours) for pulsars & ticker
         const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
         const { data: liveData } = await supabase
-          .from('checkins')
-          .select('place_id, place_name, created_at, profile:profiles(display_name, avatar_emoji)')
+          .from('checkins').select('place_id')
           .in('place_id', fetchedPois.map(p => p.id))
           .gte('created_at', since3h)
           .order('created_at', { ascending: false });
@@ -201,6 +129,8 @@ function AppPageContent() {
             if (uid) logReach(uid, 'ticker');
           });
         }
+          .gte('created_at', since3h);
+        if (liveData) setLivePois(Array.from(new Set(liveData.map((d: any) => d.place_id))));
       }
     };
     map.on('moveend', loadPois);
@@ -225,17 +155,10 @@ function AppPageContent() {
   useEffect(() => {
     const itiParam = searchParams.get('iti');
     if (itiParam) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(itiParam));
-        setActiveItinerary(parsed);
-        setSheetExpanded(true);
-      } catch (e) {
-        console.error("Failed to parse itinerary", e);
-      }
+      try { setActiveItinerary(JSON.parse(decodeURIComponent(itiParam))); } catch { /* noop */ }
     }
   }, [searchParams]);
 
-  // Fetch Profile & Broadcasts
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -300,23 +223,21 @@ function AppPageContent() {
     }
     loadData();
   }, [supabase, logReach]);
-
-  // Nearest stop to selected POI — for Phase 2 distance display
-  useEffect(() => {
-    if (!selectedPoi) { setPoiNearestStop(null); return; }
-    supabase.rpc('arrets_proches', {
-      p_lat: selectedPoi.lat,
-      p_lon: selectedPoi.lon,
-      p_radius_m: 1000,
-      p_limit: 1,
-    }).then(({ data }) => {
-      if (data && data.length > 0) {
-        setPoiNearestStop({ stop_name: data[0].stop_name, distance_m: data[0].distance_m });
-      } else {
-        setPoiNearestStop(null);
-      }
-    });
-  }, [selectedPoi, supabase]);
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+      const { data: bc } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier')
+        .not('last_broadcast_at', 'is', null)
+        .gt('last_broadcast_at', fourHoursAgo);
+      if (bc) setBroadcasts(bc);
+    }
+    loadData();
+    setExplorers([
+      { lat: 5.3484, lon: -4.0305, name: 'Jean', level: 3 },
+      { lat: 5.3310, lon: -4.0210, name: 'Awa', level: 2 },
+      { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4 },
+    ]);
+  }, [supabase]);
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
@@ -325,110 +246,30 @@ function AppPageContent() {
 
   const mapStops: Stop[] = selected
     ? [selected]
-    : nearbyStops.map((a) => ({
-        stop_id: a.stop_id,
-        stop_name: a.stop_name,
-        stop_lat: a.stop_lat,
-        stop_lon: a.stop_lon,
-        commune: a.commune,
-      }));
+    : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
 
-  const handleSearchChange = useCallback(
-    (q: string) => {
-      setQuery(q);
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-      if (q.trim().length < 2) { setResults([]); return; }
-      searchTimerRef.current = setTimeout(async () => {
-        setIsSearching(true);
-        const words = q.trim().split(/\s+/).filter(w => w.length >= 2);
-        
-        // 1. Search stops with multi-word logic
-        let stopsQuery = supabase
-          .from('gtfs_stops')
-          .select('stop_id, stop_name, stop_lat, stop_lon, commune');
-        
-        // Apply filter for each word (AND logic across words, OR across fields)
-        words.forEach(word => {
-          stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`);
-        });
-        
-        // 2. Search places (Supabase POIs + community spots)
-        const placesQuery = supabase
-          .from('places')
-          .select('id, name, lat, lon, category, commune, logo_emoji, cover_color, is_sponsored, sponsor_tier, has_campaign')
-          .or(`name.ilike.%${q}%,commune.ilike.%${q}%`)
-          .limit(5);
-
-        const [
-          { data: searchResults, error: stopError },
-          { data: placeResults },
-        ] = await Promise.all([stopsQuery.limit(15), placesQuery]);
-
-        setIsSearching(false);
-
-        if (!stopError && searchResults) {
-          const enrichedStops = searchResults.map(s => ({
-            ...s,
-            type: 'stop',
-          }));
-
-          const enrichedPlaces = (placeResults || []).map(p => ({
-            ...p,
-            type: 'place',
-            stop_id: `place-${p.id}`,
-            stop_name: p.name,
-          }));
-
-          const final = [...enrichedPlaces, ...enrichedStops];
-          setResults(final as any);
-        }
-      }, 250);
-    },
-    [supabase]
-  );
+  const handleSearchChange = useCallback((q: string) => {
+    setQuery(q);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (q.trim().length < 2) { setResults([]); return; }
+    searchTimerRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      const words = q.trim().split(/\s+/).filter(w => w.length >= 2);
+      let stopsQuery = supabase.from('gtfs_stops').select('stop_id, stop_name, stop_lat, stop_lon, commune');
+      words.forEach(word => { stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`); });
+      const { data: searchResults } = await stopsQuery.limit(12);
+      setIsSearching(false);
+      setResults((searchResults ?? []).map(s => ({ ...s, type: 'stop' })));
+    }, 250);
+  }, [supabase]);
 
   const handleSelectStop = useCallback((stop: Stop) => {
     setSelected(stop);
-    setSheetExpanded(true);
+    setSheet('half');
     setSearchOpen(false);
     setQuery('');
     setResults([]);
   }, []);
-
-  const handleSelectResult = useCallback((item: any) => {
-    if (item.type === 'route') {
-      router.push(`/app/ligne/${encodeURIComponent(item.route_id)}`);
-    } else if (item.type === 'place') {
-      const poi: POI = {
-        id: `sp-${item.id}`,
-        place_id: item.id,
-        name: item.name,
-        lat: item.lat,
-        lon: item.lon,
-        category: item.category ?? 'other',
-        logo_emoji: item.logo_emoji ?? '🏢',
-        cover_color: item.cover_color ?? '#FF7A00',
-        is_sponsored: item.is_sponsored ?? false,
-        sponsor_tier: item.sponsor_tier ?? null,
-        has_campaign: item.has_campaign ?? false,
-        commune: item.commune,
-        source: 'supabase',
-      };
-      setSelectedPoi(poi);
-      setSelected(null);
-      setSheetExpanded(true);
-      setSearchOpen(false);
-      setQuery('');
-      setResults([]);
-    } else {
-      handleSelectStop(item);
-    }
-  }, [handleSelectStop, router]);
-
-  const clearSelection = useCallback(() => {
-    setSelected(null);
-    setSheetExpanded(nearbyStops.length > 0);
-  }, [nearbyStops.length]);
 
   const handleLocateMe = useCallback(async () => {
     if (!navigator.geolocation) {
@@ -493,11 +334,53 @@ function AppPageContent() {
 
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
+    if (!navigator.geolocation) return;
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      setUserLoc([lat, lon]);
+      setSelected(null);
+      const { data } = await supabase.rpc('arrets_proches', { p_lat: lat, p_lon: lon, p_radius_m: 800, p_limit: 10 });
+      setGeoLoading(false);
+      if (data) { setNearbyStops(data as ArretProche[]); setSheet('half'); }
+    }, () => setGeoLoading(false), { enableHighAccuracy: true, timeout: 10000 });
+  }, [supabase]);
+
+  const initials = profile?.display_name
+    ? profile.display_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+    : 'MK';
+
+  const TICKER = [
+    ['Cocody', 'fluide', 'var(--green)'],
+    ['Yop → Plateau', '15 min', 'var(--green)'],
+    ['Pont HKB', 'embouteillé', 'var(--orange-deep)'],
+    ['Adjamé Liberté', 'Gbaka 200F', 'var(--ink)'],
+    ['Riviera 2', 'fluide', 'var(--green)'],
+    ['Cocody', 'fluide', 'var(--green)'],
+    ['Yop → Plateau', '15 min', 'var(--green)'],
+    ['Pont HKB', 'embouteillé', 'var(--orange-deep)'],
+    ['Adjamé Liberté', 'Gbaka 200F', 'var(--ink)'],
+    ['Riviera 2', 'fluide', 'var(--green)'],
+  ];
+
+  const TRANSPORT_DEMO = [
+    { kind: 'gbaka' as const, line: 'Adjamé ↔ Yop', eta: '2 min', color: 'var(--orange)' },
+    { kind: 'woro' as const, line: 'Cocody', eta: '4 min', color: 'var(--green)' },
+    { kind: 'taxi' as const, line: 'Plateau', eta: 'sur place', color: 'var(--gold)' },
+    { kind: 'saloni' as const, line: 'quartier', eta: '1 min', color: 'var(--blue)' },
+  ];
+
+  const RECENT = [
+    { from: 'Cocody Saint-Jean', to: 'Plateau', tarif: '300F' },
+    { from: 'Adjamé Liberté', to: 'Yopougon Selmer', tarif: '200F' },
+    { from: 'Riviera 2', to: 'Marcory Zone 4', tarif: '500F' },
+  ];
 
   return (
-    <div className="flex-1 relative overflow-hidden bg-beige-50 font-sans text-beige-text">
+    <div style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden', background: 'var(--cream)' }}>
 
-      {/* ── Map ─────────────────────────────────────────────────────────── */}
+      {/* MAP */}
       <Map
         stops={mapStops}
         center={center}
@@ -506,15 +389,11 @@ function AppPageContent() {
         selectedStopId={selected?.stop_id ?? null}
         selectedPoiId={selectedPoi?.id ?? null}
         onStopClick={handleSelectStop}
-        onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheetExpanded(true); }}
+        onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheet('half'); }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
-        legs={activeItinerary?.legs?.map((l: any) => ({
-          coords: l.coords ?? [],
-          mode: l.mode,
-          routeColor: l.route?.color,
-        })) || null}
-        hotspots={heatMode ? hotspots : []}
+        legs={activeItinerary?.legs?.map((l: any) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
+        hotspots={hotspots}
         explorers={explorers}
         pois={pois}
         poiCheckins={poiCheckins}
@@ -648,7 +527,33 @@ function AppPageContent() {
           >
             <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
             <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
+      {/* TOP BAR */}
+      <div style={{ position: 'absolute', top: 'max(56px, env(safe-area-inset-top, 0px) + 16px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 500 }}>
+        <button style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <Ic.Menu s={20} />
+        </button>
+
+        {searchOpen ? (
+          <div style={{ flex: 1, height: 44, borderRadius: 14, background: 'var(--cream)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px' }}>
+            <Ic.Search s={18} />
+            <input
+              autoFocus
+              value={query}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder="Arrêt, quartier ou lieu…"
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, fontWeight: 500, color: 'var(--ink)', fontFamily: 'inherit' }}
+            />
+            <button onClick={() => { setSearchOpen(false); setQuery(''); setResults([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex' }}>
+              <Ic.X s={18} />
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setSearchOpen(true)} style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+            <Ic.Search s={18} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Où vas-tu, Babi ?</span>
+            <Link href="/app/chat" onClick={e => e.stopPropagation()} style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, textDecoration: 'none' }}>IA</Link>
           </button>
+        )}
 
         </div>
       </div>
@@ -741,7 +646,45 @@ function AppPageContent() {
               </button>
             )}
           </div>
+        <Link href="/app/compte" style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none', flexShrink: 0 }}>
+          {initials}
+        </Link>
+      </div>
+
+      {/* SEARCH RESULTS */}
+      {searchOpen && (results.length > 0 || isSearching || query.length >= 2) && (
+        <div className="bm-search-overlay no-scrollbar" style={{ position: 'absolute', top: 'calc(max(56px, env(safe-area-inset-top, 0px) + 16px) + 54px)', left: 16, right: 16, zIndex: 500, background: 'var(--cream-2)', borderRadius: 18, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', border: '1px solid var(--line)', maxHeight: 320, overflowY: 'auto' }}>
+          {isSearching ? (
+            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>Recherche…</div>
+          ) : results.length === 0 ? (
+            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>Aucun résultat pour « {query} »</div>
+          ) : results.map((r, i) => (
+            <button key={r.stop_id ?? i} onClick={() => handleSelectStop(r)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--line)' : 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
+                <Ic.Pin s={18} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
+                {r.commune && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.commune}</div>}
+              </div>
+              <Ic.Arrow s={16} />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* RIGHT FABs */}
+      <div style={{ position: 'absolute', right: 16, top: 'max(120px, env(safe-area-inset-top, 0px) + 80px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 400 }}>
+        {profile && (
+          <BroadcastButton
+            userId={profile.id}
+            canBroadcast={profile.sub_tier === 'pro' || profile.sub_tier === 'elite'}
+          />
         )}
+        <button className="press" onClick={handleLocateMe} style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: geoLoading ? 'var(--orange)' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <Ic.Locate s={18} />
+        </button>
+      </div>
 
         {/* Expanded content */}
         {sheetExpanded && (
@@ -947,23 +890,39 @@ function AppPageContent() {
                     <IconList />
                     VOIR LES LIGNES
                   </button>
+      {/* LIVE TICKER */}
+      <div style={{ position: 'absolute', top: 'max(110px, env(safe-area-inset-top, 0px) + 70px)', left: 0, right: 0, zIndex: 300, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
+          {TICKER.map(([place, status, c], i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
+              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
+              <span style={{ fontWeight: 700 }}>{place}</span>
+              <span style={{ color: 'var(--muted)' }}>· {status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                  <Link
-                    href="/app/itineraire"
-                    className="flex items-center justify-center gap-3 bg-beige-50 hover:bg-beige-100 text-beige-text text-sm font-black px-6 py-5 rounded-3xl transition-all border-2 border-beige-100"
-                  >
-                    <IconRoute />
-                    ITINÉRAIRE
-                  </Link>
+      {/* BOTTOM SHEET */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: sheetH, transition: 'height 0.35s cubic-bezier(0.32,0.72,0,1)', background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 400, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div onClick={() => setSheet(s => s === 'peek' ? 'half' : s === 'half' ? 'full' : 'peek')} style={{ cursor: 'pointer', paddingTop: 4, flexShrink: 0 }}>
+          <div className="sheet-handle" />
+        </div>
 
-                  <button
-                    onClick={openSearch}
-                    className="flex items-center justify-center gap-3 bg-beige-50 hover:bg-beige-100 text-beige-text text-sm font-black px-6 py-5 rounded-3xl transition-all border-2 border-beige-100"
-                  >
-                    <IconSearch />
-                    AUTRE ARRÊT
-                  </button>
+        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 120px' }}>
+
+          {selected ? (
+            /* SELECTED STOP */
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase' }}>Arrêt sélectionné</div>
+                  <div className="font-display" style={{ fontSize: 22 }}>{selected.stop_name}</div>
+                  {selected.commune && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{selected.commune}</div>}
                 </div>
+                <button onClick={() => setSelected(null)} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0 }}>
+                  <Ic.X s={16} />
+                </button>
               </div>
             ) : nearbyStops.length > 0 ? (
               /* ── Nearby stops list ── */
@@ -1018,33 +977,17 @@ function AppPageContent() {
                     </li>
                   ))}
                 </ul>
+              <Link href={`/app/arret/${encodeURIComponent(selected.stop_id)}`} className="press" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 16, background: 'var(--orange)', color: '#fff', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>
+                Voir les détails & tarifs <Ic.Arrow s={18} />
+              </Link>
+            </div>
+          ) : (
+            /* DEFAULT SHEET */
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                <h3 className="font-display" style={{ fontSize: 22, margin: 0 }}>Près de toi</h3>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>COCODY · 250m</span>
               </div>
-            ) : (
-              /* ── Empty state with tabs ── */
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                {/* Tabs */}
-                <div className="flex gap-2 bg-beige-100/50 p-1.5 rounded-2xl mb-8 border border-beige-200/30">
-                  <button
-                    onClick={() => setSheetTab('explorer')}
-                    className={`flex-1 text-xs font-black py-3 rounded-[1.25rem] transition-all uppercase tracking-widest ${
-                      sheetTab === 'explorer'
-                        ? 'bg-white text-abidjan-orange shadow-md'
-                        : 'text-beige-muted'
-                    }`}
-                  >
-                    🗺️ Explorer
-                  </button>
-                  <button
-                    onClick={() => setSheetTab('activite')}
-                    className={`flex-1 text-xs font-black py-3 rounded-[1.25rem] transition-all uppercase tracking-widest ${
-                      sheetTab === 'activite'
-                        ? 'bg-white text-abidjan-orange shadow-md'
-                        : 'text-beige-muted'
-                    }`}
-                  >
-                    💬 Activité
-                  </button>
-                </div>
 
                 {sheetTab === 'explorer' ? (
                   <div className="text-center py-6">
@@ -1105,69 +1048,30 @@ function AppPageContent() {
                                </div>
                             ))}
                          </div>
+              {/* Transport scroll */}
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
+                {(nearbyStops.length > 0
+                  ? nearbyStops.slice(0, 4).map((s, i) => ({
+                      kind: (['gbaka', 'woro', 'taxi', 'saloni'] as const)[i % 4],
+                      line: s.stop_name,
+                      eta: `${Math.round(s.distance_m)}m`,
+                      color: ['var(--orange)', 'var(--green)', 'var(--gold)', 'var(--blue)'][i % 4],
+                      stopId: s.stop_id,
+                    }))
+                  : TRANSPORT_DEMO
+                ).map((v, i) => (
+                  <div key={i} className="press" onClick={() => 'stopId' in v && v.stopId ? handleSelectStop({ stop_id: v.stopId, stop_name: v.line, stop_lat: 0, stop_lon: 0, commune: null } as any) : undefined} style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Vehicle kind={v.kind} size={32} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: v.color }} />
+                        <span style={{ fontSize: 11, fontWeight: 800, color: v.color }}>{v.eta}</span>
                       </div>
-                    )}
-
-                    {/* Community Activity Feed */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-4 px-2">
-                           <span className="text-xl">👥</span>
-                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-blue">Dernières visites</span>
-                        </div>
-                        <div className="space-y-4">
-                           {communityFeed.length > 0 ? communityFeed.map((post, idx) => (
-                              <div key={idx} className="flex gap-4 p-4 bg-beige-50/50 rounded-3xl border border-beige-100 group hover:border-abidjan-orange/30 transition-all">
-                                 <div className="relative flex-shrink-0">
-                                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-xl shadow-sm border border-beige-100 group-hover:scale-105 transition-transform">
-                                       {post.profile?.avatar_emoji || '👤'}
-                                    </div>
-                                    {post.profile?.is_verified_explorer && (
-                                       <div className="absolute -top-1 -right-1 w-5 h-5 bg-abidjan-orange rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white">✓</div>
-                                    )}
-                                 </div>
-                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-baseline justify-between gap-2 mb-1">
-                                       <span className="text-sm font-black text-beige-text truncate">
-                                          {post.profile?.display_name || 'Explorateur'}
-                                       </span>
-                                       <span className="text-[9px] font-bold text-beige-muted uppercase tracking-widest whitespace-nowrap">
-                                          {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                       </span>
-                                    </div>
-                                    <div className="text-xs text-beige-muted font-medium leading-relaxed">
-                                       À <span className="text-abidjan-orange font-bold">{post.place_name}</span>
-                                    </div>
-                                    <div className="mt-2.5 flex items-center gap-3">
-                                       <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-beige-100">
-                                          <span className="text-[10px]">⭐</span>
-                                          <span className="text-[9px] font-black text-beige-text">+{post.points_earned} XP</span>
-                                       </div>
-                                       <button className="text-[9px] font-black uppercase tracking-widest text-abidjan-blue hover:underline">
-                                          Saluer 👋
-                                       </button>
-                                    </div>
-                                 </div>
-                              </div>
-                           )) : (
-                              <div className="text-center py-10 opacity-50">
-                                 <div className="text-3xl mb-4">💤</div>
-                                 <p className="text-[10px] font-black uppercase tracking-widest">Abidjan dort ? Fais un check-in !</p>
-                              </div>
-                           )}
-                        </div>
                     </div>
-
-                    <div className="text-center pt-4">
-                        <Link
-                           href="/app/ccomment"
-                           className="inline-flex items-center gap-3 bg-beige-50 border-2 border-beige-200 text-beige-muted text-[10px] font-black px-8 py-3 rounded-2xl uppercase tracking-widest hover:border-abidjan-orange hover:text-abidjan-orange transition-all"
-                        >
-                           <span>💬</span> Voir tous les avis
-                        </Link>
-                    </div>
-
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.line}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{v.kind}</div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -1213,56 +1117,43 @@ function AppPageContent() {
             ) : null}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 py-6">
-            {results.length > 0 ? (
-              <ul className="space-y-3">
-                {results.map((s) => (
-                  <li
-                    key={`${s.type}-${s.stop_id}`}
-                    onClick={() => handleSelectResult(s)}
-                    className="flex items-center gap-4 bg-white rounded-3xl p-5 border-2 border-beige-100 hover:border-abidjan-orange/30 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
-                    role="button"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-beige-50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform text-xl">
-                      {s.type === 'route' ? '🚌' : s.type === 'place' ? (s.logo_emoji ?? '🏢') : <IconPin />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-base font-black text-beige-text group-hover:text-abidjan-orange transition-colors">
-                        {s.type === 'route' && (
-                          <span className="text-[10px] bg-abidjan-orange/10 text-abidjan-orange px-2 py-0.5 rounded-md mr-2 uppercase tracking-widest">Ligne</span>
-                        )}
-                        {s.type === 'place' && (
-                          <span className="text-[10px] bg-abidjan-green/10 text-abidjan-green px-2 py-0.5 rounded-md mr-2 uppercase tracking-widest">Lieu</span>
-                        )}
-                        {s.stop_name}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        {s.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-[0.2em]">{s.commune}</div>}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : query.trim().length >= 2 && !isSearching ? (
-              <div className="flex flex-col items-center py-20 gap-6">
-                <div className="text-6xl">🔍</div>
-                <p className="text-base font-bold text-beige-muted uppercase tracking-widest">Aucun résultat trouvé</p>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-beige-muted font-black px-2">
-                  Suggestions populaires
+              {/* Babi IA CTA */}
+              <Link href="/app/chat" className="press" style={{ display: 'block', padding: 16, borderRadius: 18, marginBottom: 14, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
+                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>🗺️</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BABI IA</div>
+                    <div className="font-display" style={{ fontSize: 17, marginTop: 2 }}>Où vas-tu ?<br/>Demande en nouchi.</div>
+                  </div>
+                  <Ic.Arrow s={22} />
                 </div>
-                <div className="grid grid-cols-1 gap-3">
-                  {SUGGESTIONS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => handleSearchChange(s)}
-                      className="w-full text-left flex items-center gap-4 px-6 py-5 bg-white border-2 border-beige-100 rounded-3xl hover:border-abidjan-orange transition-all font-black text-beige-text group"
-                    >
-                      <span className="text-beige-200 group-hover:text-abidjan-orange transition-colors"><IconSearch /></span>
-                      {s}
-                    </button>
+              </Link>
+
+              {/* Recent */}
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase', margin: '8px 4px 8px' }}>RÉCENTS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                {RECENT.map((r, i) => (
+                  <Link key={i} href="/app/chat" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
+                      <Ic.Route s={18} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Tarif moyen · {r.tarif}</div>
+                    </div>
+                    <Ic.Arrow s={16} />
+                  </Link>
+                ))}
+              </div>
+
+              {/* Community pulse */}
+              <Link href="/app/ccomment" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
+                <div style={{ display: 'flex' }}>
+                  {['var(--orange)', 'var(--green)', 'var(--blue)', 'var(--gold)'].map((c, i) => (
+                    <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                      {['K', 'A', 'M', 'D'][i]}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1271,6 +1162,18 @@ function AppPageContent() {
         </motion.div>
       )}
       </AnimatePresence>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Babis sont en ligne</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Demande ton C'comment</div>
+                </div>
+                <Ic.Arrow s={18} />
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

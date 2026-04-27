@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { Ic } from '@/components/ui/Ic';
 
 export type FeedCheckin = {
   id: string;
@@ -12,6 +13,8 @@ export type FeedCheckin = {
   display_name: string;
   avatar_emoji: string;
 };
+
+const AVATAR_COLORS = ['var(--orange)', 'var(--green)', 'var(--blue)', 'var(--gold)', 'var(--orange-deep)'];
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -41,64 +44,45 @@ export default function CcommentFeed({ initialCheckins }: { initialCheckins: Fee
         }
       )
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [supabase]);
 
   if (checkins.length === 0) {
     return (
-      <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-12 text-center shadow-xl shadow-black/5">
-        <div className="text-5xl mb-6">👋</div>
-        <p className="text-lg text-beige-muted font-bold mb-8 leading-relaxed">
-          Sois le premier à marquer ton territoire !
-        </p>
-        <Link
-          href="/app"
-          className="inline-flex items-center gap-2 bg-abidjan-orange text-white font-black px-8 py-4 rounded-full shadow-lg shadow-abidjan-orange/20"
-        >
-          Explorer la carte →
+      <div style={{ padding: '40px 20px', textAlign: 'center', borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>👋</div>
+        <p style={{ fontSize: 15, color: 'var(--muted)', fontWeight: 600, marginBottom: 20 }}>Sois le premier à marquer ton territoire !</p>
+        <Link href="/app" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--orange)', color: '#fff', padding: '12px 24px', borderRadius: 999, fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>
+          Explorer la carte <Ic.Arrow s={16} />
         </Link>
       </div>
     );
   }
 
   return (
-    <ul className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {checkins.map((c, idx) => (
-        <li
+        <div
           key={c.id}
-          className={`bg-white rounded-2xl border-2 shadow-sm hover:shadow-md transition-all flex items-center gap-4 px-5 py-4 group ${
-            idx === 0 && newCount > 0
-              ? 'border-abidjan-green/40 animate-in slide-in-from-top-2 duration-500'
-              : 'border-beige-200'
-          }`}
+          className={idx === 0 && newCount > 0 ? 'slide-up' : ''}
+          style={{ padding: '12px 14px', borderRadius: 16, background: 'var(--cream-2)', border: `1px solid ${idx === 0 && newCount > 0 ? 'var(--green)' : 'var(--line)'}`, display: 'flex', alignItems: 'center', gap: 12 }}
         >
-          <div className="w-12 h-12 rounded-xl bg-beige-50 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform flex-shrink-0 select-none">
-            {c.avatar_emoji}
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: AVATAR_COLORS[idx % AVATAR_COLORS.length], color: '#fff', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {c.display_name?.[0]?.toUpperCase() ?? '?'}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-black text-abidjan-orange uppercase tracking-wider truncate">
-                {c.display_name}
-              </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.display_name}</span>
               {idx === 0 && newCount > 0 && (
-                <span className="text-[9px] font-black bg-abidjan-green text-white px-2 py-0.5 rounded-full uppercase tracking-widest flex-shrink-0">
-                  Nouveau
-                </span>
+                <span style={{ fontSize: 9, fontWeight: 900, background: 'var(--green)', color: '#fff', padding: '2px 7px', borderRadius: 999, letterSpacing: 0.5, flexShrink: 0 }}>NOUVEAU</span>
               )}
             </div>
-            <div className="text-sm font-black text-beige-text truncate">{c.place_name}</div>
-            {c.commune && (
-              <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">
-                {c.commune}
-              </div>
-            )}
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.place_name}</div>
+            {c.commune && <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{c.commune}</div>}
           </div>
-          <div className="text-[9px] font-black text-beige-muted uppercase tracking-widest flex-shrink-0 text-right">
-            {timeAgo(c.created_at)}
-          </div>
-        </li>
+          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0 }}>{timeAgo(c.created_at)}</div>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }

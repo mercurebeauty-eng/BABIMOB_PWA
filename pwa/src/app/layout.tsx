@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Syne } from 'next/font/google';
+import { DM_Sans, Syne, Archivo_Black } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import InstallPrompt from '@/components/InstallPrompt';
 import './globals.css';
@@ -15,6 +15,13 @@ const syne = Syne({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
   variable: '--font-syne',
+  display: 'swap'
+});
+
+const archivoBlack = Archivo_Black({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-archivo-black',
   display: 'swap'
 });
 
@@ -49,7 +56,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
+    <html lang="fr" className={`${dmSans.variable} ${syne.variable} ${archivoBlack.variable}`}>
       <body className="font-sans min-h-screen flex flex-col">
         {children}
         <InstallPrompt />

@@ -89,6 +89,94 @@ export default function Map({
     if (matcher.addEventListener) {
       matcher.addEventListener('change', updateStyle);
     }
+
+    const map = L.map(containerRef.current, {
+      center,
+      zoom,
+      scrollWheelZoom: true,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    const baseLayer = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
+      }
+    ).addTo(map);
+
+    const satLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: 'Tiles &copy; Esri', maxZoom: 20 }
+    );
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    const NavControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd() {
+        const c = L.DomUtil.create('div', 'bm-nav-toolbar');
+        L.DomEvent.disableClickPropagation(c);
+        L.DomEvent.disableScrollPropagation(c);
+
+        const layerBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        layerBtn.title = 'Vue satellite';
+        layerBtn.innerHTML = SVG_LAYERS;
+        let isSat = false;
+        L.DomEvent.on(layerBtn, 'click', () => {
+          isSat = !isSat;
+          if (isSat) {
+            map.removeLayer(baseLayer);
+            satLayer.addTo(map);
+            layerBtn.classList.add('bm-map-btn--active');
+          } else {
+            map.removeLayer(satLayer);
+            baseLayer.addTo(map);
+            layerBtn.classList.remove('bm-map-btn--active');
+          }
+        });
+
+        const gpsBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        gpsBtn.title = 'Ma position';
+        gpsBtn.innerHTML = SVG_GPS;
+        L.DomEvent.on(gpsBtn, 'click', () => {
+          const loc = userLocationRef.current;
+          if (loc) map.flyTo(loc, 16, { duration: 1.2 });
+        });
+
+        const compassBtn = L.DomUtil.create('button', 'bm-map-btn', c) as HTMLButtonElement;
+        compassBtn.title = 'Vue Abidjan';
+        compassBtn.innerHTML = SVG_COMPASS;
+        L.DomEvent.on(compassBtn, 'click', () => {
+          map.flyTo(ABIDJAN_CENTER, 12, { duration: 1.2 });
+        });
+
+        return c;
+      },
+    });
+
+    new NavControl().addTo(map);
+
+    const markersLayer = L.layerGroup().addTo(map);
+    const hotspotsLayer = L.layerGroup().addTo(map);
+    const explorersLayer = L.layerGroup().addTo(map);
+    const legsLayer = L.layerGroup().addTo(map);
+    const poisLayer = L.layerGroup().addTo(map);
+    const broadcastsLayer = L.layerGroup().addTo(map);
+
+    mapRef.current = map;
+    markersLayerRef.current = markersLayer;
+    hotspotsLayerRef.current = hotspotsLayer;
+    explorersLayerRef.current = explorersLayer;
+    legsLayerRef.current = legsLayer;
+    poisLayerRef.current = poisLayer;
+    broadcastsLayerRef.current = broadcastsLayer;
+
+    onMapReady?.(map);
+
     return () => {
       if (matcher.removeEventListener) {
         matcher.removeEventListener('change', updateStyle);
@@ -99,6 +187,240 @@ export default function Map({
   const currentStyleURL = isSatellite 
     ? 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL' // Fallback for satellite, actually better to inject a raster source over our vector basemap if needed, but for now we'll stick to simple vector logic. Let's build a clean satellite toggle using MapLibre standard if needed. For now, we will just use standard styles.
     : mapStyle;
+  // ── Recentrage ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    mapRef.current?.setView(center, zoom);
+  }, [center, zoom]);
+
+  // ── Hotspots (Heatmap) ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = hotspotsLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    hotspots.forEach((h) => {
+      // 1. Large vibrant glow (Orange/Red)
+      const intensityScale = Math.min(h.intensity / 50, 1); // Scale based on checkins
+      const outerRadius = 100 + intensityScale * 150;
+      
+      L.circle([h.lat, h.lon], {
+        radius: outerRadius,
+        stroke: false,
+        fillColor: '#ff3d00',
+        fillOpacity: 0.15 + intensityScale * 0.1,
+      }).addTo(layer);
+      
+      // 2. High intensity core
+      L.circle([h.lat, h.lon], {
+        radius: outerRadius * 0.5,
+        stroke: false,
+        fillColor: '#ff9100',
+        fillOpacity: 0.3 + intensityScale * 0.2,
+      }).addTo(layer);
+
+      // 3. Ultra-hot center
+      L.circle([h.lat, h.lon], {
+        radius: 30,
+        stroke: true,
+        weight: 1,
+        color: '#ffffff50',
+        fillColor: '#ffffff',
+        fillOpacity: 0.5,
+      }).addTo(layer);
+    });
+  }, [hotspots]);
+
+  // ── Explorers (Social) ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = explorersLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    explorers.forEach((exp) => {
+      const icon = L.divIcon({
+        className: 'custom-explorer-marker',
+        html: `
+          <div class="relative flex items-center justify-center">
+            <div class="absolute w-4 h-4 bg-abidjan-blue/20 rounded-full animate-ping"></div>
+            <div class="w-3 h-3 bg-abidjan-blue rounded-full border-2 border-white shadow-sm"></div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      L.marker([exp.lat, exp.lon], { icon }).addTo(layer);
+    });
+  }, [explorers]);
+
+  // ── POIs (Points of Interest) ──────────────────────────────────────────────
+  const onPoiClickRef = useRef(onPoiClick);
+  useEffect(() => { onPoiClickRef.current = onPoiClick; }, [onPoiClick]);
+
+  useEffect(() => {
+    const layer = poisLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    pois.forEach((p) => {
+      const emoji = p.logo_emoji ?? '🏢';
+      const isElite = p.sponsor_tier === 'elite';
+      const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
+      const isSelected = selectedPoiId === p.id;
+      const isLive = livePois.includes(p.id) || livePois.includes(`sp-${p.id}`);
+      const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
+
+      const circleSize = isElite ? 40 : isPro ? 32 : 24;
+      const emojiSize = isElite ? 22 : isPro ? 17 : 14;
+
+      let extraClass = isElite
+        ? 'bm-poi-circle-elite bm-poi-elite-pulse'
+        : isPro
+        ? 'bm-poi-circle-pro'
+        : '';
+
+      if (isLive) extraClass += ' bm-poi-live-pulse';
+
+      const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
+      const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
+
+      const presenceHtml = checkinCount > 0
+        ? `<div class="bm-poi-presence">${SVG_PERSON}${checkinCount > 1 ? `<span class="bm-poi-presence-count">${checkinCount > 9 ? '9+' : checkinCount}</span>` : ''}</div>`
+        : '';
+
+      const html = `
+        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
+          ${presenceHtml}
+          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
+            <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
+          </div>
+          <span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+
+      const marker = L.marker([p.lat, p.lon], {
+        icon,
+        zIndexOffset: isElite ? 1000 : isPro ? 500 : 100,
+      });
+
+      marker.on('click', () => onPoiClickRef.current?.(p));
+      marker.addTo(layer);
+    });
+  }, [pois, livePois]);
+
+  // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
+  useEffect(() => {
+    const layer = broadcastsLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    broadcasts.forEach((bc) => {
+      if (!bc.broadcast_lat || !bc.broadcast_lon) return;
+
+      const html = `
+        <div class="bm-broadcast-bubble">
+          <div class="bm-broadcast-card">
+            <span style="font-size:16px">${bc.avatar_emoji}</span>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span class="bm-broadcast-name">${bc.display_name}</span>
+              <span class="bm-broadcast-text">${bc.broadcast_text}</span>
+            </div>
+          </div>
+          <div class="bm-broadcast-dot"></div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+
+      L.marker([bc.broadcast_lat, bc.broadcast_lon], { icon, zIndexOffset: 2000 }).addTo(layer);
+    });
+  }, [broadcasts]);
+
+  // ── Markers ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = markersLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    stops.forEach((s) => {
+      const isSelected = s.stop_id === selectedStopId;
+      const marker = L.marker([s.stop_lat, s.stop_lon], {
+        icon: makeMarkerIcon(isSelected),
+      });
+
+      marker.bindPopup(
+        `<div class="bm-popup"><strong>${escapeHtml(s.stop_name)}</strong>${
+          s.commune ? `<div class="bm-popup-sub">${escapeHtml(s.commune)}</div>` : ''
+        }</div>`,
+        { className: 'bm-popup-wrapper', offset: [0, -4] }
+      );
+
+      if (onStopClick) {
+        marker.on('click', () => onStopClickRef.current?.(s));
+      }
+
+      marker.addTo(layer);
+    });
+  }, [stops, selectedStopId]);
+
+  // ── User location marker ───────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+
+    if (!userLocation) return;
+
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="bm-user-marker"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
+    const marker = L.marker(userLocation, { icon, zIndexOffset: 1000 })
+      .bindPopup('<div class="bm-popup"><strong>Ma position</strong></div>', {
+        className: 'bm-popup-wrapper',
+        offset: [0, -4],
+      })
+      .addTo(map);
+
+    userMarkerRef.current = marker;
+  }, [userLocation]);
+
+  // ── Multi-leg itinerary ───────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = legsLayerRef.current;
+    const map = mapRef.current;
+    if (!layer || !map) return;
+
+    layer.clearLayers();
+    if (!legs || legs.length === 0) return;
+
+    const allCoords: [number, number][] = [];
+
+    legs.forEach((leg) => {
+      if (!leg.coords || leg.coords.length === 0) return;
+      allCoords.push(...leg.coords);
 
   // Transform legs from [lat, lng] to [lng, lat] for GeoJSON
   const legsFeatures = useMemo(() => {
