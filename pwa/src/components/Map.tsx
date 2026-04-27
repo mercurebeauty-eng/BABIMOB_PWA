@@ -113,6 +113,7 @@ export default function Map({
       zoom,
       scrollWheelZoom: true,
       zoomControl: false,
+      attributionControl: false,
     });
 
     const baseLayer = L.tileLayer(
