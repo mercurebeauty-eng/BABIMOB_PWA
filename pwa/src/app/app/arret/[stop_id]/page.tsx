@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FavoriteButton from './FavoriteButton';
 import StopLinesList from './StopLinesList';
-import BeigeMapBackground from '@/components/BeigeMapBackground';
+import { Ic } from '@/components/ui/Ic';
+import { Pill } from '@/components/ui/Pill';
+import { WaxStrip } from '@/components/ui/WaxStrip';
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -25,84 +27,107 @@ export default async function ArretPage({ params }: Props) {
   const [{ data: lignes }, { data: favRow }, { data: profile }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
-      ? supabase
-          .from('user_favorites')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('stop_id', stopId)
-          .eq('kind', 'stop')
-          .limit(1)
-          .maybeSingle()
+      ? supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('stop_id', stopId).eq('kind', 'stop').limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     user
       ? supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).maybeSingle()
-      : Promise.resolve({ data: null })
+      : Promise.resolve({ data: null }),
   ]);
 
   const isFavorited = !!favRow;
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
-      <BeigeMapBackground />
+    <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Top nav */}
-      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
-        <Link
-          href="/app"
-          className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors"
-          aria-label="Retour à la carte"
-        >
-          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-        <span className="text-sm font-bold uppercase tracking-widest text-beige-muted">Détails de l&apos;arrêt</span>
+      {/* HERO */}
+      <div style={{ background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden', paddingTop: 'max(56px, env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 28, paddingLeft: 20, paddingRight: 20 }}>
+        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.12, pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <Link href="/app" style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cream)', background: 'rgba(255,255,255,0.1)', textDecoration: 'none' }}>
+              <Ic.Back s={20} />
+            </Link>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Pill color="var(--orange)">GARE GBAKA</Pill>
+              <Pill color="var(--green)">ACTIVE</Pill>
+            </div>
+          </div>
+          <h1 className="font-display" style={{ fontSize: 28, color: '#fff', lineHeight: 1.05, marginBottom: 6 }}>{stop.stop_name}</h1>
+          {stop.commune && (
+            <p style={{ fontSize: 13, color: 'rgba(247,241,230,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{stop.commune} · Abidjan</p>
+          )}
+        </div>
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-5 py-8 relative z-10">
-        {/* Stop header card */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-abidjan-orange/10 flex items-center justify-center flex-shrink-0 text-3xl shadow-inner">
-              📍
+      <WaxStrip color="var(--orange)" height={6} />
+
+      {/* CONTENT */}
+      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 100px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Favorite + coords */}
+        <div style={{ padding: 16, borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 }}>
+              {stop.stop_lat.toFixed(4)}, {stop.stop_lon.toFixed(4)}
             </div>
-            <div>
-              <div className="text-xs uppercase tracking-widest text-abidjan-orange font-black mb-1">
-                Arrêt de transport
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+              {lignes ? lignes.length : 0} ligne{(lignes?.length ?? 0) !== 1 ? 's' : ''} passante{(lignes?.length ?? 0) !== 1 ? 's' : ''}
+            </div>
+          </div>
+          {user && (
+            <FavoriteButton
+              stopId={stop.stop_id}
+              stopName={stop.stop_name}
+              commune={stop.commune ?? null}
+              lat={stop.stop_lat}
+              lon={stop.stop_lon}
+              initialFavorited={isFavorited}
+              userId={user.id}
+            />
+          )}
+        </div>
+
+        {/* Live tarifs (static for now) */}
+        <div style={{ borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="font-display" style={{ fontSize: 17 }}>Tarifs réels</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>
+              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+              EN DIRECT
+            </div>
+          </div>
+          {[
+            { dest: 'Yopougon Selmer', price: '200F', conf: 14 },
+            { dest: 'Plateau', price: '300F', conf: 28 },
+            { dest: 'Abobo', price: '250F', conf: 9 },
+          ].map((t, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < 2 ? '1px solid var(--line)' : 'none' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
+                <Ic.Route s={18} />
               </div>
-              <h1 className="text-2xl font-black text-beige-text leading-tight">{stop.stop_name}</h1>
-              {stop.commune && (
-                <div className="text-sm text-beige-muted font-bold mt-1 uppercase tracking-wide">{stop.commune}</div>
-              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.dest}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Confirmé par {t.conf} Babis</div>
+              </div>
+              <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)' }}>{t.price}</div>
             </div>
+          ))}
+          <div style={{ padding: 12 }}>
+            <button className="press" style={{ width: '100%', padding: 12, borderRadius: 12, border: '1.5px dashed var(--orange)', background: 'transparent', color: 'var(--orange)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Ic.Plus s={16} /> Confirmer un tarif
+            </button>
           </div>
         </div>
 
-        {/* Actions - Favoris uniquement */}
-        <div className="mb-8 max-w-sm mx-auto">
-          <FavoriteButton
-            stopId={stop.stop_id}
-            stopName={stop.stop_name}
-            commune={stop.commune ?? null}
-            lat={stop.stop_lat}
-            lon={stop.stop_lon}
-            initialFavorited={isFavorited}
-            userId={user?.id ?? null}
-          />
-        </div>
-
-        {/* Lines section header */}
-        <div className="flex flex-col gap-4 mb-4 px-2">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display font-black text-xl uppercase tracking-tight">Lignes passantes</h2>
-            {lignes && (
-              <span className="text-xs font-black text-beige-muted uppercase tracking-widest">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
-            )}
+        {/* Lines */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div className="font-display" style={{ fontSize: 18 }}>Lignes passantes</div>
+            {lignes && <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>}
           </div>
+          <StopLinesList lines={lignes || []} preferredModes={prefs} />
         </div>
-
-        <StopLinesList lines={lignes || []} preferredModes={prefs} />
       </div>
     </div>
   );

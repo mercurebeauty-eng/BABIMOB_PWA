@@ -1,8 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import BeigeMapBackground from '@/components/BeigeMapBackground';
 import CcommentFeed from './CcommentFeed';
 import type { FeedCheckin } from './CcommentFeed';
+import { Pill } from '@/components/ui/Pill';
+import { Ic } from '@/components/ui/Ic';
+import { WaxStrip } from '@/components/ui/WaxStrip';
+
+function timeAgo(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "à l'instant";
+  if (mins < 60) return `il y a ${mins} min`;
+  if (mins < 1440) return `il y a ${Math.floor(mins / 60)} h`;
+  return `il y a ${Math.floor(mins / 1440)} j`;
+}
 
 export default async function CcommentPage() {
   const supabase = await createClient();
@@ -24,97 +34,89 @@ export default async function CcommentPage() {
         .limit(3)
     : { data: [] };
 
-  function timeAgo(iso: string): string {
-    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (mins < 1) return "à l'instant";
-    if (mins < 60) return `il y a ${mins} min`;
-    if (mins < 1440) return `il y a ${Math.floor(mins / 60)} h`;
-    return `il y a ${Math.floor(mins / 1440)} j`;
-  }
-
   const checkins = (feed ?? []) as FeedCheckin[];
   const myCheckins = (mine ?? []) as FeedCheckin[];
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-beige-50 text-beige-text font-sans relative">
-      <BeigeMapBackground />
+    <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
 
-      <div className="sticky top-0 z-20 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
-        <Link href="/app" className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors" aria-label="Retour à la carte">
-          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-        <div className="flex-1">
-          <div className="text-sm font-black uppercase tracking-widest text-beige-text">C&apos;comment</div>
-          <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest">Activité d&apos;Abidjan</div>
-        </div>
-        {user && (
-          <Link href="/app/compte" className="w-9 h-9 rounded-xl bg-abidjan-gradient flex items-center justify-center text-white font-black text-sm shadow-sm hover:scale-105 transition-transform">
-            {(user.email?.[0] ?? 'U').toUpperCase()}
+      {/* Header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(247,241,230,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--line)', padding: '14px 16px 12px', paddingTop: 'max(14px, env(safe-area-inset-top))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <Link href="/app" style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', background: 'var(--cream-2)', border: '1px solid var(--line)', textDecoration: 'none' }}>
+            <Ic.Back s={20} />
           </Link>
-        )}
-      </div>
-
-      <div className="max-w-2xl mx-auto w-full px-5 py-8 space-y-8 relative z-10">
-
-        {/* Pitch Card */}
-        <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-abidjan-orange/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-          <div className="text-4xl mb-6">🗺️</div>
-          <h1 className="font-display font-black text-3xl mb-4 tracking-tight">
-            C&apos;est comment Abidjan ?
-          </h1>
-          <p className="text-base text-beige-muted font-medium leading-relaxed mb-8">
-            Marque les lieux que tu as visités. Découvre où bouge la communauté et deviens une{' '}
-            <strong className="text-abidjan-orange">Légende</strong> de la cité.
-          </p>
-          {!user && (
-            <Link
-              href="/app/auth/signin"
-              className="inline-flex items-center gap-3 bg-abidjan-orange text-white text-sm font-black px-8 py-4 rounded-full shadow-lg shadow-abidjan-orange/20"
-            >
-              Se connecter pour participer <span className="text-lg">→</span>
+          <div style={{ flex: 1 }}>
+            <div className="font-display" style={{ fontSize: 22 }}>C'comment ?</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Le pouls d'Abidjan, en direct</div>
+          </div>
+          {user && (
+            <Link href="/app/compte" style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--orange)', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 14 }}>
+              <Ic.Plus s={20} />
             </Link>
           )}
         </div>
+        {/* Filter bar */}
+        <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+          {['Tout', 'Près de moi', 'Trafic', 'Bons plans', 'Alertes'].map((label, i) => (
+            <button key={label} className="press" style={{ padding: '7px 14px', borderRadius: 999, border: i === 0 ? 'none' : '1px solid var(--line)', background: i === 0 ? 'var(--ink)' : 'transparent', color: i === 0 ? 'var(--cream)' : 'var(--ink)', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0 }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Mon historique */}
+      {/* Content */}
+      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 100px' }}>
+
+        {/* Pulse card */}
+        <div style={{ borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(135deg, var(--green) 0%, var(--green-deep) 100%)', color: '#fff', padding: 16, marginBottom: 14, position: 'relative' }}>
+          <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, letterSpacing: 0.6 }}>POULS DE LA VILLE · MAINTENANT</div>
+            <div className="font-display" style={{ fontSize: 22, marginTop: 4 }}>Cocody coule.<br/>Plateau bouchonne.</div>
+            <div style={{ fontSize: 13, opacity: 0.9, marginTop: 6 }}>{checkins.length} Babis actifs · MAJ à l'instant</div>
+          </div>
+        </div>
+
+        {/* Mes visites récentes */}
         {user && myCheckins.length > 0 && (
-          <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 shadow-xl shadow-black/5 p-8">
-            <div className="flex items-center justify-between mb-8">
-              <div className="text-xs uppercase tracking-widest text-abidjan-orange font-black">Mes visites récentes</div>
-              <Link href="/app/compte" className="text-xs font-black text-beige-muted hover:text-abidjan-orange transition-colors uppercase tracking-widest">
-                Voir profil →
-              </Link>
+          <div style={{ marginBottom: 14, padding: 14, borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <Pill color="var(--orange)">MES VISITES</Pill>
+              <Link href="/app/compte" style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', textDecoration: 'none' }}>Voir profil →</Link>
             </div>
-            <ul className="space-y-4">
-              {myCheckins.map((c) => (
-                <li key={c.id} className="flex items-center gap-4 bg-beige-50 rounded-2xl p-4 border border-beige-100">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shadow-sm select-none">
-                    {c.avatar_emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-black text-beige-text truncate">{c.place_name}</div>
-                    {c.commune && (
-                      <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{c.commune}</div>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-beige-muted font-black uppercase tracking-widest">{timeAgo(c.created_at)}</div>
-                </li>
-              ))}
-            </ul>
+            {myCheckins.map((c) => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
+                <span style={{ fontSize: 20 }}>{c.avatar_emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.place_name}</div>
+                  {c.commune && <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.commune}</div>}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 800, flexShrink: 0 }}>{timeAgo(c.created_at)}</div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Feed live */}
-        <div>
-          <div className="text-xs uppercase tracking-widest text-beige-muted font-black mb-6 px-4 flex items-center justify-between">
-            <span>En direct du terrain ({checkins.length})</span>
-            <span className="w-2 h-2 rounded-full bg-abidjan-green animate-pulse shadow-[0_0_8px_rgba(46,221,139,0.5)]" />
+        {/* Sign in CTA if not logged in */}
+        {!user && (
+          <div style={{ marginBottom: 14, padding: 20, borderRadius: 18, background: 'var(--cream-2)', border: '1.5px dashed var(--orange)', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🗺️</div>
+            <div className="font-display" style={{ fontSize: 20, marginBottom: 8 }}>Marque ton territoire</div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Connecte-toi pour participer et être vu sur la carte.</p>
+            <Link href="/app/auth/signin" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--orange)', color: '#fff', padding: '12px 24px', borderRadius: 999, fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>
+              Se connecter <Ic.Arrow s={16} />
+            </Link>
           </div>
-          <CcommentFeed initialCheckins={checkins} />
+        )}
+
+        {/* Live feed */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase' }}>En direct ({checkins.length})</div>
+          <div className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} />
         </div>
+        <CcommentFeed initialCheckins={checkins} />
       </div>
     </div>
   );
