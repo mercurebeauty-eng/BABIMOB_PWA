@@ -48,6 +48,7 @@ export default async function ComptePage() {
   const level = levelScore >= 1000 ? 4 : levelScore >= 400 ? 3 : levelScore >= 100 ? 2 : 1;
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
   const avatarEmoji = profile?.avatar_emoji || '👤';
+  const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -149,7 +150,7 @@ export default async function ComptePage() {
                 initialVisibility={profile?.is_public_visits}
                 initialCommune={profile?.origin_commune || ''}
               />
-           </div>
+           
            <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
               <div className="flex items-center gap-3 mb-6">
                  <div className="w-10 h-10 rounded-xl bg-beige-100 text-beige-muted flex items-center justify-center text-xl">⚙️</div>
@@ -163,5 +164,6 @@ export default async function ComptePage() {
            </div>
         </div>
       </div>
+    </div>
   );
 }

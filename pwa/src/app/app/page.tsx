@@ -480,12 +480,26 @@ function AppPageContent() {
         transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
         className="absolute bottom-0 left-0 right-0 z-[600] bg-white rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-beige-100 flex flex-col overflow-hidden"
       >
-        {/* Clickable Handle to cycle height */}
-        <div
-          onClick={cycleSheet}
-          className="flex flex-col items-center pt-3 pb-4 cursor-pointer active:bg-beige-50/50 transition-colors"
-        >
-          <div className="w-12 h-1.5 bg-beige-200/60 rounded-full" />
+        {/* 1-Click Height Selectors */}
+        <div className="flex flex-col items-center pt-3 pb-2">
+          <div className="flex gap-1.5 p-1 bg-beige-50/50 rounded-full mb-3">
+            {[
+              { id: 'peek', label: 'Bas', h: 240 },
+              { id: 'half', label: 'Milieu', h: 440 },
+              { id: 'full', label: 'Plein', h: 620 }
+            ].map(lvl => (
+              <button
+                key={lvl.id}
+                onClick={() => setSheet(lvl.id as any)}
+                className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                  sheet === lvl.id ? 'bg-abidjan-orange text-white shadow-md' : 'text-beige-muted hover:text-beige-text'
+                }`}
+              >
+                {lvl.label}
+              </button>
+            ))}
+          </div>
+          <div onClick={cycleSheet} className="w-12 h-1.5 bg-beige-200/60 rounded-full cursor-pointer active:scale-x-125 transition-transform" />
         </div>
 
         {/* Scrollable Area */}
