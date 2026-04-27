@@ -92,10 +92,10 @@ export default async function ArretPage({ params }: Props) {
         </div>
 
         {/* Tarifs réels — live */}
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
             <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Tarifs réels aujourd'hui</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', fontWeight: 800 }}>
               <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
               EN DIRECT
             </div>
@@ -104,35 +104,81 @@ export default async function ArretPage({ params }: Props) {
             {[
               { dest: 'Yopougon Selmer', price: '200F', conf: 14, trend: 'stable' },
               { dest: 'Plateau', price: '300F', conf: 28, trend: 'up' },
-              { dest: 'Abobo', price: '250F', conf: 9, trend: 'stable' },
             ].map((t, i) => (
-              <div key={i} style={{
+              <div key={i} className="press" style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                padding: 14, borderRadius: 14, background: 'var(--cream-2)', border: '1px solid var(--line)'
+                padding: 14, borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)'
               }}>
                 <Vehicle kind="gbaka" size={32} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.dest}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Confirmé par {t.conf} Babis</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Confirmé par {t.conf} Babis</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)' }}>{t.price}</div>
-                  <div style={{ fontSize: 10, color: t.trend === 'up' ? 'var(--orange-deep)' : 'var(--muted)', fontWeight: 700 }}>
+                  <div style={{ fontSize: 10, color: t.trend === 'up' ? 'var(--orange-deep)' : 'var(--muted)', fontWeight: 800 }}>
                     {t.trend === 'up' ? '↗ +50F' : '— stable'}
                   </div>
                 </div>
               </div>
             ))}
+            <button className="press" style={{
+              width: '100%', padding: 14, borderRadius: 16, border: '2px dashed var(--line-strong)',
+              background: 'transparent', color: 'var(--muted)', fontSize: 12, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4
+            }}>
+              <Ic.Plus s={16} />
+              CONFIRMER UN TARIF
+            </button>
           </div>
         </div>
 
         {/* Lines list */}
-        <div style={{ marginTop: 22 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
             <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Lignes passantes</h3>
           </div>
           <StopLinesList lines={lignes || []} preferredModes={prefs} stopId={stopId} />
         </div>
+
+        {/* C'COMMENT ? */}
+        <div style={{ marginTop: 32, paddingBottom: 40 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>C'comment ?</h3>
+            <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 800 }}>VOIR TOUT</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { user: 'Koffi S.', text: 'Gare bien organisée ce matin. Pas trop de rang.', time: 'il y a 12 min', color: 'var(--orange)' },
+              { user: 'Marie-Noëlle', text: 'Attention, le tarif pour Plateau est passé à 300F.', time: 'il y a 45 min', color: 'var(--green)' },
+            ].map((r, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: r.color, color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{r.user[0]}</div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800 }}>{r.user}</span>
+                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{r.time}</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.4 }}>{r.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Bottom CTA */}
+      <div style={{ position: 'sticky', bottom: 0, padding: '16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)', background: 'var(--cream)', borderTop: '1px solid var(--line)', zIndex: 100 }}>
+        <button className="press wax-bg" style={{
+          width: '100%', height: 56, borderRadius: 18, border: 'none',
+          background: 'var(--ink)', color: 'var(--cream)',
+          fontSize: 14, fontWeight: 800, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        }}>
+          SUIVRE CETTE LIGNE EN DIRECT
+          <Ic.Route s={20} />
+        </button>
       </div>
     </div>
   );

@@ -63,13 +63,14 @@ export default async function ComptePage() {
             </Link>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 76, height: 76, borderRadius: 22, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(242,108,26,0.4)', position: 'relative' }}>
-              <span style={{ fontSize: 32, color: '#fff' }}>{avatarEmoji}</span>
-              <div style={{ position: 'absolute', bottom: -4, right: -4, background: 'var(--gold)', color: 'var(--ink)', fontSize: 10, fontWeight: 900, padding: '3px 7px', borderRadius: 999, border: '2px solid var(--ink)' }}>NIV.{level}</div>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid #fff', boxShadow: '0 8px 24px rgba(242,108,26,0.4)', position: 'relative', fontSize: 32 }}>
+              {avatarEmoji}
             </div>
             <div style={{ flex: 1 }}>
-              <div className="font-display" style={{ fontSize: 26 }}>{displayName}</div>
-              <div style={{ fontSize: 12, color: 'rgba(247,241,230,0.6)', marginTop: 2 }}>@{displayName.toLowerCase().replace(/\s/g, '_')}</div>
+              <div className="font-display" style={{ fontSize: 26, lineHeight: 1 }}>{displayName}</div>
+              <div style={{ marginTop: 6 }}>
+                <Pill color="var(--orange)" size="sm">LEVEL {level + 10} · LEGEND</Pill>
+              </div>
             </div>
           </div>
           {/* Stats */}
@@ -90,34 +91,36 @@ export default async function ComptePage() {
       <WaxStrip color="var(--orange)" height={6} />
 
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 100px' }}>
-        {/* Territoire — heatmap placeholder */}
-        <div style={{ borderRadius: 18, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)', marginBottom: 18, position: 'relative' }}>
+        <div style={{ borderRadius: 24, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)', marginBottom: 20, position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }}>
           <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.05 }} />
-          <div style={{ padding: '14px 16px', position: 'relative' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>TON TERRITOIRE</div>
+          <div style={{ padding: '16px 20px', position: 'relative' }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', letterSpacing: 1 }}>TON TERRITOIRE</div>
           </div>
-          <div style={{ height: 180, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 12, position: 'relative' }}>
+          <div style={{ height: 160, background: 'var(--cream)', position: 'relative' }}>
              <PersonalHeatmap data={checkinsDetail?.filter(c => c.lat && c.lon).map(c => ({ lat: c.lat!, lon: c.lon! })) ?? []} />
+          </div>
+          <div style={{ padding: '12px 20px', fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', borderTop: '1px solid var(--line)' }}>
+            Tu occupes 14% de {profile?.origin_commune || 'Cocody'}
           </div>
         </div>
 
         {/* Badges */}
-        <h3 className="font-display" style={{ fontSize: 18, margin: '0 0 12px' }}>Badges</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
+        <h3 className="font-display" style={{ fontSize: 18, margin: '0 0 16px' }}>Badges</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 24 }}>
           {Object.entries(BADGE_META).map(([key, meta], i) => {
              const earned = (badges ?? []).some(b => b.badge_key === key);
              return (
-              <div key={i} style={{
-                padding: 14, borderRadius: 14, textAlign: 'center',
+              <div key={i} className="press" style={{
+                padding: '12px 8px', borderRadius: 16, textAlign: 'center',
                 background: earned ? 'var(--cream-2)' : 'transparent',
                 border: earned ? `1.5px solid ${meta.color}` : '1.5px dashed var(--line)',
-                opacity: earned ? 1 : 0.5,
+                opacity: earned ? 1 : 0.4,
                 position: 'relative'
               }}>
-                <div style={{ width: 48, height: 48, margin: '0 auto 6px', borderRadius: 14, background: earned ? `color-mix(in oklab, ${meta.color} 15%, transparent)` : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color }}>
+                <div style={{ width: 44, height: 44, margin: '0 auto 6px', borderRadius: 12, background: earned ? `color-mix(in oklab, ${meta.color} 15%, transparent)` : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color }}>
                   {meta.emoji}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{meta.label}</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{meta.label.split(' ')[0]}</div>
               </div>
             );
           })}

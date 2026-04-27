@@ -406,52 +406,70 @@ function AppPageContent() {
         </div>
       )}
 
-      {/* ── Floating Interface ── */}
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-4 right-4 z-[500] flex flex-col gap-3">
-        {/* Search Bar */}
+      {/* ── Top Floating Bar (Header) ── */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-4 right-4 z-[500] flex gap-2.5">
+        <button
+          onClick={() => {}} // TODO: Menu
+          className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-2xl rounded-xl shadow-lg border border-beige-200/50 text-ink active:scale-95 transition-all"
+        >
+          <Ic.Menu s={22} />
+        </button>
+        
         <button
           onClick={openSearch}
-          className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-95"
+          className="flex-1 h-11 flex items-center gap-3 bg-white/90 backdrop-blur-2xl rounded-xl shadow-lg border border-beige-200/50 px-4 text-left active:scale-[0.98] transition-all"
         >
-          <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg opacity-90" />
-          <span className="text-abidjan-orange"><Ic.Search s={20} /></span>
-          <span className="text-sm font-bold text-beige-muted flex-1 truncate">
-            {selected ? selected.stop_name : "Où vas-tu aujourd'hui ?"}
+          <Ic.Search s={18} color="var(--muted)" />
+          <span className="text-sm font-semibold text-muted flex-1 truncate">
+            {selected ? selected.stop_name : "Où vas-tu, Babi ?"}
           </span>
-          {selected && (
-            <div onClick={(e) => { e.stopPropagation(); clearSelection(); }} className="text-beige-200 p-1">
-              <Ic.X s={20} />
-            </div>
-          )}
+          <span className="text-[9px] font-black text-abidjan-orange bg-abidjan-orange/10 px-1.5 py-0.5 rounded-md tracking-widest">IA</span>
         </button>
 
-        {/* Action Chips */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
+        <Link
+          href="/app/compte"
+          className="w-11 h-11 flex items-center justify-center bg-abidjan-orange rounded-xl shadow-lg shadow-abidjan-orange/30 text-white font-black text-sm active:scale-95 transition-all"
+        >
+          {profile?.display_name?.slice(0, 2).toUpperCase() || 'MK'}
+        </Link>
+      </div>
+
+      {/* ── Floating Action Stack (Right) ── */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+72px)] right-4 z-[500] flex flex-col gap-2">
+        {[
+          { icon: <Ic.Layers s={20} />, action: () => {}, label: 'Couches' },
+          { icon: <Ic.Locate s={20} />, action: handleLocateMe, label: 'Moi', active: !!userLoc, loading: geoLoading },
+          { icon: <Ic.Compass s={20} />, action: () => router.push('/app/boussole'), label: 'Boussole' },
+        ].map((btn, i) => (
           <button
-            onClick={handleLocateMe}
-            disabled={geoLoading}
-            className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg border-2 px-4 py-2.5 transition-all active:scale-95 ${
-              userLoc ? 'bg-abidjan-blue text-white border-abidjan-blue' : 'bg-white/90 text-beige-muted border-beige-200/50'
+            key={i}
+            onClick={btn.action}
+            disabled={btn.loading}
+            className={`w-11 h-11 flex items-center justify-center rounded-xl shadow-lg border transition-all active:scale-90 ${
+              btn.active 
+                ? 'bg-abidjan-blue text-white border-abidjan-blue' 
+                : 'bg-white/90 text-ink border-beige-200/50 backdrop-blur-2xl'
             }`}
           >
-            {geoLoading ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <Ic.Locate s={22} />}
-            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">GPS</span>
+            {btn.loading ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : btn.icon}
           </button>
+        ))}
+      </div>
 
-          <Link href="/app/itineraire" className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted">
-            <Ic.Route s={22} />
-            <span className="text-[11px] font-black uppercase tracking-wider">Itinéraire</span>
-          </Link>
-
-          <button onClick={() => setHeatMode(!heatMode)} className={`flex-shrink-0 flex items-center gap-2 backdrop-blur-2xl rounded-2xl shadow-lg border-2 px-4 py-2.5 ${heatMode ? 'bg-abidjan-orange text-white border-abidjan-orange' : 'bg-white/90 text-beige-muted border-beige-200/50'}`}>
-            <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
-            <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
-          </button>
-
-          <Link href="/app/compte" className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted">
-            <Ic.Users s={22} />
-            <span className="text-[11px] font-black uppercase tracking-wider">Compte</span>
-          </Link>
+      {/* ── Live Ticker ── */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+68px)] left-0 right-0 z-[400] pointer-events-none">
+        <div className="flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_15%,black_85%,transparent)]">
+          <div className="ticker flex gap-12 py-2 text-abidjan-orange text-[13px] font-black whitespace-nowrap">
+            <span>PLATEAU : Trafic fluide sur le pont Houphouët</span>
+            <span>COCODY : Gbaka en panne carrefour la vie</span>
+            <span>YOP : 15 min d'attente à la gare Siporex</span>
+            <span>ADJAMÉ : Forte affluence à Liberté</span>
+            {/* Repeat for seamless loop */}
+            <span>PLATEAU : Trafic fluide sur le pont Houphouët</span>
+            <span>COCODY : Gbaka en panne carrefour la vie</span>
+            <span>YOP : 15 min d'attente à la gare Siporex</span>
+            <span>ADJAMÉ : Forte affluence à Liberté</span>
+          </div>
         </div>
       </div>
 
@@ -568,62 +586,82 @@ function AppPageContent() {
             /* DEFAULT LIST (NEARBY STOPS) */
             <div className="animate-in fade-in duration-500">
               {/* PRÈS DE TOI */}
-              {nearbyStops.length > 0 && (
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 12 }}>PRÈS DE TOI</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {nearbyStops.slice(0, 3).map(s => (
-                      <div key={s.stop_id} onClick={() => handleSelectStop(s)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)', cursor: 'pointer' }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                          <Ic.Pin s={20} color="var(--orange)" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{s.stop_name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>{formatDistance(s.distance_m)} · {s.commune}</div>
-                        </div>
-                        <Ic.Arrow s={16} color="var(--line)" />
-                      </div>
-                    ))}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <div className="text-[11px] font-black text-muted tracking-widest uppercase">
+                    {nearbyStops.length > 0 
+                      ? `À ${formatDistance(nearbyStops[0].distance_m)} — ${nearbyStops[0].stop_name}` 
+                      : 'PRÈS DE TOI'}
                   </div>
-                </div>
-              )}
-
-              {/* TRANSPORTS — Horizontal Scroll */}
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase' }}>TRANSPORTS</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--green)', fontWeight: 800 }}>
-                    <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+                  <div className="flex items-center gap-1.5 text-[10px] text-green font-black">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green shimmer" />
                     LIVE
                   </div>
                 </div>
-                <div className="no-scrollbar" style={{ display: 'flex', gap: 12, overflowX: 'auto', margin: '0 -24px', padding: '0 24px' }}>
-                  {TRANSPORT_DEMO.map((t, i) => (
-                    <div key={i} style={{ flexShrink: 0, width: 140, padding: 16, borderRadius: 22, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-                      <Vehicle kind={t.kind} size={32} />
-                      <div style={{ marginTop: 12, fontSize: 13, fontWeight: 800, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.line}</div>
-                      <div style={{ fontSize: 11, color: t.color, fontWeight: 700, marginTop: 2 }}>{t.eta}</div>
+
+                <div className="no-scrollbar flex gap-3 overflow-x-auto -mx-6 px-6 pb-2">
+                  {([
+                    { kind: 'gbaka', line: 'G04', eta: '2 min', color: 'var(--orange)' },
+                    { kind: 'woro', line: 'W12', eta: '5 min', color: 'var(--green)' },
+                    { kind: 'taxi', line: 'Taxi', eta: '1 min', color: 'var(--blue)' },
+                    { kind: 'saloni', line: 'Saloni', eta: '8 min', color: 'var(--gold)' },
+                  ] as const).map((v, i) => (
+                    <div key={i} className="flex-shrink-0 w-[130px] p-4 rounded-[22px] bg-beige-50 border border-beige-100 active:scale-95 transition-all">
+                      <Vehicle kind={v.kind} size={28} />
+                      <div className="mt-3 text-sm font-black text-ink truncate">{v.line}</div>
+                      <div className="text-[11px] font-black mt-1" style={{ color: v.color }}>{v.eta}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* BOUSSOLE CARD */}
-              <Link href="/app/boussole" style={{ textDecoration: 'none', display: 'block', marginBottom: 24 }}>
-                <div style={{ padding: 20, borderRadius: 24, background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden' }}>
-                  <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.15 }} />
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div className="compass-needle" style={{ fontSize: 32 }}>🧭</div>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.7, marginBottom: 4 }}>NOUVEAU</div>
-                      <div className="font-display" style={{ fontSize: 20 }}>Ma Boussole Babi</div>
-                      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>Ne te perds plus jamais en ville.</div>
-                    </div>
-                  </div>
+              {/* AI SEARCH CTA */}
+              <button className="w-full relative overflow-hidden p-5 rounded-[24px] bg-abidjan-orange text-white active:scale-[0.98] transition-all group mb-6">
+                <div className="wax-bg absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity" />
+                <div className="relative flex items-center justify-center gap-3">
+                  <Ic.Search s={20} color="#fff" />
+                  <span className="text-sm font-black uppercase tracking-widest">Démarrer le trajet IA</span>
                 </div>
-              </Link>
+              </button>
+
+              {/* RÉCENTS */}
+              <div className="mb-6">
+                <div className="text-[10px] font-black text-muted tracking-widest uppercase mb-3 px-1">RÉCENTS</div>
+                <div className="space-y-2">
+                  {[
+                    { name: 'Adjamé Liberté', sub: 'Gbaka · 200F' },
+                    { name: 'Cocody Saint-Jean', sub: 'Woro · 150F' },
+                  ].map((r, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-2xl bg-beige-50/50 border border-beige-100/50 active:bg-beige-50 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-muted">
+                        <Ic.History s={18} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-ink">{r.name}</div>
+                        <div className="text-[11px] text-muted font-semibold">{r.sub}</div>
+                      </div>
+                      <Ic.Arrow s={14} color="var(--line-strong)" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* COMMUNITY PULSE */}
+              <div className="relative p-5 rounded-[28px] bg-abidjan-blue text-white overflow-hidden active:scale-[0.98] transition-all">
+                <div className="wax-zigzag absolute inset-0 opacity-10" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex -space-x-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="w-6 h-6 rounded-full border-2 border-abidjan-blue bg-beige-200" />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">247k Babis en ligne</span>
+                  </div>
+                  <div className="font-display text-lg leading-tight">COCODY COULE.<br/>PLATEAU BOUCHONNE.</div>
+                </div>
+              </div>
+
             </div>
           )}
         </div>

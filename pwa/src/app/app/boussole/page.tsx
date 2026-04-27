@@ -20,8 +20,8 @@ export default function CompassPage() {
   return (
     <div style={{ 
       position: 'fixed', inset: 0, 
-      background: 'linear-gradient(180deg, var(--orange) 0%, var(--orange-deep) 100%)', 
-      display: 'flex', flexDirection: 'column', color: '#fff',
+      background: 'var(--ink)', 
+      display: 'flex', flexDirection: 'column', color: 'var(--cream)',
       zIndex: 100
     }}>
       <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.08, pointerEvents: 'none' }} />
@@ -63,9 +63,9 @@ export default function CompassPage() {
             }}
           >
             <svg width="60" height="200" viewBox="0 0 60 200">
-              <path d="M30 10 L50 100 L30 90 L10 100 Z" fill="#fff"/>
-              <path d="M30 90 L50 100 L30 190 L10 100 Z" fill="rgba(255,255,255,0.4)"/>
-              <circle cx="30" cy="100" r="8" fill="var(--ink)" stroke="#fff" strokeWidth="2"/>
+              <path d="M30 10 L50 100 L30 90 L10 100 Z" fill="var(--orange)"/>
+              <path d="M30 90 L50 100 L30 190 L10 100 Z" fill="rgba(255,255,255,0.2)"/>
+              <circle cx="30" cy="100" r="8" fill="var(--cream)" stroke="var(--ink)" strokeWidth="2"/>
             </svg>
           </motion.div>
         </div>

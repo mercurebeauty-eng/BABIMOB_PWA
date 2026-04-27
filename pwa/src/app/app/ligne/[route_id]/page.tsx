@@ -92,7 +92,9 @@ export default async function LignePage({ params, searchParams }: Props) {
           <Vehicle kind={typeKind} size={44} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Pill color="var(--green)">{direction === 0 ? '→' : '←'} {currentTrip.trip_headsign}</Pill>
+          <Pill color="var(--green)">DIRECTION {currentTrip.trip_headsign?.toUpperCase()} →</Pill>
+          <Pill color="var(--ink)">200F</Pill>
+          <Pill color="var(--blue)">~38 MIN</Pill>
         </div>
       </div>
 
@@ -145,12 +147,16 @@ export default async function LignePage({ params, searchParams }: Props) {
                     }}>{s.stop_name}</div>
                   </div>
                   {isNow && (
-                    <div style={{ marginTop: 8, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)' }}>
+                    <div className="slide-up" style={{ marginTop: 8, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)', boxShadow: '0 4px 12px rgba(242,108,26,0.15)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
                         <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>TU ES ICI</span>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>{s.commune}</div>
-                      <Link href={`/app/arret/${s.stop_id}`} style={{ display: 'block', padding: '8px', borderRadius: 10, background: 'var(--orange)', color: '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>Détail arrêt</Link>
+                      <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>Descends pour : {s.commune}, Marché vivrier, Pharmacie.</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <Link href={`/app/arret/${s.stop_id}`} style={{ flex: 1, padding: '8px', borderRadius: 10, background: 'var(--orange)', color: '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>Détail arrêt</Link>
+                        <button className="press" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', fontSize: 12, fontWeight: 700, color: 'var(--ink)', cursor: 'pointer' }}>Je descends</button>
+                      </div>
                     </div>
                   )}
                 </div>
