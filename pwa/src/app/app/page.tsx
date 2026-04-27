@@ -173,104 +173,82 @@ function AppPageContent() {
         broadcasts={broadcasts}
       />
 
-      {/* ── Live Ticker (Top Over Map) ── */}
-      {liveTickerFeed.length > 0 && (
-        <div className="absolute top-[env(safe-area-inset-top,0px)] left-0 right-0 z-[300] pointer-events-none">
-          <div className="bg-gradient-to-b from-black/20 to-transparent pt-2 pb-8 px-4 overflow-hidden">
-            <div className="flex gap-4 animate-marquee-slow">
-              {liveTickerFeed.map((checkin, i) => (
-                <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm">
-                  <span className="text-sm">{(checkin.profile as any)?.avatar_emoji || '👤'}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white">
-                    {checkin.display_name} est à <span className="text-abidjan-orange">{checkin.place_name}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Top Floating Bar (Header) ── */}
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-4 right-4 z-[500] flex gap-2.5">
+      {/* ── Top Floating Bar ── */}
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 10 }}>
         <button
-          onClick={() => {}} // TODO: Menu
-          className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-2xl rounded-xl shadow-lg border border-beige-200/50 text-ink active:scale-95 transition-all"
+          onClick={() => {}}
+          className="press"
+          style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
-          <Ic.Menu s={22} />
+          <Ic.Menu s={20} />
         </button>
-        
+
         <button
           onClick={openSearch}
-          className="flex-1 h-11 flex items-center gap-3 bg-white/90 backdrop-blur-2xl rounded-xl shadow-lg border border-beige-200/50 px-4 text-left active:scale-[0.98] transition-all"
+          className="press"
+          style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}
         >
-          <Ic.Search s={18} color="var(--muted)" />
-          <span className="text-sm font-semibold text-muted flex-1 truncate">
-            {selected ? selected.stop_name : "Où vas-tu, Babi ?"}
-          </span>
-          <span className="text-[9px] font-black text-abidjan-orange bg-abidjan-orange/10 px-1.5 py-0.5 rounded-md tracking-widest">IA</span>
+          <Ic.Search s={18} />
+          <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Babi ?"}</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5 }}>IA</span>
         </button>
 
         <Link
           href="/app/compte"
-          className="w-11 h-11 flex items-center justify-center bg-abidjan-orange rounded-xl shadow-lg shadow-abidjan-orange/30 text-white font-black text-sm active:scale-95 transition-all"
+          className="press"
+          style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}
         >
           {profile?.display_name?.slice(0, 2).toUpperCase() || 'MK'}
         </Link>
       </div>
 
-      {/* ── Floating Action Stack (Right) ── */}
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+72px)] right-4 z-[500] flex flex-col gap-2">
-        {[
-          { icon: <Ic.Layers s={20} />, action: () => setIsSatellite(v => !v), label: 'Couches', active: isSatellite },
-          { icon: <Ic.Locate s={20} />, action: locateMe, label: 'Moi', active: !!userLoc, loading: geoLoading },
-          { icon: <Ic.Compass s={20} />, action: () => router.push('/app/boussole'), label: 'Boussole' },
-        ].map((btn, i) => (
+      {/* ── FAB Stack (Right) ── */}
+      <div style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
+        {([
+          { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite },
+          { icon: <Ic.Locate s={18} />, action: locateMe, active: !!userLoc, loading: geoLoading },
+          { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole') },
+        ] as const).map((btn, i) => (
           <button
             key={i}
             onClick={btn.action}
-            disabled={btn.loading}
-            className={`w-11 h-11 flex items-center justify-center rounded-xl shadow-lg border transition-all active:scale-90 ${
-              btn.active 
-                ? 'bg-abidjan-blue text-white border-abidjan-blue' 
-                : 'bg-white/90 text-ink border-beige-200/50 backdrop-blur-2xl'
-            }`}
+            disabled={(btn as any).loading}
+            className="press"
+            style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: (btn as any).active ? 'var(--orange)' : 'var(--cream)', color: (btn as any).active ? '#fff' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
-            {btn.loading ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : btn.icon}
+            {(btn as any).loading
+              ? <div style={{ width: 16, height: 16, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />
+              : btn.icon}
           </button>
         ))}
       </div>
 
       {/* ── Live Ticker ── */}
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+68px)] left-0 right-0 z-[400] pointer-events-none">
-        <div className="flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_15%,black_85%,transparent)]">
-          <div className="ticker flex gap-12 py-2 text-abidjan-orange text-[13px] font-black whitespace-nowrap">
-            <span>PLATEAU : Trafic fluide sur le pont Houphouët</span>
-            <span>COCODY : Gbaka en panne carrefour la vie</span>
-            <span>YOP : 15 min d'attente à la gare Siporex</span>
-            <span>ADJAMÉ : Forte affluence à Liberté</span>
-            {/* Repeat for seamless loop */}
-            <span>PLATEAU : Trafic fluide sur le pont Houphouët</span>
-            <span>COCODY : Gbaka en panne carrefour la vie</span>
-            <span>YOP : 15 min d'attente à la gare Siporex</span>
-            <span>ADJAMÉ : Forte affluence à Liberté</span>
-          </div>
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 62px)', left: 0, right: 0, zIndex: 5, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
+          {TICKER.concat(TICKER).map(([place, status, c], i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
+              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
+              <span style={{ fontWeight: 700 }}>{place}</span>
+              <span style={{ color: 'var(--muted)' }}>· {status}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* ── Broadcast FAB ── */}
       {profile && sheet === 'peek' && (
-        <div className="absolute bottom-64 right-5 z-[450] animate-in fade-in zoom-in duration-300">
+        <div style={{ position: 'absolute', bottom: 264, right: 20, zIndex: 450 }}>
           <BroadcastButton userId={profile.id} currentTier={profile.sub_tier ?? 'free'} isAdmin={profile.is_admin} />
         </div>
       )}
 
-      {/* ── Modular Bottom Sheet ── */}
+      {/* ── Bottom Sheet ── */}
       <motion.div
         drag="y"
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.1}
-        onDragEnd={(e, info) => {
+        onDragEnd={(_, info) => {
           if (info.offset.y > 50 || info.velocity.y > 200) {
             if (sheet === 'full') setSheet('half');
             else if (sheet === 'half') setSheet('peek');
@@ -281,223 +259,202 @@ function AppPageContent() {
         }}
         animate={{ height: sheetH }}
         transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        className="absolute bottom-0 left-0 right-0 z-[600] bg-white rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-beige-100 flex flex-col overflow-hidden"
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
-        {/* 1-Click Height Selectors */}
-        <div className="flex flex-col items-center pt-3 pb-2">
-          <div className="flex gap-1.5 p-1 bg-beige-50/50 rounded-full mb-3">
-            {[
-              { id: 'peek', label: 'Bas', h: 240 },
-              { id: 'half', label: 'Milieu', h: 440 },
-              { id: 'full', label: 'Plein', h: 620 }
-            ].map(lvl => (
-              <button
-                key={lvl.id}
-                onClick={() => setSheet(lvl.id as any)}
-                className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
-                  sheet === lvl.id ? 'bg-abidjan-orange text-white shadow-md' : 'text-beige-muted hover:text-beige-text'
-                }`}
-              >
-                {lvl.label}
-              </button>
-            ))}
-          </div>
-          <div onClick={cycleSheet} className="w-12 h-1.5 bg-beige-200/60 rounded-full cursor-pointer active:scale-x-125 transition-transform" />
+        {/* Sheet handle */}
+        <div onClick={cycleSheet} style={{ cursor: 'pointer', paddingTop: 4 }}>
+          <div className="sheet-handle" />
         </div>
 
-        {/* Scrollable Area */}
-        <div className="flex-1 overflow-y-auto px-6 pb-20 overscroll-contain scrollbar-hide">
+        {/* Scrollable content */}
+        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}>
+
           {selectedPoi ? (
-            /* POI PREVIEW */
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-beige-50 border border-beige-100 shadow-sm">
+            /* ── POI PREVIEW ── */
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, background: 'var(--cream)', border: '1px solid var(--line)' }}>
                     {selectedPoi.logo_emoji || '📍'}
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-beige-text leading-tight">{selectedPoi.name}</h2>
-                    <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-1">{selectedPoi.commune || 'Abidjan'}</div>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selectedPoi.name}</h2>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>{selectedPoi.commune || 'Abidjan'}</div>
                   </div>
                 </div>
-                <button onClick={() => setSelectedPoi(null)} className="p-2 bg-beige-50 rounded-xl text-beige-200">
+                <button onClick={() => setSelectedPoi(null)} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
                   <Ic.X s={20} />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
                 <PoiCheckInButton placeId={selectedPoi.id} placeName={selectedPoi.name} commune={selectedPoi.commune} lat={selectedPoi.lat} lon={selectedPoi.lon} />
-                <button onClick={() => handleGetDirections(selectedPoi)} className="bg-abidjan-orange text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-abidjan-orange/20">🚀 S'y rendre</button>
+                <button onClick={() => handleGetDirections(selectedPoi)} style={{ background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '16px 0', borderRadius: 16, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.3)' }}>S'y rendre</button>
               </div>
 
-              {selectedPoi.description && <p className="text-sm text-beige-muted font-medium leading-relaxed mb-6">{selectedPoi.description}</p>}
+              {selectedPoi.description && <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 24 }}>{selectedPoi.description}</p>}
 
-              <Link href={`/app/place/${selectedPoi.id}`} className="block text-center text-xs font-black text-abidjan-blue uppercase tracking-widest py-4 bg-abidjan-blue/5 rounded-2xl">Profil Complet →</Link>
+              <Link href={`/app/place/${selectedPoi.id}`} style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 800, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: 1, padding: 16, background: 'color-mix(in oklab, var(--blue) 8%, transparent)', borderRadius: 16, textDecoration: 'none' }}>Profil Complet →</Link>
             </div>
+
           ) : activeItinerary ? (
-            /* ITINERARY STEPS */
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-black text-beige-text">Ton trajet</h2>
-                <button onClick={() => setActiveItinerary(null)} className="p-2 bg-beige-50 rounded-xl text-beige-200"><Ic.X s={20} /></button>
+            /* ── ITINERARY ── */
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+                <h2 style={{ fontSize: 21, fontWeight: 900, color: 'var(--ink)', margin: 0 }}>Ton trajet</h2>
+                <button onClick={() => setActiveItinerary(null)} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
               </div>
-              <div className="space-y-6 relative before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-1 before:bg-beige-100 before:rounded-full">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 {activeItinerary.legs.map((leg: any, idx: number) => (
-                  <div key={idx} className="flex gap-6 relative z-10">
-                    <div className="w-10 h-10 rounded-2xl bg-white border-2 border-beige-100 flex items-center justify-center text-xl shadow-sm">
+                  <div key={idx} style={{ display: 'flex', gap: 24 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 16, background: 'var(--cream)', border: '2px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                       {leg.mode === 'WALK' ? '🚶' : '🚐'}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-black text-beige-text">{leg.mode === 'WALK' ? 'Marcher' : `Ligne ${leg.route?.shortName || ''}`}</div>
-                      <div className="text-xs font-bold text-beige-muted truncate">Vers {leg.to.name}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{leg.mode === 'WALK' ? 'Marcher' : `Ligne ${leg.route?.shortName || ''}`}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>Vers {leg.to.name}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
           ) : selected ? (
-            /* STOP DETAIL */
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-start justify-between mb-8">
+            /* ── STOP DETAIL ── */
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
                 <div>
-                  <h2 className="text-xl font-black text-beige-text leading-tight">{selected.stop_name}</h2>
-                  <div className="text-xs text-beige-muted font-bold uppercase tracking-widest mt-1">{selected.commune}</div>
+                  <h2 style={{ fontSize: 21, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selected.stop_name}</h2>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>{selected.commune}</div>
                 </div>
-                <button onClick={clearSelection} className="p-2 bg-beige-50 rounded-xl text-beige-200"><Ic.X s={20} /></button>
+                <button onClick={clearSelection} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
               </div>
-              <button onClick={() => router.push(`/app/arret/${selected.stop_id}`)} className="w-full bg-abidjan-orange text-white font-black py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 text-sm uppercase tracking-widest">Voir les lignes</button>
+              <button onClick={() => router.push(`/app/arret/${selected.stop_id}`)} style={{ width: '100%', background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '20px 0', borderRadius: 24, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>Voir les lignes</button>
             </div>
+
           ) : (
-            /* DEFAULT LIST (NEARBY STOPS) */
-            <div className="animate-in fade-in duration-500">
-              {/* PRÈS DE TOI */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <div className="text-[11px] font-black text-muted tracking-widest uppercase">
-                    {nearbyStops.length > 0 
-                      ? `À ${formatDistance(nearbyStops[0].distance_m)} — ${nearbyStops[0].stop_name}` 
-                      : 'PRÈS DE TOI'}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-green font-black">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green shimmer" />
-                    LIVE
-                  </div>
-                </div>
+            /* ── DEFAULT — NEARBY ── */
+            <>
+              {/* Près de toi */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                <h3 className="font-display" style={{ fontSize: 22, margin: 0, color: 'var(--ink)' }}>Près de toi</h3>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>
+                  {nearbyStops.length > 0
+                    ? `${nearbyStops[0].commune?.toUpperCase() || 'COCODY'} · ${formatDistance(nearbyStops[0].distance_m)}`
+                    : 'COCODY · 250m'}
+                </span>
+              </div>
 
-                <div className="no-scrollbar flex gap-3 overflow-x-auto -mx-6 px-6 pb-2">
-                  {([
-                    { kind: 'gbaka', line: 'G04', eta: '2 min', color: 'var(--orange)' },
-                    { kind: 'woro', line: 'W12', eta: '5 min', color: 'var(--green)' },
-                    { kind: 'taxi', line: 'Taxi', eta: '1 min', color: 'var(--blue)' },
-                    { kind: 'saloni', line: 'Saloni', eta: '8 min', color: 'var(--gold)' },
-                  ] as const).map((v, i) => (
-                    <div key={i} className="flex-shrink-0 w-[130px] p-4 rounded-[22px] bg-beige-50 border border-beige-100 active:scale-95 transition-all">
-                      <Vehicle kind={v.kind} size={28} />
-                      <div className="mt-3 text-sm font-black text-ink truncate">{v.line}</div>
-                      <div className="text-[11px] font-black mt-1" style={{ color: v.color }}>{v.eta}</div>
+              {/* Transport cards */}
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
+                {TRANSPORT_DEMO.map((v, i) => (
+                  <div key={i} className="press" style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Vehicle kind={v.kind} size={32} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: v.color }} />
+                        <span style={{ fontSize: 11, fontWeight: 800, color: v.color, letterSpacing: 0.3 }}>{v.eta}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{v.line}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{v.kind}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Boussole banner */}
+              <div onClick={() => router.push('/app/boussole')} className="press" style={{ padding: 16, borderRadius: 18, marginBottom: 14, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
+                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 54, height: 54, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Ic.Compass s={28} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BOUSSOLE BABI</div>
+                    <div className="font-display" style={{ fontSize: 18, marginTop: 2 }}>Le prochain Gbaka<br />est à 60m, pointe →</div>
+                  </div>
+                  <Ic.Arrow s={22} />
+                </div>
+              </div>
+
+              {/* Récents */}
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, margin: '8px 4px 8px' }}>RÉCENTS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                {RECENT.map((r, i) => (
+                  <div key={i} onClick={() => router.push('/app/chat')} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
+                      <Ic.Route s={18} />
+                    </div>
+                    <div style={{ flex: 1, fontSize: 13 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Tarif moyen · {r.tarif}</div>
+                    </div>
+                    <Ic.Arrow s={16} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Community pulse */}
+              <div onClick={() => router.push('/app/community')} className="press" style={{ padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 8 }}>
+                <div style={{ display: 'flex' }}>
+                  {(['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C'] as const).map((c, i) => (
+                    <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, fontSize: 11, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {['K', 'A', 'M', 'D'][i]}
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* AI SEARCH CTA */}
-              <button className="w-full relative overflow-hidden p-5 rounded-[24px] bg-abidjan-orange text-white active:scale-[0.98] transition-all group mb-6">
-                <div className="wax-bg absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity" />
-                <div className="relative flex items-center justify-center gap-3">
-                  <Ic.Search s={20} color="#fff" />
-                  <span className="text-sm font-black uppercase tracking-widest">Démarrer le trajet IA</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Babis sont en ligne</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Demande ton C'comment</div>
                 </div>
-              </button>
-
-              {/* RÉCENTS */}
-              <div className="mb-6">
-                <div className="text-[10px] font-black text-muted tracking-widest uppercase mb-3 px-1">RÉCENTS</div>
-                <div className="space-y-2">
-                  {[
-                    { name: 'Adjamé Liberté', sub: 'Gbaka · 200F' },
-                    { name: 'Cocody Saint-Jean', sub: 'Woro · 150F' },
-                  ].map((r, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3 rounded-2xl bg-beige-50/50 border border-beige-100/50 active:bg-beige-50 transition-colors">
-                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-muted">
-                        <Ic.History s={18} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-bold text-ink">{r.name}</div>
-                        <div className="text-[11px] text-muted font-semibold">{r.sub}</div>
-                      </div>
-                      <Ic.Arrow s={14} color="var(--line-strong)" />
-                    </div>
-                  ))}
-                </div>
+                <Ic.Arrow s={18} />
               </div>
-
-              {/* COMMUNITY PULSE */}
-              <div className="relative p-5 rounded-[28px] bg-abidjan-blue text-white overflow-hidden active:scale-[0.98] transition-all">
-                <div className="wax-zigzag absolute inset-0 opacity-10" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex -space-x-2">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="w-6 h-6 rounded-full border-2 border-abidjan-blue bg-beige-200" />
-                      ))}
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">247k Babis en ligne</span>
-                  </div>
-                  <div className="font-display text-lg leading-tight">COCODY COULE.<br/>PLATEAU BOUCHONNE.</div>
-                </div>
-              </div>
-
-            </div>
+            </>
           )}
+
         </div>
       </motion.div>
 
       {/* ── Search Overlay ── */}
       <AnimatePresence>
         {searchOpen && (
-          <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="fixed inset-0 z-[1000] bg-beige-50 flex flex-col">
-            <div className="bg-white px-5 pt-12 pb-6 border-b border-beige-200 flex items-center gap-4">
-              <button onClick={closeSearch} className="p-2 text-beige-text"><Ic.Back s={24} /></button>
-              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un lieu..." className="flex-1 text-lg font-black outline-none placeholder-beige-200 bg-transparent" />
-              {isSearching && <div className="w-5 h-5 border-2 border-abidjan-orange border-t-transparent rounded-full animate-spin" />}
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--cream-2)', display: 'flex', flexDirection: 'column' }}
+          >
+            <div style={{ background: 'var(--cream)', padding: '48px 20px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <button onClick={closeSearch} style={{ padding: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)' }}><Ic.Back s={24} /></button>
+              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un lieu…" style={{ flex: 1, fontSize: 18, fontWeight: 800, border: 'none', outline: 'none', background: 'transparent', color: 'var(--ink)' }} />
+              {isSearching && <div style={{ width: 20, height: 20, border: '2px solid var(--orange)', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />}
             </div>
-            <div className="flex-1 overflow-y-auto p-5">
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
               {results.map((r, i) => (
-                <button key={i} onClick={() => handleSelectStop(r)} className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-beige-100 mb-2 text-left">
-                  <div className="w-10 h-10 rounded-xl bg-beige-50 flex items-center justify-center"><Ic.Pin s={18} /></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-black text-sm text-beige-text truncate">{r.stop_name}</div>
-                    <div className="text-[10px] text-beige-muted font-bold uppercase">{r.commune}</div>
+                <button key={i} onClick={() => handleSelectStop(r)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: 'var(--cream)', borderRadius: 16, border: '1px solid var(--line)', marginBottom: 8, textAlign: 'left', cursor: 'pointer' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}><Ic.Pin s={18} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{r.commune}</div>
                   </div>
                 </button>
               ))}
               {!query && (
-                <div className="space-y-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-beige-muted">Récents</div>
+                <>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>Récents</div>
                   {RECENT.map((r, i) => (
-                    <div key={i} className="bg-white p-4 rounded-2xl border border-beige-100 flex items-center gap-3">
-                      <span className="text-lg">📍</span>
-                      <div className="text-sm font-bold text-beige-text">{r.from} → {r.to}</div>
+                    <div key={i} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}><Ic.Route s={16} /></div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
                     </div>
                   ))}
-                </div>
+                </>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <style>{`
-        .animate-marquee-slow {
-          display: flex;
-          width: fit-content;
-          animation: marquee 30s linear infinite;
-        }
-        @keyframes marquee {
-          0% { transform: translateX(100vw); }
-          100% { transform: translateX(-100%); }
-        }
-      `}</style>
     </div>
   );
 }
