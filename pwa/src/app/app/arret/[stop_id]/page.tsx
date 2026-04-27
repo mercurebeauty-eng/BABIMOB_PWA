@@ -126,7 +126,7 @@ export default async function ArretPage({ params }: Props) {
             <div className="font-display" style={{ fontSize: 18 }}>Lignes passantes</div>
             {lignes && <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>}
           </div>
-          <StopLinesList lines={lignes || []} preferredModes={prefs} />
+          <StopLinesList lines={lignes || []} preferredModes={prefs} stopId={stopId} />
         </div>
       </div>
     </div>

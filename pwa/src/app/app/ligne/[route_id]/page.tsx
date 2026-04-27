@@ -9,7 +9,7 @@ import { Vehicle } from '@/components/ui/Vehicle';
 
 type Props = {
   params: Promise<{ route_id: string }>;
-  searchParams: Promise<{ dir?: string }>;
+  searchParams: Promise<{ dir?: string; from?: string }>;
 };
 
 type StopRow = {
@@ -39,7 +39,7 @@ function detectType(name: string): { label: string; kind: 'gbaka' | 'woro' | 'ta
 export default async function LignePage({ params, searchParams }: Props) {
   const supabase = await createClient();
   const { route_id } = await params;
-  const { dir } = await searchParams;
+  const { dir, from: fromStop } = await searchParams;
   const direction = dir === '1' ? 1 : 0;
   const routeId = decodeURIComponent(route_id);
 
@@ -137,8 +137,15 @@ export default async function LignePage({ params, searchParams }: Props) {
         )}
 
         {/* STOP TIMELINE */}
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10 }}>
-          Itinéraire · {orderedStops.length} arrêts
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
+            Itinéraire · {orderedStops.length} arrêts
+          </div>
+          {fromStop && (
+            <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--green)', background: 'color-mix(in oklab, var(--green) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)', borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Votre arrêt mis en évidence
+            </div>
+          )}
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -146,20 +153,37 @@ export default async function LignePage({ params, searchParams }: Props) {
             const isFirst = idx === 0;
             const isLast = idx === orderedStops.length - 1;
             const isTerminus = isFirst || isLast;
+            const isCurrent = fromStop === stop.stop_id;
             return (
-              <Link key={`${stop.stop_id}-${stop.stop_sequence}`} href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ display: 'flex', alignItems: 'stretch', gap: 16, textDecoration: 'none', minHeight: isTerminus ? 64 : 52 }}>
+              <Link key={`${stop.stop_id}-${stop.stop_sequence}`} href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ display: 'flex', alignItems: 'stretch', gap: 16, textDecoration: 'none', minHeight: isTerminus ? 64 : 52, background: isCurrent ? 'color-mix(in oklab, var(--green) 8%, transparent)' : 'transparent', borderRadius: isCurrent ? 12 : 0, margin: isCurrent ? '0 -8px' : 0, padding: isCurrent ? '0 8px' : 0 }}>
                 {/* Timeline */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
-                  <div style={{ flex: 1, width: 2, background: isFirst ? 'transparent' : 'var(--line)' }} />
-                  <div style={{ width: isTerminus ? 20 : 12, height: isTerminus ? 20 : 12, borderRadius: '50%', background: isTerminus ? routeColor : 'var(--line)', flexShrink: 0, boxShadow: isTerminus ? `0 0 0 4px color-mix(in oklab, ${routeColor} 20%, transparent)` : 'none', transition: 'transform 0.15s' }} />
-                  <div style={{ flex: 1, width: 2, background: isLast ? 'transparent' : 'var(--line)' }} />
+                  <div style={{ flex: 1, width: 2, background: isFirst ? 'transparent' : isCurrent ? 'var(--green)' : 'var(--line)' }} />
+                  <div style={{
+                    width: isCurrent ? 20 : isTerminus ? 20 : 12,
+                    height: isCurrent ? 20 : isTerminus ? 20 : 12,
+                    borderRadius: '50%',
+                    background: isCurrent ? 'var(--green)' : isTerminus ? routeColor : 'var(--line)',
+                    flexShrink: 0,
+                    boxShadow: isCurrent
+                      ? '0 0 0 4px color-mix(in oklab, var(--green) 20%, transparent)'
+                      : isTerminus ? `0 0 0 4px color-mix(in oklab, ${routeColor} 20%, transparent)` : 'none',
+                  }} />
+                  <div style={{ flex: 1, width: 2, background: isLast ? 'transparent' : isCurrent ? 'var(--green)' : 'var(--line)' }} />
                 </div>
 
                 {/* Stop info */}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: !isLast ? '1px solid var(--line)' : 'none' }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: isTerminus ? 15 : 13, fontWeight: isTerminus ? 800 : 600, color: isTerminus ? 'var(--ink)' : 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {stop.stop_name}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: isCurrent || isTerminus ? 15 : 13, fontWeight: isCurrent || isTerminus ? 800 : 600, color: isCurrent ? 'var(--green)' : isTerminus ? 'var(--ink)' : 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {stop.stop_name}
+                      </div>
+                      {isCurrent && (
+                        <span style={{ fontSize: 8, fontWeight: 900, color: 'var(--green)', background: 'color-mix(in oklab, var(--green) 15%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)', borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4, flexShrink: 0 }}>
+                          Votre arrêt
+                        </span>
+                      )}
                     </div>
                     {stop.commune && (
                       <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1 }}>{stop.commune}</div>

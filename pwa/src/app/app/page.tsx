@@ -9,6 +9,7 @@ import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Vehicle } from '@/components/ui/Vehicle';
 import { Ic } from '@/components/ui/Ic';
+import BroadcastButton from '@/components/BroadcastButton';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -105,7 +106,7 @@ function AppPageContent() {
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
       const { data: bc } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, sub_tier')
+        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier')
         .not('last_broadcast_at', 'is', null)
         .gt('last_broadcast_at', fourHoursAgo);
       if (bc) setBroadcasts(bc);
@@ -275,9 +276,12 @@ function AppPageContent() {
 
       {/* RIGHT FABs */}
       <div style={{ position: 'absolute', right: 16, top: 'max(120px, env(safe-area-inset-top, 0px) + 80px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 400 }}>
-        <button className="press" style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Ic.Layers s={18} />
-        </button>
+        {profile && (
+          <BroadcastButton
+            userId={profile.id}
+            canBroadcast={profile.sub_tier === 'pro' || profile.sub_tier === 'elite'}
+          />
+        )}
         <button className="press" onClick={handleLocateMe} style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: geoLoading ? 'var(--orange)' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <Ic.Locate s={18} />
         </button>

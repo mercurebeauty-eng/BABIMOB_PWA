@@ -349,16 +349,15 @@ export default function Map({
       if (!bc.broadcast_lat || !bc.broadcast_lon) return;
 
       const html = `
-        <div class="relative group cursor-pointer animate-in zoom-in duration-500">
-          <div class="absolute -top-12 -left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-4 py-2 rounded-2xl shadow-xl border-2 border-abidjan-orange/20 flex items-center gap-3">
-             <div class="w-8 h-8 rounded-xl bg-abidjan-orange/10 flex items-center justify-center text-lg">${bc.avatar_emoji}</div>
-             <div class="flex flex-col">
-                <span class="text-[9px] font-black text-abidjan-orange uppercase tracking-widest">${bc.display_name}</span>
-                <span class="text-[11px] font-black text-beige-text">${bc.broadcast_text}</span>
-             </div>
-             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-abidjan-orange/20 rotate-45"></div>
+        <div class="bm-broadcast-bubble">
+          <div class="bm-broadcast-card">
+            <span style="font-size:16px">${bc.avatar_emoji}</span>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span class="bm-broadcast-name">${bc.display_name}</span>
+              <span class="bm-broadcast-text">${bc.broadcast_text}</span>
+            </div>
           </div>
-          <div class="w-4 h-4 bg-abidjan-orange rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+          <div class="bm-broadcast-dot"></div>
         </div>
       `;
 
