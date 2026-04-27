@@ -19,6 +19,7 @@ import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
+import { useCommunityData } from '@/hooks/useCommunityData';
 
 function formatDistance(m: number) {
   if (m < 1000) return `${Math.round(m)}m`;
@@ -59,7 +60,6 @@ function AppPageContent() {
   const supabase = createClient();
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
@@ -67,20 +67,17 @@ function AppPageContent() {
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [hotspots, setHotspots] = useState<any[]>([]);
 
-  const [explorers, setExplorers] = useState<any[]>([]);
   const [pois, setPois] = useState<POI[]>([]);
   const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
-  const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [livePois, setLivePois] = useState<string[]>([]);
   const [liveTickerFeed, setLiveTickerFeed] = useState<any[]>([]);
   const [heatMode, setHeatMode] = useState(false);
-  const [communityFeed, setCommunityFeed] = useState<any[]>([]);
-  const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [poiNearestStop, setPoiNearestStop] = useState<any>(null);
   const mapRef = useRef<any>(null);
 
   const { logReach } = useReachTracking();
+  const { profile, broadcasts, explorers, communityFeed, trendingPlaces } = useCommunityData({ logReach });
   const {
     userLoc,
     nearbyStops,
@@ -172,70 +169,6 @@ function AppPageContent() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(data);
-      }
-
-      // Fetch active broadcasts (last 4 hours) — includes lat/lon for map rendering
-      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
-      const { data: bc } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier, is_public_visits')
-        .not('last_broadcast_at', 'is', null)
-        .gt('last_broadcast_at', fourHoursAgo);
-      if (bc) {
-        setBroadcasts(bc);
-        // Derive Snap-style explorer markers from public broadcast users
-        const publicExplorers = bc.filter((p: any) => p.is_public_visits && p.broadcast_lat && p.broadcast_lon);
-        setExplorers(
-          publicExplorers.map((p: any) => ({
-            lat: p.broadcast_lat,
-            lon: p.broadcast_lon,
-            name: p.display_name ?? 'Explorateur',
-            emoji: p.avatar_emoji ?? '🧭',
-          }))
-        );
-        // Track map impressions for each visible public explorer
-        publicExplorers.forEach((p: any) => logReach(p.id, 'map'));
-        // Track broadcast impressions for users with an active broadcast
-        bc.filter((p: any) => p.broadcast_text).forEach((p: any) => logReach(p.id, 'broadcast'));
-      }
-
-      // Fetch Global Community Activity (last 24h)
-      const { data: globalFeed } = await supabase
-        .from('checkins')
-        .select(`
-          id, place_id, place_name, created_at, points_earned,
-          profile:profiles(id, display_name, avatar_emoji, is_verified_explorer, is_public_visits)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (globalFeed) {
-        const publicFeed = globalFeed.filter((f: any) => f.profile?.is_public_visits);
-        setCommunityFeed(publicFeed);
-        // Track feed impressions for each visible user
-        publicFeed.forEach((f: any) => {
-          if (f.profile?.id) logReach(f.profile.id, 'feed');
-        });
-        // Calculate trending (most frequent place_id in the last 24h)
-        const counts: Record<string, { count: number, name: string }> = {};
-        globalFeed.forEach((f: any) => {
-           if (!counts[f.place_id]) counts[f.place_id] = { count: 0, name: f.place_name };
-           counts[f.place_id].count++;
-        });
-        const sorted = Object.entries(counts)
-          .sort((a,b) => b[1].count - a[1].count)
-          .slice(0, 3)
-          .map(([id, val]) => ({ id, name: val.name, count: val.count }));
-        setTrendingPlaces(sorted);
-      }
-    }
-    loadData();
-  }, [supabase, logReach]);
   const sheetH = sheet === 'full' ? 620 : sheet === 'half' ? 440 : 240;
 
   const cycleSheet = useCallback(() => {
