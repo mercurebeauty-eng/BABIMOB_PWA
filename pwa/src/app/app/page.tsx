@@ -11,7 +11,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Vehicle } from '@/components/ui/Vehicle';
 import { Ic } from '@/components/ui/Ic';
 import BroadcastButton from '@/components/BroadcastButton';
+import PoiFavoriteButton from '@/components/PoiFavoriteButton';
+import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
+
+function formatDistance(m: number) {
+  if (m < 1000) return `${Math.round(m)}m`;
+  return `${(m/1000).toFixed(1)}km`;
+}
+
+
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -25,9 +34,6 @@ const Map = dynamic(() => import('@/components/Map'), {
         </div>
         <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
       </div>
-    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid color-mix(in oklab, var(--orange) 20%, transparent)', borderTopColor: 'var(--orange)', animation: 'spin 0.8s linear infinite' }} />
-      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>Chargement de la ville…</span>
     </div>
   ),
 });
@@ -60,16 +66,29 @@ function AppPageContent() {
   const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
   const controls = useAnimation();
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
-  const [hotspots] = useState<any[]>([]);
+  const [hotspots, setHotspots] = useState<any[]>([]);
+
   const [explorers, setExplorers] = useState<any[]>([]);
   const [pois, setPois] = useState<POI[]>([]);
   const [poiCheckins, setPoiCheckins] = useState<Record<string, number>>({});
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [livePois, setLivePois] = useState<string[]>([]);
+  const [liveTickerFeed, setLiveTickerFeed] = useState<any[]>([]);
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
   const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [heatMode, setHeatMode] = useState(false);
+  const [communityFeed, setCommunityFeed] = useState<any[]>([]);
+  const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [poiNearestStop, setPoiNearestStop] = useState<any>(null);
   const mapRef = useRef<any>(null);
+
+
+
+
+
 
   // Fire-and-forget reach impression — deduplicated per user+source per session
   const logReach = useCallback((userId: string, source: 'ticker' | 'map' | 'feed' | 'broadcast') => {
@@ -108,10 +127,11 @@ function AppPageContent() {
         }
         const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
         const { data: liveData } = await supabase
-          .from('checkins').select('place_id')
+          .from('checkins').select('place_id, profile:profiles(id, display_name, is_public_visits)')
           .in('place_id', fetchedPois.map(p => p.id))
           .gte('created_at', since3h)
           .order('created_at', { ascending: false });
+
 
         if (liveData) {
           setLivePois(Array.from(new Set(liveData.map(d => d.place_id))));
@@ -129,8 +149,6 @@ function AppPageContent() {
             if (uid) logReach(uid, 'ticker');
           });
         }
-          .gte('created_at', since3h);
-        if (liveData) setLivePois(Array.from(new Set(liveData.map((d: any) => d.place_id))));
       }
     };
     map.on('moveend', loadPois);
@@ -145,11 +163,7 @@ function AppPageContent() {
     }
   }, [heatMode, hotspots.length]);
 
-  // Geolocation
-  const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
-  const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+
 
   // Parse Itinerary from URL
   useEffect(() => {
@@ -223,21 +237,6 @@ function AppPageContent() {
     }
     loadData();
   }, [supabase, logReach]);
-      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
-      const { data: bc } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_emoji, last_broadcast_at, broadcast_text, broadcast_lat, broadcast_lon, sub_tier')
-        .not('last_broadcast_at', 'is', null)
-        .gt('last_broadcast_at', fourHoursAgo);
-      if (bc) setBroadcasts(bc);
-    }
-    loadData();
-    setExplorers([
-      { lat: 5.3484, lon: -4.0305, name: 'Jean', level: 3 },
-      { lat: 5.3310, lon: -4.0210, name: 'Awa', level: 2 },
-      { lat: 5.3590, lon: -3.9850, name: 'Koffi', level: 4 },
-    ]);
-  }, [supabase]);
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
@@ -270,6 +269,13 @@ function AppPageContent() {
     setQuery('');
     setResults([]);
   }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelected(null);
+    setNearbyStops([]);
+    setSheet('peek');
+  }, []);
+
 
   const handleLocateMe = useCallback(async () => {
     if (!navigator.geolocation) {
@@ -334,18 +340,7 @@ function AppPageContent() {
 
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); setQuery(''); setResults([]); };
-    if (!navigator.geolocation) return;
-    setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      setUserLoc([lat, lon]);
-      setSelected(null);
-      const { data } = await supabase.rpc('arrets_proches', { p_lat: lat, p_lon: lon, p_radius_m: 800, p_limit: 10 });
-      setGeoLoading(false);
-      if (data) { setNearbyStops(data as ArretProche[]); setSheet('half'); }
-    }, () => setGeoLoading(false), { enableHighAccuracy: true, timeout: 10000 });
-  }, [supabase]);
+
 
   const initials = profile?.display_name
     ? profile.display_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
@@ -429,7 +424,7 @@ function AppPageContent() {
           className="w-full flex items-center gap-4 bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-xl shadow-black/5 border-2 border-beige-200/50 px-5 py-4 text-left transition-all hover:border-abidjan-orange/30 active:scale-95"
         >
           <Image src="/icons/icon-192.png" alt="" width={24} height={24} className="rounded-lg flex-shrink-0 opacity-90" />
-          <span className="text-abidjan-orange flex-shrink-0"><IconSearch /></span>
+          <span className="text-abidjan-orange flex-shrink-0"><Ic.Search s={20} /></span>
           <span className="text-sm font-bold text-beige-muted flex-1 truncate">
             {selected ? selected.stop_name : "Arrêt, quartier ou lieu…"}
           </span>
@@ -439,7 +434,7 @@ function AppPageContent() {
               className="text-beige-200 hover:text-beige-text p-1 rounded-full transition"
               aria-label="Effacer la sélection"
             >
-              <IconX />
+              <Ic.X s={20} />
             </button>
           )}
         </button>
@@ -460,7 +455,7 @@ function AppPageContent() {
           >
             {geoLoading
               ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-              : <IconLocate />
+              : <Ic.Locate s={22} />
             }
             <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
               {userLoc ? 'Localisé' : 'Me localiser'}
@@ -473,7 +468,7 @@ function AppPageContent() {
             aria-label="Mon compte"
             className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-orange/30 hover:text-abidjan-orange transition-all active:scale-95"
           >
-            <IconUser />
+            <Ic.Users s={22} />
             <span className="text-[11px] font-black uppercase tracking-wider">Profil</span>
           </Link>
 
@@ -483,7 +478,7 @@ function AppPageContent() {
             aria-label="Calculer un itinéraire"
             className="flex-shrink-0 flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg shadow-black/5 border-2 border-beige-200/50 px-4 py-2.5 text-beige-muted hover:border-abidjan-blue/30 hover:text-abidjan-blue transition-all active:scale-95"
           >
-            <IconRoute />
+            <Ic.Route s={22} />
             <span className="text-[11px] font-black uppercase tracking-wider">Itinéraire</span>
           </Link>
 
@@ -527,34 +522,7 @@ function AppPageContent() {
           >
             <span className="text-base leading-none">{heatMode ? '🔥' : '❄️'}</span>
             <span className="text-[11px] font-black uppercase tracking-wider">Activité</span>
-      {/* TOP BAR */}
-      <div style={{ position: 'absolute', top: 'max(56px, env(safe-area-inset-top, 0px) + 16px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 500 }}>
-        <button style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <Ic.Menu s={20} />
-        </button>
-
-        {searchOpen ? (
-          <div style={{ flex: 1, height: 44, borderRadius: 14, background: 'var(--cream)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px' }}>
-            <Ic.Search s={18} />
-            <input
-              autoFocus
-              value={query}
-              onChange={e => handleSearchChange(e.target.value)}
-              placeholder="Arrêt, quartier ou lieu…"
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, fontWeight: 500, color: 'var(--ink)', fontFamily: 'inherit' }}
-            />
-            <button onClick={() => { setSearchOpen(false); setQuery(''); setResults([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex' }}>
-              <Ic.X s={18} />
-            </button>
-          </div>
-        ) : (
-          <button onClick={() => setSearchOpen(true)} style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
-            <Ic.Search s={18} />
-            <span style={{ flex: 1, textAlign: 'left' }}>Où vas-tu, Babi ?</span>
-            <Link href="/app/chat" onClick={e => e.stopPropagation()} style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, textDecoration: 'none' }}>IA</Link>
           </button>
-        )}
-
         </div>
       </div>
 
@@ -585,7 +553,7 @@ function AppPageContent() {
               className="p-2 ml-auto text-red-300 hover:text-red-500 hover:bg-red-100 rounded-full transition flex-shrink-0"
               aria-label="Fermer"
             >
-              <IconX />
+              <Ic.X s={20} />
             </button>
           </motion.div>
         )}
@@ -646,40 +614,19 @@ function AppPageContent() {
               </button>
             )}
           </div>
-        <Link href="/app/compte" style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none', flexShrink: 0 }}>
-          {initials}
-        </Link>
-      </div>
+        )}
 
-      {/* SEARCH RESULTS */}
-      {searchOpen && (results.length > 0 || isSearching || query.length >= 2) && (
-        <div className="bm-search-overlay no-scrollbar" style={{ position: 'absolute', top: 'calc(max(56px, env(safe-area-inset-top, 0px) + 16px) + 54px)', left: 16, right: 16, zIndex: 500, background: 'var(--cream-2)', borderRadius: 18, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', border: '1px solid var(--line)', maxHeight: 320, overflowY: 'auto' }}>
-          {isSearching ? (
-            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>Recherche…</div>
-          ) : results.length === 0 ? (
-            <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>Aucun résultat pour « {query} »</div>
-          ) : results.map((r, i) => (
-            <button key={r.stop_id ?? i} onClick={() => handleSelectStop(r)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--line)' : 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                <Ic.Pin s={18} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
-                {r.commune && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.commune}</div>}
-              </div>
-              <Ic.Arrow s={16} />
-            </button>
-          ))}
-        </div>
-      )}
+
 
       {/* RIGHT FABs */}
       <div style={{ position: 'absolute', right: 16, top: 'max(120px, env(safe-area-inset-top, 0px) + 80px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 400 }}>
         {profile && (
           <BroadcastButton
             userId={profile.id}
-            canBroadcast={profile.sub_tier === 'pro' || profile.sub_tier === 'elite'}
+            currentTier={profile.sub_tier || 'free'}
+            isAdmin={profile.is_admin}
           />
+
         )}
         <button className="press" onClick={handleLocateMe} style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: geoLoading ? 'var(--orange)' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <Ic.Locate s={18} />
@@ -726,7 +673,7 @@ function AppPageContent() {
                       onClick={() => setSelectedPoi(null)}
                       className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
                     >
-                      <IconX size="w-5 h-5" />
+                      <Ic.X s={20} />
                     </button>
                   </div>
                 </div>
@@ -817,7 +764,7 @@ function AppPageContent() {
                         onClick={() => setActiveItinerary(null)} 
                         className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
                      >
-                        <IconX size="w-5 h-5" />
+                        <Ic.X s={20} />
                      </button>
                   </div>
 
@@ -878,7 +825,7 @@ function AppPageContent() {
                     className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200 flex-shrink-0"
                     aria-label="Fermer"
                   >
-                    <IconX size="w-5 h-5" />
+                    <Ic.X s={20} />
                   </button>
                 </div>
 
@@ -887,42 +834,10 @@ function AppPageContent() {
                     onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)}
                     className="flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-5 rounded-3xl col-span-1 sm:col-span-2 shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
                   >
-                    <IconList />
+                    <Ic.Menu s={20} />
                     VOIR LES LIGNES
                   </button>
-      {/* LIVE TICKER */}
-      <div style={{ position: 'absolute', top: 'max(110px, env(safe-area-inset-top, 0px) + 70px)', left: 0, right: 0, zIndex: 300, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
-          {TICKER.map(([place, status, c], i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
-              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
-              <span style={{ fontWeight: 700 }}>{place}</span>
-              <span style={{ color: 'var(--muted)' }}>· {status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* BOTTOM SHEET */}
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: sheetH, transition: 'height 0.35s cubic-bezier(0.32,0.72,0,1)', background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 400, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div onClick={() => setSheet(s => s === 'peek' ? 'half' : s === 'half' ? 'full' : 'peek')} style={{ cursor: 'pointer', paddingTop: 4, flexShrink: 0 }}>
-          <div className="sheet-handle" />
-        </div>
-
-        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 120px' }}>
-
-          {selected ? (
-            /* SELECTED STOP */
-            <div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase' }}>Arrêt sélectionné</div>
-                  <div className="font-display" style={{ fontSize: 22 }}>{selected.stop_name}</div>
-                  {selected.commune && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{selected.commune}</div>}
                 </div>
-                <button onClick={() => setSelected(null)} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0 }}>
-                  <Ic.X s={16} />
-                </button>
               </div>
             ) : nearbyStops.length > 0 ? (
               /* ── Nearby stops list ── */
@@ -944,7 +859,7 @@ function AppPageContent() {
                     className="p-2.5 rounded-2xl bg-beige-50 hover:bg-beige-100 transition text-beige-200"
                     aria-label="Effacer"
                   >
-                    <IconX size="w-5 h-5" />
+                    <Ic.X s={20} />
                   </button>
                 </div>
 
@@ -963,7 +878,7 @@ function AppPageContent() {
                       role="button"
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform">
-                        <IconPin />
+                        <Ic.Pin s={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-black text-beige-text truncate group-hover:text-abidjan-orange transition-colors">{a.stop_name}</div>
@@ -977,106 +892,83 @@ function AppPageContent() {
                     </li>
                   ))}
                 </ul>
-              <Link href={`/app/arret/${encodeURIComponent(selected.stop_id)}`} className="press" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 16, background: 'var(--orange)', color: '#fff', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>
-                Voir les détails & tarifs <Ic.Arrow s={18} />
-              </Link>
-            </div>
-          ) : (
-            /* DEFAULT SHEET */
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <h3 className="font-display" style={{ fontSize: 22, margin: 0 }}>Près de toi</h3>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>COCODY · 250m</span>
               </div>
+            ) : (
+              /* DEFAULT SHEET */
+              <div className="text-center py-6 animate-in fade-in">
+                <div className="flex justify-center mb-6">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-beige-muted opacity-50"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <p className="text-base font-bold text-beige-muted mb-8 leading-relaxed px-4 tracking-tight">
+                  Recherche un arrêt ou utilise le GPS pour voir ce qui est proche de toi.
+                </p>
+                <div className="flex flex-col gap-4">
+                  <button
+                    onClick={openSearch}
+                    className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
+                  >
+                    RECHERCHER UN ARRÊT
+                  </button>
+                  <button
+                    onClick={handleLocateMe}
+                    disabled={geoLoading}
+                    className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-95 transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-50"
+                  >
+                    {geoLoading ? (
+                      <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xl">📍</span>
+                    )}
+                    ARRÊTS À PROXIMITÉ
+                  </button>
+                </div>
 
-                {sheetTab === 'explorer' ? (
-                  <div className="text-center py-6">
-                    <div className="flex justify-center mb-6">
-                      <IconMap />
+                {/* Trending Places Section */}
+                {trendingPlaces.length > 0 && (
+                  <div className="mt-12 text-left">
+                    <div className="flex items-center gap-2 mb-4 px-2">
+                      <span className="text-xl">🔥</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-orange">Tendances du jour</span>
                     </div>
-                    <p className="text-base font-bold text-beige-muted mb-8 leading-relaxed px-4 tracking-tight">
-                      Recherche un arrêt ou utilise le GPS pour voir ce qui est proche de toi.
-                    </p>
-                    <div className="flex flex-col gap-4">
-                      <button
-                        onClick={openSearch}
-                        className="bg-abidjan-orange text-white text-base font-black px-8 py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 active:scale-95 transition-all"
-                      >
-                        RECHERCHER UN ARRÊT
-                      </button>
-                      <button
-                        onClick={handleLocateMe}
-                        disabled={geoLoading}
-                        className="flex items-center justify-center gap-3 bg-white border-2 border-abidjan-blue text-abidjan-blue text-base font-black px-8 py-5 rounded-3xl active:scale-95 transition-all shadow-xl shadow-abidjan-blue/10 disabled:opacity-50"
-                      >
-                        {geoLoading ? (
-                          <div className="w-5 h-5 border-3 border-abidjan-blue/30 border-t-abidjan-blue rounded-full animate-spin" />
-                        ) : (
-                          <IconLocate />
-                        )}
-                        ARRÊTS À PROXIMITÉ
-                      </button>
+                    <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
+                      {trendingPlaces.map((tp, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => {
+                            setQuery(tp.name);
+                            setSearchOpen(true);
+                            handleSearchChange(tp.name);
+                          }}
+                          className="flex-shrink-0 bg-white border-2 border-beige-100 rounded-[2rem] px-5 py-4 flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all text-center min-w-[140px]"
+                        >
+                          <div className="text-[10px] font-black text-abidjan-orange flex items-center gap-1 bg-abidjan-orange/10 px-2 py-0.5 rounded-full mb-1">
+                            #{idx + 1}
+                          </div>
+                          <div className="text-sm font-black text-beige-text whitespace-nowrap overflow-hidden text-ellipsis w-full">{tp.name}</div>
+                          <div className="text-[9px] font-bold text-beige-muted uppercase tracking-widest">{tp.count} visites</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-8 pb-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                    
-                    {/* Trending Places Section */}
-                    {trendingPlaces.length > 0 && (
-                      <div>
-                         <div className="flex items-center gap-2 mb-4 px-2">
-                            <span className="text-xl">🔥</span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-orange">Tendances du jour</span>
-                         </div>
-                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
-                            {trendingPlaces.map((tp, idx) => (
-                               <div 
-                                 key={idx} 
-                                 onClick={() => {
-                                    // Small trick to select POI if found or at least search for it
-                                    setQuery(tp.name);
-                                    setSearchOpen(true);
-                                    handleSearchChange(tp.name);
-                                 }}
-                                 className="flex-shrink-0 bg-white border-2 border-beige-100 rounded-[2rem] px-5 py-4 flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all text-center min-w-[140px]"
-                               >
-                                  <div className="text-[10px] font-black text-abidjan-orange flex items-center gap-1 bg-abidjan-orange/10 px-2 py-0.5 rounded-full mb-1">
-                                     #{idx + 1}
-                                  </div>
-                                  <div className="text-sm font-black text-beige-text whitespace-nowrap overflow-hidden text-ellipsis w-full">{tp.name}</div>
-                                  <div className="text-[9px] font-bold text-beige-muted uppercase tracking-widest">{tp.count} visites</div>
-                               </div>
-                            ))}
-                         </div>
-              {/* Transport scroll */}
-              <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
-                {(nearbyStops.length > 0
-                  ? nearbyStops.slice(0, 4).map((s, i) => ({
-                      kind: (['gbaka', 'woro', 'taxi', 'saloni'] as const)[i % 4],
-                      line: s.stop_name,
-                      eta: `${Math.round(s.distance_m)}m`,
-                      color: ['var(--orange)', 'var(--green)', 'var(--gold)', 'var(--blue)'][i % 4],
-                      stopId: s.stop_id,
-                    }))
-                  : TRANSPORT_DEMO
-                ).map((v, i) => (
-                  <div key={i} className="press" onClick={() => 'stopId' in v && v.stopId ? handleSelectStop({ stop_id: v.stopId, stop_name: v.line, stop_lat: 0, stop_lon: 0, commune: null } as any) : undefined} style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Vehicle kind={v.kind} size={32} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: v.color }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: v.color }}>{v.eta}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.line}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{v.kind}</div>
-                  </div>
-                ))}
+                )}
               </div>
             )}
           </div>
         )}
       </motion.div>
+
+      {/* LIVE TICKER */}
+      <div style={{ position: 'absolute', top: 'max(110px, env(safe-area-inset-top, 0px) + 70px)', left: 0, right: 0, zIndex: 300, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
+          {TICKER.map(([place, status, c], i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
+              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
+              <span style={{ fontWeight: 700 }}>{place}</span>
+              <span style={{ color: 'var(--muted)' }}>· {status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ── Search overlay ──────────────────────────────────────────────── */}
       <AnimatePresence>
@@ -1094,7 +986,7 @@ function AppPageContent() {
               className="p-2 -ml-2 rounded-full hover:bg-beige-50 transition text-beige-text"
               aria-label="Retour"
             >
-              <IconChevronLeft />
+              <Ic.Back s={22} />
             </button>
             <input
               autoFocus
@@ -1112,66 +1004,81 @@ function AppPageContent() {
                 className="p-2 text-beige-200 hover:text-beige-text rounded-full transition"
                 aria-label="Effacer"
               >
-                <IconX />
+                <Ic.X s={24} />
               </button>
             ) : null}
           </div>
-
-              {/* Babi IA CTA */}
-              <Link href="/app/chat" className="press" style={{ display: 'block', padding: 16, borderRadius: 18, marginBottom: 14, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
-                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>🗺️</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BABI IA</div>
-                    <div className="font-display" style={{ fontSize: 17, marginTop: 2 }}>Où vas-tu ?<br/>Demande en nouchi.</div>
-                  </div>
-                  <Ic.Arrow s={22} />
-                </div>
-              </Link>
-
-              {/* Recent */}
-              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase', margin: '8px 4px 8px' }}>RÉCENTS</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                {RECENT.map((r, i) => (
-                  <Link key={i} href="/app/chat" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                      <Ic.Route s={18} />
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 pb-20">
+            {isSearching ? (
+              <div className="text-center py-8 text-sm font-bold text-beige-muted">Recherche en cours...</div>
+            ) : query && results.length === 0 ? (
+              <div className="text-center py-8 text-sm font-bold text-beige-muted">Aucun résultat pour « {query} »</div>
+            ) : query && results.length > 0 ? (
+              <div className="space-y-2">
+                {results.map((r, i) => (
+                  <button key={r.stop_id ?? i} onClick={() => handleSelectStop(r)} className="w-full flex items-center gap-4 bg-white/50 hover:bg-white active:bg-beige-50 border-2 border-beige-100 px-4 py-3 rounded-2xl cursor-pointer transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-abidjan-orange/10 text-abidjan-orange flex items-center justify-center flex-shrink-0">
+                      <Ic.Pin s={20} />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Tarif moyen · {r.tarif}</div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-sm font-black text-beige-text truncate">{r.stop_name}</div>
+                      {r.commune && <div className="text-[10px] text-beige-muted font-bold uppercase tracking-widest mt-0.5">{r.commune}</div>}
                     </div>
-                    <Ic.Arrow s={16} />
-                  </Link>
+                  </button>
                 ))}
               </div>
-
-              {/* Community pulse */}
-              <Link href="/app/ccomment" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
-                <div style={{ display: 'flex' }}>
-                  {['var(--orange)', 'var(--green)', 'var(--blue)', 'var(--gold)'].map((c, i) => (
-                    <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                      {['K', 'A', 'M', 'D'][i]}
+            ) : (
+              <>
+                {/* Babi IA CTA */}
+                <Link href="/app/chat" className="press" style={{ display: 'block', padding: 16, borderRadius: 18, marginBottom: 14, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
+                  <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>🗺️</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BABI IA</div>
+                      <div className="font-display" style={{ fontSize: 17, marginTop: 2 }}>Où vas-tu ?<br/>Demande en nouchi.</div>
                     </div>
-                  ))}
+                  </div>
+                </Link>
+
+                {/* Recent */}
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted mb-3">Récents</div>
+                  <div className="flex flex-col gap-2">
+                    {RECENT.map((r, i) => (
+                      <Link key={i} href="/app/chat" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
+                          <span>📍</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Tarif moyen · {r.tarif}</div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+
+                {/* Community pulse */}
+                <Link href="/app/ccomment" className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', textDecoration: 'none' }}>
+                  <div style={{ display: 'flex' }}>
+                    {['var(--orange)', 'var(--green)', 'var(--blue)', 'var(--gold)'].map((c, i) => (
+                      <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                        {['K', 'A', 'M', 'D'][i]}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Babis sont en ligne</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Demande ton C'comment</div>
+                  </div>
+                </Link>
+              </>
             )}
           </div>
         </motion.div>
       )}
       </AnimatePresence>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Babis sont en ligne</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Demande ton C'comment</div>
-                </div>
-                <Ic.Arrow s={18} />
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

@@ -8,7 +8,7 @@ import PersonalHeatmap from '@/components/PersonalHeatmap';
 import BeigeMapBackground from '@/components/BeigeMapBackground';
 import ProfileSocialTabs from '@/components/ProfileSocialTabs';
 import ExplorerGoals from './ExplorerGoals';
-import PersonalHeatmap from './PersonalHeatmap';
+
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
@@ -45,13 +45,15 @@ export default async function ComptePage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(300);
-    .from('checkins').select('commune, place_name, lat, lon, created_at')
-    .eq('user_id', user.id).order('created_at', { ascending: false }).limit(300);
 
   const communeFreq: Record<string, number> = {};
   checkinsDetail?.forEach((r) => {
     if (r.commune) communeFreq[r.commune] = (communeFreq[r.commune] ?? 0) + 1;
   });
+  const topCommunes = Object.entries(communeFreq)
+    .sort((a, b) => b[1] - a[1])
+    .map(e => e[0]);
+
 
   const { data: recentCheckins } = await supabase
     .from('checkins').select('id, place_name, commune, created_at, points_earned')
@@ -62,6 +64,10 @@ export default async function ComptePage() {
   const { data: favorites } = await supabase
     .from('user_favorites').select('id, label, stop_id, route_id, kind')
     .eq('user_id', user.id).order('created_at', { ascending: false }).limit(5);
+
+  const { data: following } = await supabase
+    .from('user_follows').select('following_id').eq('follower_id', user.id);
+
 
   const total = checkinCount ?? 0;
   const totalPoints = profile?.total_points ?? 0;
@@ -74,13 +80,14 @@ export default async function ComptePage() {
 
   // REACH metric — real impressions from reach_events (ticker + map + feed + broadcast)
   const { data: reachData } = await supabase.rpc('get_reach', { p_user_id: user.id, p_days: 30 });
-  const reachVal: number = reachData ?? 0;
   const reachVal = (total * 125) + (totalPoints * 4);
   const reachStr = reachVal >= 1000 ? `${(reachVal / 1000).toFixed(1)}k` : reachVal.toString();
 
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
   const initials = displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+  const avatarEmoji = profile?.avatar_emoji || '👤';
   const earnedKeys = new Set((badges ?? []).map(b => b.badge_key));
+
 
   function timeAgo(iso: string) {
     const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -90,19 +97,7 @@ export default async function ComptePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto relative bg-beige-50 text-beige-text font-sans">
-      <BeigeMapBackground />
-      
-      {/* Top nav */}
-      <div className="sticky top-0 z-30 bg-beige-50/80 backdrop-blur-xl border-b border-beige-200/50 px-4 py-3 flex items-center gap-3">
-        <Link href="/app" className="p-2 -ml-2 rounded-full hover:bg-beige-100 transition-colors" aria-label="Retour à la carte">
-          <svg className="w-5 h-5 text-beige-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-beige-muted flex-1 text-center pr-8">MES PLANS TRIP</span>
-        <SignOutButton />
-      </div>
+
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
 
       {/* HERO */}
@@ -176,17 +171,7 @@ export default async function ComptePage() {
       {/* CONTENT */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 100px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                <ExplorerGoals
-                   goals={[
-                     { label: "20 Check-ins", current: total, target: 20, emoji: "📍" },
-                     { label: "5 lieux de 5 Communes", current: Object.keys(communeFreq).length, target: 5, emoji: "🗺️" },
-                     { label: "500 Points accumulés", current: totalPoints, target: 500, emoji: "⭐" },
-                   ]}
-                   remainingPoints={Math.max(500 - totalPoints, 0)}
-                />
-             </div>
-          </div>
-        )}
+
 
         {/* PERSONAL HEATMAP SECTION */}
         <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 overflow-hidden shadow-xl shadow-black/5">
@@ -312,125 +297,17 @@ export default async function ComptePage() {
                 initialCommune={profile?.origin_commune || ''}
               />
            </div>
-        {/* Progress to verified */}
-        {!profile?.is_verified_explorer && (
-          <div style={{ padding: 18, borderRadius: 18, background: 'var(--cream-2)', border: '1.5px dashed var(--orange)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 12 }}>Objectif : Explorateur Vérifié</div>
-            {[
-              { label: '20 Check-ins', current: total, target: 20 },
-              { label: '5 Communes', current: Object.keys(communeFreq).length, target: 5 },
-              { label: '500 Points', current: totalPoints, target: 500 },
-            ].map((g, i) => {
-              const pct = Math.min((g.current / g.target) * 100, 100);
-              const done = pct >= 100;
-              return (
-                <div key={i} style={{ marginBottom: i < 2 ? 10 : 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12 }}>
-                    <span style={{ fontWeight: 700, color: done ? 'var(--green)' : 'var(--ink)' }}>{g.label} {done ? '✓' : ''}</span>
-                    <span style={{ color: 'var(--muted)', fontWeight: 600 }}>{g.current}/{g.target}</span>
-                  </div>
-                  <div style={{ height: 5, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: done ? 'var(--green)' : 'var(--orange)', borderRadius: 3, transition: 'width 0.8s ease' }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Territoire */}
-        <div style={{ borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <Pill color="var(--green)">TERRITOIRE</Pill>
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{Object.keys(communeFreq).length} communes</span>
-          </div>
-          <div style={{ height: 180, position: 'relative' }}>
-            <PersonalHeatmap checkins={checkinsDetail ?? []} />
-          </div>
-          {Object.keys(communeFreq).length > 0 && (
-            <div style={{ padding: '10px 16px 14px' }}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {Object.entries(communeFreq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([commune, count]) => (
-                  <div key={commune} style={{ padding: '4px 10px', borderRadius: 999, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
-                    {commune} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>({count})</span>
-                  </div>
-                ))}
+           <div className="bg-white rounded-[2.5rem] border-2 border-beige-200 p-8 shadow-xl shadow-black/5">
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="w-10 h-10 rounded-xl bg-beige-100 text-beige-muted flex items-center justify-center text-xl">⚙️</div>
+                 <div className="text-[10px] uppercase tracking-widest text-beige-text font-black">Paramètres</div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Badges */}
-        <div style={{ borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-            <Pill color="var(--gold)">BADGES</Pill>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: 14 }}>
-            {ALL_BADGE_KEYS.map(key => {
-              const meta = BADGE_META[key];
-              const earned = earnedKeys.has(key);
-              return (
-                <div key={key} style={{ padding: 12, borderRadius: 14, background: earned ? 'var(--cream)' : 'transparent', border: earned ? `1.5px solid color-mix(in oklab, ${meta.color} 30%, transparent)` : '1.5px dashed var(--line)', textAlign: 'center', opacity: earned ? 1 : 0.45 }}>
-                  <div style={{ fontSize: 26, marginBottom: 6 }}>{meta.emoji}</div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: earned ? meta.color : 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{meta.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Recent activity */}
-        {recentCheckins && recentCheckins.length > 0 && (
-          <div style={{ borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-              <Pill color="var(--blue)">ACTIVITÉ RÉCENTE</Pill>
-            </div>
-            <div style={{ padding: '8px 0' }}>
-              {recentCheckins.map((c, i) => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < recentCheckins.length - 1 ? '1px solid var(--line)' : 'none' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                    <Ic.Pin s={18} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.place_name}</div>
-                    {c.commune && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{c.commune}</div>}
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {c.points_earned > 0 && <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--gold)' }}>+{c.points_earned}pts</div>}
-                    <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>{timeAgo(c.created_at)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Profile editor */}
-        <div style={{ borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-            <Pill color="var(--muted)">PARAMÈTRES</Pill>
-          </div>
-          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <ProfileEditor
-              userId={user.id}
-              initialName={displayName}
-              initialEmoji={profile?.avatar_emoji ?? '🧭'}
-              initialPhone={profile?.phone ?? undefined}
-              initialConsent={profile?.data_consent ?? false}
-              initialVisibility={profile?.is_public_visits ?? true}
-            />
-            <PreferencesEditor
-              userId={user.id}
-              initialPreferences={prefs}
-            />
-          </div>
-        </div>
-
-        {/* Sign out */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
-          <SignOutButton />
+              <PreferencesEditor userId={user.id} initialPreferences={prefs} />
+              
+              <div className="mt-8 pt-8 border-t-2 border-dashed border-beige-100 flex justify-center">
+                 <SignOutButton />
+              </div>
+           </div>
         </div>
       </div>
     </div>

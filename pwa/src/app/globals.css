@@ -1,5 +1,4 @@
-/* Leaflet CSS — ⚠ MUST be first import, Turbopack is strict */
-@import 'leaflet/dist/leaflet.css';
+
 
 @tailwind base;
 @tailwind components;

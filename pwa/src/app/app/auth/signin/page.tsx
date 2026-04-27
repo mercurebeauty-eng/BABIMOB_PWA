@@ -92,12 +92,11 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 text-lg tracking-tight"
-                  className="press"
-                  style={{ width: '100%', padding: '16px', borderRadius: 16, border: 'none', background: 'var(--orange)', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+                  className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 text-lg tracking-tight flex items-center justify-center gap-2"
                 >
                   {loading ? 'Envoi…' : (<>Recevoir le lien magique <Ic.Arrow s={18} /></>)}
                 </button>
+
               </form>
             )}
           </div>

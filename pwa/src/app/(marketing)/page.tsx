@@ -55,6 +55,43 @@ const SOCIAL_DOTS = [
   'var(--orange)',
 ];
 
+const TRANSPORTS = [
+  { n: 'Gbaka', e: '🚐', p: 'Très populaire', d: 'Le bus de quartier par excellence. Rapide et partout.' },
+  { n: 'Woro-Woro', e: '🚕', p: 'Collectif', d: 'Taxis communaux à trajet fixe. Économique et convivial.' },
+  { n: 'Taxi Compteur', e: '🚖', p: 'Sur mesure', d: 'Pour vos trajets directs. Négociez le prix si pas de compteur.' },
+  { n: 'Sotra', e: '🚌', p: 'Réseau bus', d: 'Le réseau de bus officiel reliant toutes les communes.' },
+];
+
+function IconArrowRight() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+function IconX({ size = 'w-6 h-6' }: { size?: string }) {
+  return (
+    <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function IconList() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"></line>
+      <line x1="8" y1="12" x2="21" y2="12"></line>
+      <line x1="8" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+    </svg>
+  );
+}
+
+
 export default function LandingPage() {
   return (
     <div style={{ background: 'var(--cream)', color: 'var(--ink)', fontFamily: 'sans-serif', minHeight: '100vh' }}>
@@ -184,6 +221,9 @@ export default function LandingPage() {
                 </div>
               </ScrollReveal>
             ))}
+          </div>
+        </div>
+      </section>
       {/* ── WHY SECTION ────────────────────────────────────── */}
       <section style={{ background: 'var(--cream-2)', padding: '80px 24px', textAlign: 'center' }}>
         <div style={{ maxWidth: 640, margin: '0 auto 56px' }}>
@@ -269,126 +309,26 @@ export default function LandingPage() {
         <ScrollReveal direction="up" className="max-w-4xl mx-auto px-5 text-center relative z-10">
           <h2 className="font-display font-black text-5xl md:text-6xl tracking-tight mb-8">
             Prêt à dompter Abidjan ?
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 16,
-            maxWidth: 960,
-            margin: '0 auto',
-          }}
-        >
-          {FEATURES.map((f) => (
-            <div
-              key={f.kicker}
-              style={{
-                background: '#fff',
-                borderRadius: 20,
-                padding: '28px 24px',
-                border: '1.5px solid var(--line)',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ fontSize: 32, marginBottom: 16 }}>{f.icon}</div>
-              <div style={{ marginBottom: 8 }}>
-                <Pill color="var(--orange)">{f.kicker}</Pill>
-              </div>
-              <h3
-                className="font-display"
-                style={{ fontSize: 18, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.2 }}
-              >
-                {f.title}
-              </h3>
-              <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>{f.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── STATS GRID ─────────────────────────────────────── */}
-      <section style={{ background: 'var(--ink)', padding: '72px 24px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 2,
-            maxWidth: 560,
-            margin: '0 auto',
-            borderRadius: 24,
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          {STATS.map((s) => (
-            <div
-              key={s.label}
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                padding: '36px 28px',
-                textAlign: 'center',
-              }}
-            >
-              <div
-                className="font-display"
-                style={{ fontSize: 42, color: 'var(--orange)', lineHeight: 1, marginBottom: 8 }}
-              >
-                {s.value}
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA FOOTER ─────────────────────────────────────── */}
-      <section
-        className="wax-zigzag"
-        style={{
-          background: 'var(--orange)',
-          color: '#fff',
-          padding: '80px 24px',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 560, margin: '0 auto' }}>
-          <h2
-            className="font-display"
-            style={{ fontSize: 'clamp(28px, 5vw, 40px)', lineHeight: 1.1, marginBottom: 32, letterSpacing: '-0.02em' }}
-          >
-            Babi se partage. Rejoins.
           </h2>
           <Link
             href="/app/onboarding"
-            className="press"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 10,
-              background: '#fff', color: 'var(--orange)',
-              padding: '16px 36px', borderRadius: 999,
-              fontWeight: 900, fontSize: 16, textDecoration: 'none',
-            }}
+            className="inline-flex items-center justify-center gap-3 bg-abidjan-orange text-white text-lg font-black px-10 py-5 rounded-full shadow-xl shadow-abidjan-orange/20 hover:bg-orange-600 hover:-translate-y-1 transition-all"
           >
-            Entrer dans Babi
-            <span style={{ fontSize: 18 }}>→</span>
+            ENTRER DANS BABI
+            <IconArrowRight />
           </Link>
-
-          <div style={{ marginTop: 24 }}>
+          <div className="mt-8">
             <a
-              href={TG}
+              href="https://t.me/Babimob_bot"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 700, textDecoration: 'none' }}
+              className="text-sm font-bold text-beige-muted hover:text-abidjan-blue transition-colors"
             >
-              Ou essaie le bot Telegram →
+              Ou essaie d'abord le bot Telegram →
             </a>
           </div>
         </ScrollReveal>
       </section>
-
     </div>
   );
 }
