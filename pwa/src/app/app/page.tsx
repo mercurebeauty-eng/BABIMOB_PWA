@@ -8,8 +8,10 @@ import { createClient } from '@/lib/supabase/client';
 import type { Stop, ArretProche } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Vehicle } from '@/components/ui/Vehicle';
 import { Ic } from '@/components/ui/Ic';
+import Vehicle from '@/components/ui/Vehicle';
+import { WaxStrip } from '@/components/ui/WaxStrip';
+import { Pill } from '@/components/ui/Pill';
 import BroadcastButton from '@/components/BroadcastButton';
 import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
@@ -234,7 +236,7 @@ function AppPageContent() {
     }
     loadData();
   }, [supabase, logReach]);
-  const sheetH = sheet === 'peek' ? 240 : sheet === 'half' ? 440 : 680;
+  const sheetH = sheet === 'full' ? 620 : sheet === 'half' ? 440 : 240;
 
   const cycleSheet = useCallback(() => {
     setSheet(current => {
@@ -551,43 +553,63 @@ function AppPageContent() {
           ) : (
             /* DEFAULT LIST (NEARBY STOPS) */
             <div className="animate-in fade-in duration-500">
-              {nearbyStops.length > 0 ? (
-                <>
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-blue mb-4">À proximité</div>
-                  <div className="space-y-3">
-                    {nearbyStops.map(s => (
-                      <div key={s.stop_id} onClick={() => handleSelectStop(s)} className="flex items-center gap-4 bg-beige-50/50 p-4 rounded-[1.5rem] border border-beige-100/50 active:scale-[0.98] transition-all">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm"><Ic.Pin s={18} /></div>
-                        <div className="flex-1 truncate text-sm font-black text-beige-text">{s.stop_name}</div>
-                        <div className="text-[10px] font-black text-abidjan-blue bg-abidjan-blue/10 px-2 py-1 rounded-lg">{formatDistance(s.distance_m)}</div>
+              {/* PRÈS DE TOI */}
+              {nearbyStops.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 12 }}>PRÈS DE TOI</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {nearbyStops.slice(0, 3).map(s => (
+                      <div key={s.stop_id} onClick={() => handleSelectStop(s)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)', cursor: 'pointer' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                          <Ic.Pin s={20} color="var(--orange)" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{s.stop_name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>{formatDistance(s.distance_m)} · {s.commune}</div>
+                        </div>
+                        <Ic.Arrow s={16} color="var(--line)" />
                       </div>
                     ))}
                   </div>
-                </>
-              ) : (
-                <div className="text-center py-10">
-                  <div className="text-4xl mb-4">📍</div>
-                  <h3 className="text-base font-black text-beige-text mb-2">Où vas-tu aujourd'hui ?</h3>
-                  <p className="text-xs text-beige-muted font-bold mb-8">Recherche un arrêt ou active le GPS pour voir les lignes autour de toi.</p>
-                  <button onClick={openSearch} className="w-full bg-abidjan-orange text-white font-black py-5 rounded-3xl shadow-xl shadow-abidjan-orange/20 text-sm uppercase tracking-widest mb-3">Rechercher</button>
-                  <button onClick={handleLocateMe} className="w-full bg-white border-2 border-abidjan-blue text-abidjan-blue font-black py-5 rounded-3xl text-sm uppercase tracking-widest">Utiliser ma position</button>
                 </div>
               )}
 
-              {/* Trending Section */}
-              {trendingPlaces.length > 0 && (
-                <div className="mt-12">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-abidjan-orange mb-4">Tendances 🔥</div>
-                  <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
-                    {trendingPlaces.map((tp, i) => (
-                      <div key={i} onClick={() => { setQuery(tp.name); setSearchOpen(true); handleSearchChange(tp.name); }} className="flex-shrink-0 bg-white border border-beige-100 rounded-2xl p-4 min-w-[140px] shadow-sm">
-                        <div className="text-sm font-black text-beige-text truncate">{tp.name}</div>
-                        <div className="text-[9px] font-bold text-beige-muted mt-1 uppercase">{tp.count} visites</div>
-                      </div>
-                    ))}
+              {/* TRANSPORTS — Horizontal Scroll */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase' }}>TRANSPORTS</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--green)', fontWeight: 800 }}>
+                    <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+                    LIVE
                   </div>
                 </div>
-              )}
+                <div className="no-scrollbar" style={{ display: 'flex', gap: 12, overflowX: 'auto', margin: '0 -24px', padding: '0 24px' }}>
+                  {TRANSPORT_DEMO.map((t, i) => (
+                    <div key={i} style={{ flexShrink: 0, width: 140, padding: 16, borderRadius: 22, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+                      <Vehicle kind={t.kind} size={32} />
+                      <div style={{ marginTop: 12, fontSize: 13, fontWeight: 800, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.line}</div>
+                      <div style={{ fontSize: 11, color: t.color, fontWeight: 700, marginTop: 2 }}>{t.eta}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* BOUSSOLE CARD */}
+              <Link href="/app/boussole" style={{ textDecoration: 'none', display: 'block', marginBottom: 24 }}>
+                <div style={{ padding: 20, borderRadius: 24, background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden' }}>
+                  <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.15 }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div className="compass-needle" style={{ fontSize: 32 }}>🧭</div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.7, marginBottom: 4 }}>NOUVEAU</div>
+                      <div className="font-display" style={{ fontSize: 20 }}>Ma Boussole Babi</div>
+                      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>Ne te perds plus jamais en ville.</div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
             </div>
           )}
         </div>

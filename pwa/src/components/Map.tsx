@@ -263,22 +263,35 @@ export default function Map({
                 whileHover={{ scale: 1.15, y: -4 }}
                 layout
               >
-                {checkinCount > 0 && (
-                  <div className="bm-poi-presence" style={{ background: 'var(--orange)' }}>
-                     <span className="bm-poi-presence-count">{checkinCount}</span>
-                  </div>
+                {isLive && (
+                  <div className="pulse-ring" style={{
+                    position: 'absolute', left: '50%', top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: isElite ? 50 : 36, height: isElite ? 50 : 36, borderRadius: '50%',
+                    background: isElite ? 'var(--gold)' : 'var(--orange)',
+                    zIndex: -1
+                  }} />
                 )}
-                <div className={`bm-poi-circle ${isElite ? 'bm-poi-circle-elite bm-poi-elite-pulse' : isPro ? 'bm-poi-circle-pro' : ''} ${isLive ? 'bm-poi-live-pulse' : ''}`} 
+                <div className={`bm-poi-circle ${isElite ? 'bm-poi-circle-elite' : isPro ? 'bm-poi-circle-pro' : ''}`} 
                      style={{ 
                        width: isElite ? 44 : 32, 
                        height: isElite ? 44 : 32,
                        background: 'white',
-                       border: isElite ? '3px solid var(--gold)' : isPro ? '2px solid var(--orange)' : '1.5px solid var(--line-strong)'
+                       borderRadius: '14px',
+                       display: 'flex', alignItems: 'center', justifyContent: 'center',
+                       boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                       border: isElite ? '3px solid var(--gold)' : isPro ? '2px solid var(--orange)' : '1.5px solid var(--line)'
                      }}>
                   <span className="bm-poi-emoji" style={{ fontSize: isElite ? 24 : 18 }}>{p.logo_emoji || '📍'}</span>
                 </div>
-                <div className={`bm-poi-label-under ${isElite ? 'bm-poi-label-under-elite' : ''} ${isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed'}`}
-                     style={{ background: 'white', color: 'var(--ink)', fontFamily: 'var(--font-archivo-black)' }}>
+                <div className={`bm-poi-label-under ${isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed'}`}
+                     style={{ 
+                       background: 'white', color: 'var(--ink)', 
+                       fontFamily: 'var(--font-archivo-black)',
+                       padding: '4px 10px', borderRadius: '8px',
+                       fontSize: '11px', marginTop: '4px',
+                       boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                     }}>
                   {p.name}
                 </div>
               </motion.div>
@@ -335,7 +348,22 @@ export default function Map({
         {/* User Location */}
         {userLocation && (
           <Marker longitude={userLocation[1]} latitude={userLocation[0]} style={{ zIndex: 2000 }}>
-            <div className="bm-user-marker" style={{ background: 'var(--orange)', width: '14px', height: '14px', border: '3px solid white' }}></div>
+            <div className="relative">
+              <div className="pulse-ring" style={{
+                position: 'absolute', left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 14, height: 14, borderRadius: '50%',
+                background: 'var(--orange)'
+              }} />
+              <div className="bm-user-marker" style={{ 
+                background: 'var(--orange)', 
+                width: '14px', height: '14px', 
+                border: '3px solid white',
+                borderRadius: '50%',
+                position: 'relative',
+                zIndex: 1
+              }}></div>
+            </div>
           </Marker>
         )}
 

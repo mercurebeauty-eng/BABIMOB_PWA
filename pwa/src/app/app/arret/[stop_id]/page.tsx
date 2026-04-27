@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import FavoriteButton from './FavoriteButton';
-import StopLinesList from './StopLinesList';
 import { Ic } from '@/components/ui/Ic';
+import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
-import { WaxStrip } from '@/components/ui/WaxStrip';
+import dynamic from 'next/dynamic';
+
+const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -24,39 +25,19 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: lignes }, { data: favRow }, { data: profile }] = await Promise.all([
+  const [{ data: lignes }, { data: profile }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
-    user
-      ? supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('stop_id', stopId).eq('kind', 'stop').limit(1).maybeSingle()
-      : Promise.resolve({ data: null }),
     user
       ? supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
-  const isFavorited = !!favRow;
+  const poiCheckins = { [stopId]: 12 };
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* HERO */}
-      <div style={{ background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden', paddingTop: 'max(56px, env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 28, paddingLeft: 20, paddingRight: 20 }}>
-        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.12, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <Link href="/app" style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cream)', background: 'rgba(255,255,255,0.1)', textDecoration: 'none' }}>
-              <Ic.Back s={20} />
-            </Link>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Pill color="var(--orange)">GARE GBAKA</Pill>
-              <Pill color="var(--green)">ACTIVE</Pill>
-            </div>
-          </div>
-          <h1 className="font-display" style={{ fontSize: 28, color: '#fff', lineHeight: 1.05, marginBottom: 6 }}>{stop.stop_name}</h1>
-          {stop.commune && (
-            <p style={{ fontSize: 13, color: 'rgba(247,241,230,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{stop.commune} · Abidjan</p>
-          )}
         </div>
       </div>
 

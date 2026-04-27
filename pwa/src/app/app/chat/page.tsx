@@ -55,17 +55,20 @@ export default async function ChatListPage() {
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 100px' }}>
 
         {/* AI CTA */}
-        <div style={{ padding: 18, borderRadius: 18, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', marginBottom: 20, position: 'relative', overflow: 'hidden' }}>
+        <div className="press" style={{ padding: 18, borderRadius: 18, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', marginBottom: 20, position: 'relative', overflow: 'hidden' }}>
           <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
           <div style={{ position: 'relative' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, opacity: 0.85, marginBottom: 6 }}>ASSISTANT IA</div>
-            <div className="font-display" style={{ fontSize: 20, marginBottom: 8 }}>Où vas-tu, Babi ?</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, opacity: 0.85 }}>ASSISTANT IA</div>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} className="shimmer" />
+            </div>
+            <div className="font-display" style={{ fontSize: 22, marginBottom: 4 }}>Où vas-tu, Babi ?</div>
             <p style={{ fontSize: 13, opacity: 0.9, lineHeight: 1.5, marginBottom: 14 }}>
-              Dis-moi d'où tu pars et où tu veux aller. Je trouve le meilleur chemin avec les vrais tarifs.
+              Dis-moi ta destination en nouchi ou en français, je te sors les meilleurs plans.
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {['Adjamé → Yop', 'Cocody → Plateau', 'Abobo → Marcory'].map((s, i) => (
-                <span key={i} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 700 }}>{s}</span>
+              {['Yopougon Selmer', 'Plateau', 'Riviera 2'].map((s, i) => (
+                <span key={i} style={{ padding: '6px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 700 }}>{s}</span>
               ))}
             </div>
           </div>
