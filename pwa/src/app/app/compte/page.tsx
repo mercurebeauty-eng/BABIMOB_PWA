@@ -163,6 +163,5 @@ export default async function ComptePage() {
            </div>
         </div>
       </div>
-    </div>
   );
 }
