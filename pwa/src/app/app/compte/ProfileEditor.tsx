@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { validateCIPhone } from '@/lib/phone';
 
 const EMOJIS = [
   '🧭', '🚐', '🚖', '🚕', '🛺', '🦁', '🐘',
@@ -13,12 +14,6 @@ const ABIDJAN_COMMUNES = [
   'Marcory', 'Plateau', 'Port-Bouët', 'Treichville', 'Yopougon',
   'Anyama', 'Bingerville', 'Songon',
 ];
-
-// CI phone: 10 digits, optional +225 prefix, optional spaces/dashes
-function validateCIPhone(val: string): boolean {
-  const cleaned = val.replace(/[\s\-().]/g, '');
-  return /^(\+225)?0[0-9]{9}$/.test(cleaned);
-}
 
 type Props = {
   userId: string;

@@ -2,30 +2,24 @@
 
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
-import { WaxStrip } from '@/components/ui/WaxStrip';
-import { Pill } from '@/components/ui/Pill';
 import BroadcastButton from '@/components/BroadcastButton';
-import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
-import { motion, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
 import { useCommunityData } from '@/hooks/useCommunityData';
 import { useMapPois } from '@/hooks/useMapPois';
-
-function formatDistance(m: number) {
-  if (m < 1000) return `${Math.round(m)}m`;
-  return `${(m/1000).toFixed(1)}km`;
-}
+import { useHotspots } from '@/hooks/useHotspots';
+import { useItinerary } from '@/hooks/useItinerary';
 
 
 
@@ -57,20 +51,14 @@ export default function AppPage() {
 
 function AppPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const supabase = createClient();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
-  const [activeItinerary, setActiveItinerary] = useState<any | null>(null);
-  const controls = useAnimation();
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
-  const [hotspots, setHotspots] = useState<any[]>([]);
 
-  const [heatMode, setHeatMode] = useState(false);
-  const [sheetExpanded, setSheetExpanded] = useState(false);
-  const [poiNearestStop, setPoiNearestStop] = useState<any>(null);
+  const { heatMode, setHeatMode, hotspots } = useHotspots();
+  const { activeItinerary, setActiveItinerary } = useItinerary();
 
   const { logReach } = useReachTracking();
   const { profile, broadcasts, explorers, communityFeed, trendingPlaces } = useCommunityData({ logReach });
@@ -101,22 +89,6 @@ function AppPageContent() {
       stop_lon: poi.lon,
     }))}`);
   }, [router]);
-
-  useEffect(() => {
-    if (heatMode && hotspots.length === 0) {
-      import('@/lib/activity').then(mod => mod.fetchActivityHotspots()).then(data => {
-        setHotspots(data.map(h => ({ lat: h.lat, lon: h.lon, intensity: h.count })));
-      });
-    }
-  }, [heatMode, hotspots.length]);
-
-  // Parse Itinerary from URL
-  useEffect(() => {
-    const itiParam = searchParams.get('iti');
-    if (itiParam) {
-      try { setActiveItinerary(JSON.parse(decodeURIComponent(itiParam))); } catch { /* noop */ }
-    }
-  }, [searchParams]);
 
   const sheetH = sheet === 'full' ? 620 : sheet === 'half' ? 440 : 240;
 
