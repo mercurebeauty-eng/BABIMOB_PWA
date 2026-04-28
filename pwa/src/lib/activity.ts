@@ -19,7 +19,8 @@ export async function fetchActivityHotspots(): Promise<ActivityHotspot[]> {
     .select('place_id, place_name, lat, lon')
     .gt('created_at', lastWeek)
     .not('lat', 'is', null)
-    .not('lon', 'is', null);
+    .not('lon', 'is', null)
+    .limit(500);
 
   if (error || !data) return [];
 

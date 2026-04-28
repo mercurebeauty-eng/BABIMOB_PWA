@@ -98,6 +98,8 @@ export default function StopReportModal({ stopId, stopName, userId, displayName,
                 <button
                   key={cat.id}
                   onClick={() => setCategory(cat.id)}
+                  aria-pressed={category === cat.id}
+                  aria-label={cat.label}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 99,
                     border: category === cat.id ? 'none' : '1.5px solid var(--line)',
@@ -106,7 +108,7 @@ export default function StopReportModal({ stopId, stopName, userId, displayName,
                     fontSize: 12, fontWeight: 700, cursor: 'pointer',
                   }}
                 >
-                  <span>{cat.emoji}</span> {cat.label}
+                  <span aria-hidden="true">{cat.emoji}</span> {cat.label}
                 </button>
               ))}
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { haversineM } from '@/lib/geo';
 import Link from 'next/link';
 
 type Props = {
@@ -49,17 +50,6 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
     checkAlready();
   }, [placeId, supabase]);
 
-  function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const R = 6371e3; // Earth radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
   async function handleCheckin() {
     setStatus('loading');
     const { data: { user } } = await supabase.auth.getUser();
@@ -77,7 +67,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
        const userLon = pos.coords.longitude;
 
        if (lat && lon) {
-          const dist = getDistance(userLat, userLon, lat, lon);
+          const dist = haversineM(userLat, userLon, lat, lon);
           if (dist > 150) { // 150m for Abidjan precision margin
              alert("Tu es trop loin pour valider cette visite ! Rapproche-toi un peu.");
              setStatus('idle');
@@ -88,7 +78,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
        // 2. PROCEED WITH CHECKIN
        let { data: profile } = await supabase
          .from('profiles')
-         .select('display_name, avatar_emoji')
+         .select('display_name, avatar_emoji, is_public_visits')
          .eq('id', user.id)
          .maybeSingle();
 
@@ -106,7 +96,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
          commune: commune ?? null,
          lat: lat ?? null,
          lon: lon ?? null,
-         is_public: true,
+         is_public: profile?.is_public_visits ?? false,
          display_name: profile?.display_name ?? 'Explorateur',
          avatar_emoji: profile?.avatar_emoji ?? '🧭',
          points_earned: 10,
@@ -114,9 +104,8 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
 
        if (error) { setStatus('error'); return; }
 
-       const since = new Date(Date.now() - 7 * 86400000).toISOString();
-       const { count } = await supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('place_id', placeId).eq('is_public', true).gte('created_at', since);
-       setRecentCount(count ?? 0);
+       // Increment the cached count rather than re-querying
+       setRecentCount((prev) => (prev ?? 0) + 1);
        setStatus('done');
 
     }, (err) => {

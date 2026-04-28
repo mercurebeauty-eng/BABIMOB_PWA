@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
@@ -12,7 +12,7 @@ import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import BroadcastButton from '@/components/BroadcastButton';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
@@ -89,22 +89,58 @@ function AppPageContent() {
     }))}`);
   }, [router]);
 
-  const sheetHeights: Record<string, number> = {
-    mini: 60,
-    peek: 120,
-    half: 400,
-    full: 620,
-  };
-  const sheetH = sheetHeights[sheet];
+  const SNAP = { mini: 60, peek: 120, half: 400, full: 620 } as const;
+  type SheetState = keyof typeof SNAP;
+
+  const heightMV = useMotionValue(SNAP.mini);
+
+  // Sync programmatic state changes → spring animation
+  useEffect(() => {
+    animate(heightMV, SNAP[sheet], { type: 'spring', damping: 30, stiffness: 300, mass: 0.8 });
+  }, [sheet]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cycleSheet = useCallback(() => {
-    setSheet(current => {
-      if (current === 'mini') return 'peek';
-      if (current === 'peek') return 'half';
-      if (current === 'half') return 'full';
-      return 'mini';
-    });
+    setSheet((cur) => cur === 'mini' ? 'peek' : cur === 'peek' ? 'half' : cur === 'half' ? 'full' : 'mini');
   }, []);
+
+  // Pointer-based drag on handle only — no conflict with content scroll
+  const onHandlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const startY = e.clientY;
+    const startH = heightMV.get();
+
+    function onMove(ev: PointerEvent) {
+      const h = Math.min(SNAP.full, Math.max(SNAP.mini, startH - (ev.clientY - startY)));
+      heightMV.set(h);
+    }
+
+    function onUp(ev: PointerEvent) {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+
+      const h = heightMV.get();
+      const velocity = ev.movementY;
+      const snaps = [SNAP.mini, SNAP.peek, SNAP.half, SNAP.full] as const;
+
+      let target: number;
+      if (velocity > 8 && h > SNAP.mini) {
+        const lower = snaps.filter((s) => s < h);
+        target = lower.length ? lower[lower.length - 1] : SNAP.mini;
+      } else if (velocity < -8 && h < SNAP.full) {
+        const higher = snaps.filter((s) => s > h);
+        target = higher.length ? higher[0] : SNAP.full;
+      } else {
+        target = snaps.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a);
+      }
+
+      animate(heightMV, target, { type: 'spring', damping: 30, stiffness: 300, mass: 0.8 });
+      const snap: SheetState = target === SNAP.full ? 'full' : target === SNAP.half ? 'half' : target === SNAP.peek ? 'peek' : 'mini';
+      setSheet(snap);
+    }
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [heightMV]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
@@ -183,7 +219,7 @@ function AppPageContent() {
         }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
-        legs={activeItinerary?.legs?.map((l: any) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
+        legs={activeItinerary?.legs?.map((l) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
         hotspots={hotspots}
         explorers={explorers}
         pois={pois}
@@ -223,19 +259,21 @@ function AppPageContent() {
 
       {/* ── FAB Stack (Right) ── */}
       <div style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
-        {([
-          { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite },
-          { icon: <Ic.Locate s={18} />, action: locateMe, active: !!userLoc, loading: geoLoading },
-          { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole') },
-        ] as const).map((btn, i) => (
+        {(
+          [
+            { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite, loading: false },
+            { icon: <Ic.Locate s={18} />, action: locateMe, active: !!userLoc, loading: geoLoading },
+            { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole'), active: false, loading: false },
+          ] as { icon: React.ReactNode; action: () => void; active: boolean; loading: boolean }[]
+        ).map((btn, i) => (
           <button
             key={i}
             onClick={btn.action}
-            disabled={(btn as any).loading}
+            disabled={btn.loading}
             className="press"
-            style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: (btn as any).active ? 'var(--orange)' : 'var(--cream)', color: (btn as any).active ? '#fff' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: btn.active ? 'var(--orange)' : 'var(--cream)', color: btn.active ? '#fff' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
-            {(btn as any).loading
+            {btn.loading
               ? <div style={{ width: 16, height: 16, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />
               : btn.icon}
           </button>
@@ -264,51 +302,13 @@ function AppPageContent() {
 
       {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
       <motion.div
-        drag="y"
-        dragConstraints={{ top: 60, bottom: 620 }}
-        dragElastic={0.1}
-        onDragEnd={(_, info) => {
-          const currentHeight = sheetH - info.offset.y;
-          const anchors = [60, 120, 400, 620];
-          let closest = anchors[0];
-          let minDiff = Infinity;
-          for (const a of anchors) {
-            const diff = Math.abs(currentHeight - a);
-            if (diff < minDiff) {
-              minDiff = diff;
-              closest = a;
-            }
-          }
-          if (closest === 60) setSheet('mini');
-          else if (closest === 120) setSheet('peek');
-          else if (closest === 400) setSheet('half');
-          else setSheet('full');
-        }}
-        animate={{ height: sheetH }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'var(--cream-2)',
-          borderRadius: '24px 24px 0 0',
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
-          zIndex: 400,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          touchAction: 'none',
-        }}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: heightMV, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
-        {/* Poignée unique (clic + drag) */}
+        {/* Poignée — drag + clic */}
         <div
-          onClick={() =>
-            setSheet(s =>
-              s === 'mini' ? 'peek' : s === 'peek' ? 'half' : s === 'half' ? 'full' : 'mini'
-            )
-          }
-          style={{ cursor: 'pointer', paddingTop: 4, flexShrink: 0 }}
+          onPointerDown={onHandlePointerDown}
+          onClick={cycleSheet}
+          style={{ cursor: 'grab', paddingTop: 4, flexShrink: 0, touchAction: 'none', userSelect: 'none' }}
         >
           <div className="sheet-handle" />
         </div>
@@ -354,7 +354,7 @@ function AppPageContent() {
                 <button onClick={() => setActiveItinerary(null)} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                {activeItinerary.legs.map((leg: any, idx: number) => (
+                {activeItinerary.legs.map((leg, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: 24 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 16, background: 'var(--cream)', border: '2px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                       {leg.mode === 'WALK' ? '🚶' : '🚐'}
