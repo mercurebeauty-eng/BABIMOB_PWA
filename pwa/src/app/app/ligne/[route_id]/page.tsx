@@ -110,6 +110,7 @@ export default async function LignePage({ params, searchParams }: Props) {
       {/* MAP */}
       <div style={{ height: 200, overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
         <RouteMapWrapper
+          key={`${routeId}-${activeDir}`}
           shape={(shapePoints ?? []) as { shape_pt_lat: number; shape_pt_lon: number }[]}
           stops={orderedStops}
           routeColor={route.route_color ?? '1565c0'}
@@ -157,14 +158,14 @@ export default async function LignePage({ params, searchParams }: Props) {
             const isFuture = !fromStop ? true : orderedStops.findIndex(x => x.stop_id === fromStop) < i;
             const isTerminus = isFirst || isLast;
 
-            // Couleurs de la ligne de connexion
-            const lineColor = isPast ? 'var(--red, #e53935)' : 'var(--green, #2e7d32)';
+            // Couleurs de la ligne de connexion (hardcodées pour éviter les variables manquantes)
+            const lineColor = isPast ? '#e53935' : '#2e7d32'; // rouge / vert
 
-            // Point : rouge pour passé, vert pour actuel/futur, couleur route pour terminus
-            let dotColor = 'var(--green)'; // futur par défaut
+            // Point : rouge pour passé, vert pour futur, orange pour l'actuel, couleur route pour terminus
+            let dotColor = '#2e7d32'; // futur par défaut
             if (isNow) dotColor = 'var(--orange)';
-            else if (isPast) dotColor = 'var(--red, #e53935)';
-            else if (isTerminus && !isNow) dotColor = routeColor; // terminus de la ligne
+            else if (isPast) dotColor = '#e53935';
+            else if (isTerminus && !isNow) dotColor = routeColor;
 
             return (
               <div key={i} style={{ display: 'flex', gap: 16, position: 'relative', minHeight: isNow ? 110 : (isTerminus ? 64 : 52) }}>
