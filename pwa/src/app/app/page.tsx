@@ -54,7 +54,7 @@ function AppPageContent() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
-  const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
+  const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [isSatellite, setIsSatellite] = useState(false);
 
@@ -91,7 +91,13 @@ function AppPageContent() {
     }))}`);
   }, [router]);
 
-  const sheetH = sheet === 'full' ? 620 : sheet === 'half' ? 440 : 240;
+  const sheetHeights: Record<string, number> = {
+  mini: 60,
+  peek: 120,
+  half: 400,
+  full: 620,
+};
+const sheetH = sheetHeights[sheet];
 
   const cycleSheet = useCallback(() => {
     setSheet(current => {
@@ -259,24 +265,69 @@ function AppPageContent() {
         </div>
       )}
 
-      {/* ── Bottom Sheet ── */}
+      {/* BOTTOM SHEET – DRAG */}
       <motion.div
         drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
+        dragConstraints={{ top: 60, bottom: 620 }}
         dragElastic={0.1}
         onDragEnd={(_, info) => {
-          if (info.offset.y > 50 || info.velocity.y > 200) {
-            if (sheet === 'full') setSheet('half');
-            else if (sheet === 'half') setSheet('peek');
-          } else if (info.offset.y < -50 || info.velocity.y < -200) {
-            if (sheet === 'peek') setSheet('half');
-            else if (sheet === 'half') setSheet('full');
+          const currentHeight = sheetH - info.offset.y;
+          const anchors = [60, 120, 400, 620]; // mini, peek, half, full
+          let closest = anchors[0];
+          let minDiff = Infinity;
+          for (const a of anchors) {
+            const diff = Math.abs(currentHeight - a);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closest = a;
+            }
           }
+          if (closest === 60) setSheet('mini');
+          else if (closest === 120) setSheet('peek');
+          else if (closest === 400) setSheet('half');
+          else setSheet('full');
         }}
         animate={{ height: sheetH }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'var(--cream-2)',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
+          zIndex: 400,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          touchAction: 'none',
+        }}
       >
+        {/* Poignée : clic + drag */}
+        <div
+          onClick={() =>
+            setSheet(s =>
+              s === 'mini'
+                ? 'peek'
+                : s === 'peek'
+                ? 'half'
+                : s === 'half'
+                ? 'full'
+                : 'mini'
+            )
+          }
+          style={{ cursor: 'pointer', paddingTop: 4, flexShrink: 0 }}
+        >
+          <div className="sheet-handle" />
+        </div>
+
+        {/* Contenu scrollable (identique à l'original) */}
+        <div
+          className="no-scrollbar"
+          style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 120px' }}
+        >
+         
         {/* Sheet handle */}
         <div onClick={cycleSheet} style={{ cursor: 'pointer', paddingTop: 4 }}>
           <div className="sheet-handle" />
