@@ -1,6 +1,13 @@
 // Types générés à la main depuis le schéma Supabase (à régénérer avec
 // `supabase gen types typescript` plus tard quand tu utiliseras la CLI).
 
+export const SUB_TIERS = ['free', 'messenger', 'social', 'pro', 'elite'] as const;
+export type SubTier = typeof SUB_TIERS[number];
+/** Coerce a raw Supabase string to SubTier, defaulting to 'free'. */
+export function toSubTier(s: string | null | undefined): SubTier {
+  return (SUB_TIERS as readonly string[]).includes(s ?? '') ? (s as SubTier) : 'free';
+}
+
 export type Stop = {
   stop_id: string;
   stop_name: string;

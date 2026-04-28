@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { toSubTier } from '@/lib/types';
+import type { SubTier } from '@/lib/types';
 import type { ReachSource } from './useReachTracking';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -10,7 +12,7 @@ export type UserProfile = {
   id: string;
   display_name: string | null;
   avatar_emoji: string | null;
-  sub_tier: string | null;
+  sub_tier: SubTier | null;
   is_admin: boolean;
   is_public_visits: boolean;
 };
@@ -83,7 +85,7 @@ export function useCommunityData({ logReach }: Options) {
           .select('id, display_name, avatar_emoji, sub_tier, is_admin, is_public_visits')
           .eq('id', user.id)
           .single();
-        if (!cancelled && data) setProfile(data as UserProfile);
+        if (!cancelled && data) setProfile({ ...(data as Omit<UserProfile, 'sub_tier'> & { sub_tier: string | null }), sub_tier: toSubTier(data.sub_tier) });
       }
 
       const fourHoursAgo = new Date(Date.now() - 4 * 3600000).toISOString();

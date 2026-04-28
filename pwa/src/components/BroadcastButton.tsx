@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 import PremiumWall from './PremiumWall';
+import type { SubTier } from '@/lib/types';
 
 type Props = {
   userId: string;
-  currentTier: 'free' | 'messenger' | 'social' | 'pro' | 'elite';
+  currentTier: SubTier;
   isAdmin?: boolean;
 };
 
