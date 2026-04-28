@@ -482,7 +482,7 @@ export default function Map({
     map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
   }, [route, routeColor]);
 
-  return <div ref={containerRef} className={className} />;
+  return <div ref={containerRef} className={className} style={{ zIndex: 0 }} />;
 }
 
 function escapeHtml(s: string): string {
