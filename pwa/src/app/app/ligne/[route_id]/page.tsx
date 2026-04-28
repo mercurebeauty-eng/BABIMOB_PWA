@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+export const dynamic = 'force-dynamic';
 import { notFound } from 'next/navigation';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';

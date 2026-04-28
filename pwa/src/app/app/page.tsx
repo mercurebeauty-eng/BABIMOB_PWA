@@ -5,6 +5,7 @@ import Image from 'next/image';
 import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import type { Stop } from '@/lib/types';
+import { toSubTier } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 import { useRouter } from 'next/navigation';
 import { formatDistance } from '@/lib/format';
@@ -333,7 +334,7 @@ function AppPageContent() {
       {/* ── Broadcast FAB ── */}
       {profile && sheet === 'peek' && (
         <div style={{ position: 'absolute', bottom: 264, right: 20, zIndex: 450 }}>
-          <BroadcastButton userId={profile.id} currentTier={profile.sub_tier ?? 'free'} isAdmin={profile.is_admin} />
+          <BroadcastButton userId={profile.id} currentTier={toSubTier(profile.sub_tier)} isAdmin={profile.is_admin} />
         </div>
       )}
 
