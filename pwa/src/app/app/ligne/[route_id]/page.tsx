@@ -139,7 +139,7 @@ export default async function LignePage({ params, searchParams }: Props) {
         {/* TIMELINE – fusionnée : style de main + couleurs de terminus de l'autre branche */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
-            Itinéraire · {orderedStops.length} arrêts
+            ITINÉRAIRE · {orderedStops.length} ARRÊTS
           </div>
           {fromStop && (
             <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--green)', background: 'color-mix(in oklab, var(--green) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)', borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -152,26 +152,32 @@ export default async function LignePage({ params, searchParams }: Props) {
           {orderedStops.map((s, i) => {
             const isFirst = i === 0;
             const isLast = i === orderedStops.length - 1;
-            const isTerminus = isFirst || isLast;
             const isNow = fromStop === s.stop_id;
             const isPast = !fromStop ? false : orderedStops.findIndex(x => x.stop_id === fromStop) > i;
             const isFuture = !fromStop ? true : orderedStops.findIndex(x => x.stop_id === fromStop) < i;
 
-            // Couleur du point selon l'état (on combine les logiques)
-            let dotColor = 'var(--line)'; // futur par défaut
+            // Couleurs de la ligne de connexion
+            const lineColor = isPast ? 'var(--red, #e53935)' : 'var(--green, #2e7d32)';
+
+            // Point : rouge pour passé, vert pour actuel/futur, couleur route pour terminus
+            let dotColor = 'var(--green)'; // futur par défaut
             if (isNow) dotColor = 'var(--orange)';
-            else if (isPast) dotColor = 'var(--muted)';
-            else if (isTerminus) dotColor = routeColor; // terminus coloré
+            else if (isPast) dotColor = 'var(--red, #e53935)';
+            else if (isTerminus && !isNow) dotColor = routeColor; // terminus de la ligne
+
+            const isTerminus = isFirst || isLast;
 
             return (
               <div key={i} style={{ display: 'flex', gap: 16, position: 'relative', minHeight: isNow ? 110 : (isTerminus ? 64 : 52) }}>
-                {/* Ligne de connexion */}
+                {/* Ligne verticale de connexion */}
                 {i < orderedStops.length - 1 && (
                   <div style={{
-                    position: 'absolute', left: 19, top: isNow ? 40 : 24, bottom: -8, width: 2,
-                    background: isPast ? 'var(--muted)' : 'var(--line)',
-                    backgroundImage: isFuture ? 'repeating-linear-gradient(180deg, var(--line) 0 4px, transparent 4px 8px)' : 'none',
-                    backgroundColor: isPast ? 'var(--muted)' : 'transparent',
+                    position: 'absolute',
+                    left: 19,
+                    top: isNow ? 40 : 24,
+                    bottom: -8,
+                    width: 2,
+                    background: lineColor,
                   }} />
                 )}
 
@@ -200,18 +206,40 @@ export default async function LignePage({ params, searchParams }: Props) {
                   </div>
                 </div>
 
-                {/* Texte et éventuel encart */}
+                {/* Texte & encart */}
                 <div style={{ flex: 1, paddingTop: isNow ? 18 : 14, paddingBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
                     <div className={isNow ? 'font-display' : ''} style={{
                       fontSize: isNow ? 20 : 15,
-                      fontWeight: isNow ? 900 : isPast ? 500 : 600,
-                      color: isFuture ? 'var(--muted)' : 'var(--ink)',
-                      textDecoration: isPast ? 'line-through' : 'none',
-                      opacity: isPast ? 0.6 : 1
-                    }}>{s.stop_name}</div>
+                      fontWeight: isNow ? 900 : 600,
+                      color: isPast ? 'var(--ink-2)' : 'var(--ink)',
+                      // Pas de line-through, juste une différence de couleur
+                    }}>
+                      {s.stop_name}
+                      {isNow && (
+                        <span style={{
+                          fontSize: 8,
+                          fontWeight: 900,
+                          color: 'var(--green)',
+                          background: 'color-mix(in oklab, var(--green) 15%, transparent)',
+                          border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)',
+                          borderRadius: 99,
+                          padding: '2px 6px',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.4,
+                          marginLeft: 8,
+                          verticalAlign: 'middle'
+                        }}>
+                          VOTRE ARRÊT
+                        </span>
+                      )}
+                    </div>
+                    {s.commune && (
+                      <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{s.commune}</div>
+                    )}
                   </div>
 
+                  {/* Encart "Tu es ici" */}
                   {isNow && (
                     <div className="slide-up" style={{ marginTop: 8, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)', boxShadow: '0 4px 12px rgba(242,108,26,0.15)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
