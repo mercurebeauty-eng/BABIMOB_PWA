@@ -20,6 +20,8 @@ import { useCommunityData } from '@/hooks/useCommunityData';
 import { useMapPois } from '@/hooks/useMapPois';
 import { useHotspots } from '@/hooks/useHotspots';
 import { useItinerary } from '@/hooks/useItinerary';
+import { useNearbyTransport } from '@/hooks/useNearbyTransport';
+import { haversineM } from '@/lib/geo';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -50,11 +52,17 @@ export default function AppPage() {
 function AppPageContent() {
   const router = useRouter();
 
+  type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
   const [isSatellite, setIsSatellite] = useState(false);
+  const [lastDestination, setLastDestination] = useState<LastDestination | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try { return JSON.parse(localStorage.getItem('babimob_lastDest') ?? 'null'); } catch { return null; }
+  });
 
   const { heatMode, setHeatMode, hotspots } = useHotspots();
   const { activeItinerary, setActiveItinerary } = useItinerary();
@@ -73,6 +81,8 @@ function AppPageContent() {
     onPositionAcquired: () => setSelected(null),
     onLocate: () => setSheet('half'),
   });
+  const nearbyTransport = useNearbyTransport(nearbyStops);
+
   const {
     query,
     setQuery,
@@ -88,6 +98,10 @@ function AppPageContent() {
       stop_lon: poi.lon,
     }))}`);
   }, [router]);
+
+  // Auto-request geolocation on mount
+  const locateMeRef = useRef(locateMe);
+  useEffect(() => { locateMeRef.current(); }, []);
 
   const SNAP = { mini: 60, peek: 120, half: 400, full: 620 } as const;
   type SheetState = keyof typeof SNAP;
@@ -160,9 +174,20 @@ function AppPageContent() {
 
   const clearSelection = useCallback(() => {
     setSelected(null);
-    setNearbyStops([]);
     setSheet('peek');
-  }, [setNearbyStops]);
+  }, []);
+
+  const handleDescendIci = useCallback((stop: Stop) => {
+    const dest: LastDestination = {
+      name: stop.stop_name,
+      commune: stop.commune ?? null,
+      lat: stop.stop_lat,
+      lon: stop.stop_lon,
+    };
+    setLastDestination(dest);
+    localStorage.setItem('babimob_lastDest', JSON.stringify(dest));
+    clearSelection();
+  }, [clearSelection]);
 
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); clearSearch(); };
@@ -190,12 +215,24 @@ function AppPageContent() {
     { from: 'Riviera 2', to: 'Marcory Zone 4', tarif: '500F' },
   ];
 
-  const TRANSPORT_DEMO = [
-    { kind: 'gbaka' as const, line: 'Adjamé ↔ Yop', eta: '2 min', color: 'var(--orange)' },
-    { kind: 'woro' as const, line: 'Cocody', eta: '4 min', color: 'var(--green)' },
-    { kind: 'taxi' as const, line: 'Plateau', eta: 'sur place', color: 'var(--gold)' },
-    { kind: 'saloni' as const, line: 'quartier', eta: '1 min', color: 'var(--blue)' },
-  ];
+  const selectedDistanceM = selected && userLoc
+    ? haversineM(userLoc[0], userLoc[1], selected.stop_lat, selected.stop_lon)
+    : null;
+  const isNearbyStop = selectedDistanceM !== null && selectedDistanceM < 300;
+
+  const headerLabel = (() => {
+    if (lastDestination) {
+      const label = (lastDestination.commune ?? lastDestination.name).toUpperCase();
+      if (userLoc) {
+        const d = haversineM(userLoc[0], userLoc[1], lastDestination.lat, lastDestination.lon);
+        return `${label} · ${formatDistance(d)}`;
+      }
+      return label;
+    }
+    if (nearbyStops.length > 0)
+      return `${nearbyStops[0].commune?.toUpperCase() ?? 'ABIDJAN'} · ${formatDistance(nearbyStops[0].distance_m)}`;
+    return null;
+  })();
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden', background: 'var(--cream)' }}>
@@ -371,14 +408,32 @@ function AppPageContent() {
           ) : selected ? (
             /* ── STOP DETAIL ── */
             <div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
                 <div>
                   <h2 style={{ fontSize: 21, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selected.stop_name}</h2>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>{selected.commune}</div>
+                  {!isNearbyStop && selectedDistanceM !== null && (
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange)', marginTop: 6 }}>
+                      {formatDistance(selectedDistanceM)} de toi
+                    </div>
+                  )}
                 </div>
                 <button onClick={clearSelection} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
               </div>
-              <button onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)} style={{ width: '100%', background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '20px 0', borderRadius: 24, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>Voir les détails & tarifs</button>
+              {isNearbyStop ? (
+                <button onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)} style={{ width: '100%', background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '20px 0', borderRadius: 24, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>
+                  Voir les lignes & tarifs
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)} style={{ flex: 1, background: 'var(--cream)', color: 'var(--ink)', fontWeight: 800, padding: '18px 0', borderRadius: 20, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, border: '1.5px solid var(--line)', cursor: 'pointer' }}>
+                    Détail arrêt
+                  </button>
+                  <button onClick={() => handleDescendIci(selected)} style={{ flex: 1, background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '18px 0', borderRadius: 20, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>
+                    Je descends ici 🎯
+                  </button>
+                </div>
+              )}
             </div>
 
           ) : (
@@ -387,26 +442,39 @@ function AppPageContent() {
               {/* Près de toi */}
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
                 <h3 className="font-display" style={{ fontSize: 22, margin: 0, color: 'var(--ink)' }}>Près de toi</h3>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>
-                  {nearbyStops.length > 0
-                    ? `${nearbyStops[0].commune?.toUpperCase() || 'COCODY'} · ${formatDistance(nearbyStops[0].distance_m)}`
-                    : 'COCODY · 250m'}
-                </span>
+                {headerLabel && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>
+                    {headerLabel}
+                  </span>
+                )}
               </div>
 
               {/* Transport cards */}
               <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
-                {TRANSPORT_DEMO.map((v, i) => (
-                  <div key={i} className="press" style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: 'pointer' }}>
+                {nearbyTransport.map((card) => (
+                  <div
+                    key={card.kind}
+                    className={card.available ? 'press' : ''}
+                    onClick={() => {
+                      if (card.available && card.stop) {
+                        handleSelectStop({ stop_id: card.stop.stop_id, stop_name: card.stop.stop_name, stop_lat: card.stop.stop_lat, stop_lon: card.stop.stop_lon, commune: card.stop.commune ?? null });
+                      }
+                    }}
+                    style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: card.available ? 'pointer' : 'default', opacity: card.available ? 1 : 0.55 }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Vehicle kind={v.kind} size={32} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: v.color }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: v.color, letterSpacing: 0.3 }}>{v.eta}</span>
-                      </div>
+                      <Vehicle kind={card.kind} size={32} />
+                      {card.available && card.stop && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: card.color }} />
+                          <span style={{ fontSize: 11, fontWeight: 800, color: card.color, letterSpacing: 0.3 }}>{formatDistance(card.stop.distance_m)}</span>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{v.line}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{v.kind}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: card.available ? 'var(--ink)' : 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {card.available && card.stop ? card.stop.stop_name : 'Bientôt dispo'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{card.label}</div>
                   </div>
                 ))}
               </div>
