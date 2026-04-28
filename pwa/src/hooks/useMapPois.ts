@@ -6,12 +6,13 @@ import type { Map as LeafletMap } from 'leaflet';
 import type { POI } from '@/lib/poi';
 import type { ReachSource } from './useReachTracking';
 
-type LiveCheckin = {
+type RawLiveCheckin = {
   place_id: string;
   place_name: string;
-  display_name: string;
   profile: { id: string | null; display_name: string | null; is_public_visits: boolean } | null;
 };
+
+export type LiveCheckin = RawLiveCheckin & { display_name: string };
 
 type Options = {
   logReach: (userId: string, source: ReachSource) => void;
@@ -76,11 +77,14 @@ export function useMapPois({ logReach }: Options) {
         .order('created_at', { ascending: false });
 
       if (liveData) {
-        setLivePois(Array.from(new Set((liveData as LiveCheckin[]).map((d) => d.place_id))));
+        const raw = liveData as unknown as RawLiveCheckin[];
+        setLivePois(Array.from(new Set(raw.map((d) => d.place_id))));
 
-        const filteredTicker = (liveData as LiveCheckin[]).map((d) => ({
+        const filteredTicker: LiveCheckin[] = raw.map((d) => ({
           ...d,
-          display_name: d.profile?.is_public_visits ? (d.profile.display_name ?? 'Un explorateur') : 'Un explorateur',
+          display_name: d.profile?.is_public_visits
+            ? (d.profile.display_name ?? 'Un explorateur')
+            : 'Un explorateur',
         })).slice(0, 5);
 
         setLiveTickerFeed(filteredTicker);
