@@ -127,7 +127,17 @@ export default function RouteInteractive({
           const dotSize = isCurrent ? 40 : isTerminus ? 20 : 14;
 
           return (
-            <div key={`${stop.stop_id}-${stop.stop_sequence}`} style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+            <div
+              key={`${stop.stop_id}-${stop.stop_sequence}`}
+              style={{
+                display: 'flex', gap: 12, alignItems: 'stretch',
+                background: isCurrent ? 'color-mix(in oklab, var(--orange) 6%, transparent)' : 'transparent',
+                borderRadius: isCurrent ? 14 : 0,
+                margin: isCurrent ? '2px -8px' : 0,
+                padding: isCurrent ? '0 8px' : 0,
+                border: isCurrent ? '1px solid color-mix(in oklab, var(--orange) 18%, transparent)' : 'none',
+              }}
+            >
 
               {/* Timeline column */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
@@ -170,7 +180,11 @@ export default function RouteInteractive({
               </div>
 
               {/* Content column */}
-              <div style={{ flex: 1, minWidth: 0, paddingTop: isCurrent ? 16 : 12, paddingBottom: isCurrent ? 16 : 12 }}>
+              <div style={{
+                flex: 1, minWidth: 0,
+                paddingTop: isCurrent ? 14 : 10, paddingBottom: isCurrent ? 14 : 10,
+                borderBottom: !isLast && !isCurrent ? '1px solid color-mix(in oklab, var(--line) 55%, transparent)' : 'none',
+              }}>
                 {/* Stop name */}
                 {isCurrent ? (
                   <div>
@@ -210,31 +224,17 @@ export default function RouteInteractive({
                   </Link>
                 )}
 
-                {/* TU ES ICI encart */}
+                {/* TU ES ICI — compact */}
                 {isCurrent && (
-                  <div className="slide-up" style={{ marginTop: 10, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)', boxShadow: '0 4px 12px rgba(242,108,26,0.12)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                      <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>TU ES ICI</span>
-                    </div>
-                    {stop.commune && (
-                      <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>Quartier {stop.commune}</div>
-                    )}
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <Link
-                        href={`/app/arret/${encodeURIComponent(stop.stop_id)}`}
-                        style={{ flex: 1, padding: '8px', borderRadius: 10, background: 'var(--cream)', border: '1px solid var(--line)', color: 'var(--ink)', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}
-                      >
-                        Détail arrêt
-                      </Link>
-                      <button
-                        className="press"
-                        onClick={() => handleDescendIci(stop)}
-                        style={{ flex: 1, padding: '8px', borderRadius: 10, background: 'var(--orange)', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}
-                      >
-                        Je descends
-                      </button>
-                    </div>
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 8, background: 'color-mix(in oklab, var(--orange) 8%, transparent)' }}>
+                    <div className="shimmer" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--orange)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5, flex: 1 }}>TU ES ICI</span>
+                    <Link
+                      href={`/app/arret/${encodeURIComponent(stop.stop_id)}`}
+                      style={{ padding: '4px 10px', borderRadius: 6, background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 800, textDecoration: 'none', flexShrink: 0, letterSpacing: 0.3 }}
+                    >
+                      Revenir aux détails
+                    </Link>
                   </div>
                 )}
 
