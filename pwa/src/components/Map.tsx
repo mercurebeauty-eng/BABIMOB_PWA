@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 
