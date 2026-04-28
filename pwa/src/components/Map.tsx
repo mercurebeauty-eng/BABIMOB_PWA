@@ -36,7 +36,7 @@ type Props = {
   explorers?: { lat: number; lon: number; name: string }[];
   poiCheckins?: Record<string, number>;
   livePois?: string[];
-  broadcasts?: { id: string; display_name: string | null; avatar_emoji: string | null; broadcast_text: string | null; broadcast_lat: number; broadcast_lon: number }[];
+  broadcasts?: { id: string; display_name: string | null; avatar_emoji: string | null; broadcast_text: string | null; broadcast_lat: number | null; broadcast_lon: number | null }[];
   pois?: POI[];
 };
 
