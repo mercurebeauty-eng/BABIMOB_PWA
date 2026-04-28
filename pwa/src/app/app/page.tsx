@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
@@ -180,7 +180,7 @@ function AppPageContent() {
         }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
-        legs={activeItinerary?.legs?.map((l: any) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
+        legs={activeItinerary?.legs?.map((l) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
         hotspots={hotspots}
         explorers={explorers}
         pois={pois}
@@ -220,19 +220,21 @@ function AppPageContent() {
 
       {/* ── FAB Stack (Right) ── */}
       <div style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
-        {([
-          { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite },
-          { icon: <Ic.Locate s={18} />, action: locateMe, active: !!userLoc, loading: geoLoading },
-          { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole') },
-        ] as const).map((btn, i) => (
+        {(
+          [
+            { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite, loading: false },
+            { icon: <Ic.Locate s={18} />, action: locateMe, active: !!userLoc, loading: geoLoading },
+            { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole'), active: false, loading: false },
+          ] as { icon: React.ReactNode; action: () => void; active: boolean; loading: boolean }[]
+        ).map((btn, i) => (
           <button
             key={i}
             onClick={btn.action}
-            disabled={(btn as any).loading}
+            disabled={btn.loading}
             className="press"
-            style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: (btn as any).active ? 'var(--orange)' : 'var(--cream)', color: (btn as any).active ? '#fff' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: btn.active ? 'var(--orange)' : 'var(--cream)', color: btn.active ? '#fff' : 'var(--ink)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
-            {(btn as any).loading
+            {btn.loading
               ? <div style={{ width: 16, height: 16, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />
               : btn.icon}
           </button>
@@ -321,7 +323,7 @@ function AppPageContent() {
                 <button onClick={() => setActiveItinerary(null)} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                {activeItinerary.legs.map((leg: any, idx: number) => (
+                {activeItinerary.legs.map((leg, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: 24 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 16, background: 'var(--cream)', border: '2px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                       {leg.mode === 'WALK' ? '🚶' : '🚐'}

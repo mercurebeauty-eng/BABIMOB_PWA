@@ -2,18 +2,11 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { haversineM } from '@/lib/geo';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 
 const MAX_DISTANCE_M = 300;
-
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 type Props = {
   placeId: string;
@@ -62,7 +55,7 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, lat, l
 
         let { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, avatar_emoji')
+          .select('display_name, avatar_emoji, is_public_visits')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -84,7 +77,7 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, lat, l
           commune,
           lat: pos.coords.latitude,
           lon: pos.coords.longitude,
-          is_public: true,
+          is_public: profile?.is_public_visits ?? false,
           display_name: profile?.display_name ?? 'Explorateur',
           avatar_emoji: profile?.avatar_emoji ?? '🧭',
         });

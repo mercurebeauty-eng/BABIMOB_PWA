@@ -58,30 +58,24 @@ export default function ProfileEditor({
     }
     setStatus('saving');
 
-    // Save core fields first (guaranteed columns)
+    const payload: Record<string, unknown> = {
+      id: userId,
+      display_name: trimmed,
+      avatar_emoji: emoji,
+      phone_number: phone || null,
+      phone_marketing_consent: consent,
+      is_public_visits: visibility,
+    };
+    if (commune !== undefined) payload.origin_commune = commune || null;
+
     const { error } = await supabase
       .from('profiles')
-      .upsert({
-        id: userId,
-        display_name: trimmed,
-        avatar_emoji: emoji,
-        phone_number: phone || null,
-        phone_marketing_consent: consent,
-        is_public_visits: visibility,
-      }, { onConflict: 'id' });
+      .upsert(payload, { onConflict: 'id' });
 
     if (error) {
       setStatus('error');
       setTimeout(() => setStatus('idle'), 3000);
       return;
-    }
-
-    // Try origin_commune separately — graceful if column doesn't exist yet
-    if (commune !== undefined) {
-      await supabase
-        .from('profiles')
-        .update({ origin_commune: commune || null })
-        .eq('id', userId);
     }
 
     setStatus('saved');

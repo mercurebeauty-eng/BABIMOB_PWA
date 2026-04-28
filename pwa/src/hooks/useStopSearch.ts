@@ -29,11 +29,14 @@ export function useStopSearch() {
     timerRef.current = setTimeout(async () => {
       setSearching(true);
       const words = q.trim().split(/\s+/).filter((w) => w.length >= 2);
-      let stopsQuery = supabase.from('gtfs_stops').select('stop_id, stop_name, stop_lat, stop_lon, commune');
-      words.forEach((word) => {
-        stopsQuery = stopsQuery.or(`stop_name.ilike.%${word}%,commune.ilike.%${word}%`);
-      });
-      const { data } = await stopsQuery.limit(12);
+      const orFilter = words
+        .map((w) => `stop_name.ilike.%${w}%,commune.ilike.%${w}%`)
+        .join(',');
+      const { data } = await supabase
+        .from('gtfs_stops')
+        .select('stop_id, stop_name, stop_lat, stop_lon, commune')
+        .or(orFilter)
+        .limit(12);
       setSearching(false);
       setResults((data ?? []).map((s) => ({ ...s, type: 'stop' as const })));
     }, 250);

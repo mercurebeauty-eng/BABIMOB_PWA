@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { escapeHtml } from '@/lib/html';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
 
@@ -326,10 +327,10 @@ export default function Map({
       const html = `
         <div class="bm-broadcast-bubble">
           <div class="bm-broadcast-card">
-            <span style="font-size:16px">${bc.avatar_emoji}</span>
+            <span style="font-size:16px">${escapeHtml(bc.avatar_emoji ?? '')}</span>
             <div style="display:flex;flex-direction:column;gap:1px">
-              <span class="bm-broadcast-name">${bc.display_name}</span>
-              <span class="bm-broadcast-text">${bc.broadcast_text}</span>
+              <span class="bm-broadcast-name">${escapeHtml(bc.display_name ?? '')}</span>
+              <span class="bm-broadcast-text">${escapeHtml(bc.broadcast_text ?? '')}</span>
             </div>
           </div>
           <div class="bm-broadcast-dot"></div>
@@ -483,13 +484,4 @@ export default function Map({
   }, [route, routeColor]);
 
   return <div ref={containerRef} className={className} />;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
