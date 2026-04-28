@@ -171,7 +171,13 @@ function AppPageContent() {
         selectedPoiId={selectedPoi?.id ?? null}
         satellite={isSatellite}
         onStopClick={handleSelectStop}
-        onPoiClick={(poi) => { setSelectedPoi(poi); setSelected(null); setSheet('half'); }}
+        onPoiClick={(poi) => {
+          if (poi.place_id) {
+            router.push(`/app/place/${poi.place_id}`);
+          } else {
+            setSelectedPoi(poi); setSelected(null); setSheet('half');
+          }
+        }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
         legs={activeItinerary?.legs?.map((l: any) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
