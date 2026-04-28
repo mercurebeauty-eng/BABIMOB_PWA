@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import RouteMapWrapper from './RouteMapWrapper';
-import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
 import Vehicle from '@/components/ui/Vehicle';
+import Link from 'next/link';
+import BackButton from './BackButton';
+import RouteInteractive from './RouteInteractive';
 
 type Props = {
   params: Promise<{ route_id: string }>;
@@ -77,93 +77,79 @@ export default async function LignePage({ params, searchParams }: Props) {
     .filter(Boolean) as StopRow[];
 
   const { label: typeLabel, kind: typeKind } = detectType(route.route_long_name ?? '');
+  const routeColorRaw = route.route_color ?? 'F26C1A';
+  const routeColor = `#${routeColorRaw}`;
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ paddingTop: 56, padding: '56px 16px 16px', borderBottom: '1px solid var(--line)', background: 'white' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <Link href="/app" style={{ width: 40, height: 40, borderRadius: 12, border: 'none', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-            <Ic.Back s={20} />
-          </Link>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>LIGNE {typeLabel.toUpperCase()} · {route.route_short_name}</div>
-            <div className="font-display" style={{ fontSize: 20 }}>{route.route_long_name}</div>
+    <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── HEADER ── */}
+      <div style={{
+        background: 'var(--cream)', position: 'relative', overflow: 'hidden',
+        paddingTop: 'max(56px, env(safe-area-inset-top, 0px) + 16px)',
+        paddingBottom: 16, paddingLeft: 16, paddingRight: 16,
+        borderBottom: '1px solid var(--line)',
+      }}>
+        {/* Wax pattern — subtil sur cream */}
+        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.07, pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <BackButton />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
+                LIGNE {typeLabel.toUpperCase()}{route.route_short_name ? ` · ${route.route_short_name}` : ''}
+              </div>
+              <div className="font-display" style={{ fontSize: 20, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {route.route_long_name}
+              </div>
+            </div>
+            <Vehicle kind={typeKind} size={44} />
           </div>
-          <Vehicle kind={typeKind} size={44} />
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Pill color="var(--green)">DIRECTION {currentTrip.trip_headsign?.toUpperCase()} →</Pill>
-          <Pill color="var(--ink)">200F</Pill>
-          <Pill color="var(--blue)">~38 MIN</Pill>
+
+          {/* Static pills */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {currentTrip.wheelchair === 1 && <Pill color="var(--muted)">♿ Accessible</Pill>}
+            {route.route_desc && <Pill color="var(--muted)">{route.route_desc}</Pill>}
+          </div>
         </div>
       </div>
 
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 100px' }}>
-        <div style={{ position: 'relative' }}>
-          {orderedStops.map((s, i) => {
-            const isNow = fromStop === s.stop_id;
-            const isPast = !fromStop ? false : orderedStops.findIndex(x => x.stop_id === fromStop) > i;
-            const isFuture = !fromStop ? true : orderedStops.findIndex(x => x.stop_id === fromStop) < i;
-            const dotColor = isNow ? 'var(--orange)' : isPast ? 'var(--muted)' : 'var(--line)';
-            
-            return (
-              <div key={i} style={{ display: 'flex', gap: 16, position: 'relative', minHeight: isNow ? 110 : 64 }}>
-                {i < orderedStops.length - 1 && (
-                  <div style={{
-                    position: 'absolute', left: 19, top: isNow ? 32 : 24, bottom: -8, width: 2,
-                    background: isPast ? 'var(--muted)' : 'var(--line)',
-                    backgroundImage: isFuture ? 'repeating-linear-gradient(180deg, var(--line) 0 4px, transparent 4px 8px)' : 'none',
-                    backgroundColor: isPast ? 'var(--muted)' : 'transparent',
-                    opacity: 1
-                  }} />
-                )}
-                <div style={{ position: 'relative', flexShrink: 0, paddingTop: isNow ? 22 : 18 }}>
-                  {isNow && (
-                    <div className="pulse-ring" style={{
-                      position: 'absolute', left: 4, top: 18, width: 32, height: 32, borderRadius: '50%',
-                      background: 'var(--orange)', opacity: 0.4
-                    }} />
-                  )}
-                  <div style={{
-                    width: isNow ? 40 : 16, height: isNow ? 40 : 16, borderRadius: '50%',
-                    background: dotColor,
-                    border: isNow ? '4px solid var(--cream)' : 'none',
-                    boxShadow: isNow ? '0 0 0 2px var(--orange), 0 4px 12px rgba(242,108,26,0.4)' : 'none',
-                    marginLeft: isNow ? -12 : 0,
-                    marginTop: isNow ? -4 : 4,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}>
-                    {isNow && <Vehicle kind={typeKind} size={22} color="#fff" />}
-                  </div>
-                </div>
-                <div style={{ flex: 1, paddingTop: isNow ? 18 : 14, paddingBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                    <div className={isNow ? 'font-display' : ''} style={{
-                      fontSize: isNow ? 20 : 15,
-                      fontWeight: isNow ? 900 : isPast ? 500 : 600,
-                      color: isFuture ? 'var(--muted)' : 'var(--ink)',
-                      textDecoration: isPast ? 'line-through' : 'none',
-                      opacity: isPast ? 0.6 : 1
-                    }}>{s.stop_name}</div>
-                  </div>
-                  {isNow && (
-                    <div className="slide-up" style={{ marginTop: 8, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)', boxShadow: '0 4px 12px rgba(242,108,26,0.15)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>TU ES ICI</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>Descends pour : {s.commune}, Marché vivrier, Pharmacie.</div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <Link href={`/app/arret/${s.stop_id}`} style={{ flex: 1, padding: '8px', borderRadius: 10, background: 'var(--orange)', color: '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>Détail arrêt</Link>
-                        <button className="press" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', fontSize: 12, fontWeight: 700, color: 'var(--ink)', cursor: 'pointer' }}>Je descends</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      <WaxStrip color="var(--orange)" height={4} />
+
+      {/* ── Direction switch ── */}
+      {dirMap.size > 1 && (
+        <div style={{ display: 'flex', gap: 8, margin: '10px 16px 0', padding: 4, background: 'var(--cream-2)', borderRadius: 14, border: '1px solid var(--line)' }}>
+          {[...dirMap.entries()].map(([dirId, info]) => (
+            <Link
+              key={dirId}
+              href={`/app/ligne/${encodeURIComponent(routeId)}?dir=${dirId}${fromStop ? `&from=${fromStop}` : ''}`}
+              style={{
+                flex: 1, textAlign: 'center', padding: '10px 8px', borderRadius: 10,
+                background: activeDir === dirId ? 'var(--cream)' : 'transparent',
+                color: activeDir === dirId ? 'var(--orange)' : 'var(--muted)',
+                fontWeight: 800, fontSize: 12, textDecoration: 'none',
+                textTransform: 'uppercase', letterSpacing: 0.3,
+                boxShadow: activeDir === dirId ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+              }}
+            >
+              {dirId === 0 ? '→' : '←'} {info.trip_headsign ?? `Dir. ${dirId}`}
+            </Link>
+          ))}
         </div>
+      )}
+
+      {/* ── Interactive: map + info pills + timeline ── */}
+      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+        <RouteInteractive
+          orderedStops={orderedStops}
+          shapePoints={(shapePoints ?? []) as { shape_pt_lat: number; shape_pt_lon: number }[]}
+          routeColor={routeColor}
+          routeColorRaw={routeColorRaw}
+          fromStop={fromStop}
+          typeKind={typeKind}
+          tripHeadsign={currentTrip.trip_headsign}
+        />
       </div>
     </div>
   );
