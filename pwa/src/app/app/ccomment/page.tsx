@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import CcommentFeed from './CcommentFeed';
 import type { FeedCheckin } from './CcommentFeed';

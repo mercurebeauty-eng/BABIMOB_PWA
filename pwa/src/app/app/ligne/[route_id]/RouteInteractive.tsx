@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import RouteMapWrapper from './RouteMapWrapper';
 import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
 import { Ic } from '@/components/ui/Ic';
-import { createClient } from '@/lib/supabase/client';
 
 type StopRow = {
   stop_id: string;
@@ -44,9 +43,7 @@ export default function RouteInteractive({
   orderedStops, shapePoints, routeColor, routeColorRaw,
   fromStop, typeKind, tripHeadsign,
 }: Props) {
-  const supabase = useRef(createClient()).current;
   const [cutAtId, setCutAtId] = useState<string | null>(null);
-  const [confirmedPrice, setConfirmedPrice] = useState<{ prix: number; isHot: boolean } | null>(null);
 
   const currentIdx = fromStop ? orderedStops.findIndex(s => s.stop_id === fromStop) : -1;
   const cutIdx     = cutAtId  ? orderedStops.findIndex(s => s.stop_id === cutAtId)  : -1;
@@ -68,36 +65,12 @@ export default function RouteInteractive({
     return shapePoints.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
   })();
 
-  // Durée basée sur les stops du trajet
+  // Durée et prix basés sur le trajet réel (embarquement → destination)
   const journeyStart = currentIdx >= 0 ? currentIdx : 0;
   const journeyEnd   = cutIdx    >= 0 ? cutIdx    : orderedStops.length - 1;
   const journeyStops = Math.max(1, journeyEnd - journeyStart + 1);
   const estimatedMin = Math.max(3, journeyStops * 2);
-  const fallbackPrice = journeyStops <= 3 ? '100F' : journeyStops <= 7 ? '200F' : journeyStops <= 12 ? '300F' : '500F';
-
-  // Fetch confirmed tarif when fromStop + cutAtId are both set
-  useEffect(() => {
-    if (!fromStop || !cutAtId) { setConfirmedPrice(null); return; }
-    let cancelled = false;
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    supabase
-      .from('tarif_confirmations')
-      .select('prix')
-      .eq('stop_id_depart', fromStop)
-      .eq('stop_id_arrivee', cutAtId)
-      .gte('created_at', since)
-      .then(({ data }) => {
-        if (cancelled || !data || data.length === 0) { setConfirmedPrice(null); return; }
-        const prices = data.map(r => r.prix);
-        const minPrix = Math.min(...prices);
-        setConfirmedPrice({ prix: minPrix, isHot: data.length >= 3 });
-      });
-    return () => { cancelled = true; };
-  }, [fromStop, cutAtId, supabase]);
-
-  const displayPrice = confirmedPrice
-    ? `${confirmedPrice.prix}F${confirmedPrice.isHot ? ' 🔥' : ''}`
-    : fallbackPrice;
+  const estimatedPrice = journeyStops <= 3 ? '100F' : journeyStops <= 7 ? '200F' : journeyStops <= 12 ? '300F' : '500F';
 
   const handleDescendIci = useCallback((stop: StopRow) => {
     setCutAtId(stop.stop_id);
@@ -110,7 +83,7 @@ export default function RouteInteractive({
       {/* ── Info pills (dynamic) ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
         {tripHeadsign && <Pill color="var(--green)">{cutAtId ? `→ ${orderedStops.find(s => s.stop_id === cutAtId)?.stop_name ?? tripHeadsign}` : `→ ${tripHeadsign}`}</Pill>}
-        <Pill color={confirmedPrice ? 'var(--green)' : 'var(--ink)'}>{displayPrice}</Pill>
+        <Pill color="var(--ink)">{estimatedPrice}</Pill>
         <Pill color="var(--blue)">~{estimatedMin} min</Pill>
         <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
         {cutAtId && (

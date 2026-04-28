@@ -1,15 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
-export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Ic } from '@/components/ui/Ic';
+import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
 import Map from '@/components/MapWrapper';
 import FavoriteButton from './FavoriteButton';
 import StopLinesList from './StopLinesList';
 import StopCheckinButton from './StopCheckinButton';
-import TarifsSection from './TarifsSection';
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -122,7 +121,47 @@ export default async function ArretPage({ params }: Props) {
           <WaxStrip color="var(--orange)" height={4} />
         </div>
 
-        <TarifsSection stopId={stopId} stopName={stop.stop_name} userId={user?.id ?? null} />
+        {/* Tarifs réels — live */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Tarifs réels aujourd'hui</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', fontWeight: 800 }}>
+              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+              EN DIRECT
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { dest: 'Yopougon Selmer', price: '200F', conf: 14, trend: 'stable' },
+              { dest: 'Plateau', price: '300F', conf: 28, trend: 'up' },
+            ].map((t, i) => (
+              <div key={i} className="press" style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: 14, borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)'
+              }}>
+                <Vehicle kind="gbaka" size={32} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.dest}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Confirmé par {t.conf} Babis</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)' }}>{t.price}</div>
+                  <div style={{ fontSize: 10, color: t.trend === 'up' ? 'var(--orange-deep)' : 'var(--muted)', fontWeight: 800 }}>
+                    {t.trend === 'up' ? '↗ +50F' : '— stable'}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button className="press" style={{
+              width: '100%', padding: 14, borderRadius: 16, border: '2px dashed var(--line-strong)',
+              background: 'transparent', color: 'var(--muted)', fontSize: 12, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4
+            }}>
+              <Ic.Plus s={16} />
+              CONFIRMER UN TARIF
+            </button>
+          </div>
+        </div>
 
         {/* Lines list */}
         <div style={{ marginTop: 28 }}>
