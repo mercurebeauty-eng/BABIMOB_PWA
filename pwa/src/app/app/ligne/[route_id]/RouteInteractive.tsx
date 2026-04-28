@@ -46,21 +46,31 @@ export default function RouteInteractive({
   const [cutAtId, setCutAtId] = useState<string | null>(null);
 
   const currentIdx = fromStop ? orderedStops.findIndex(s => s.stop_id === fromStop) : -1;
+  const cutIdx     = cutAtId  ? orderedStops.findIndex(s => s.stop_id === cutAtId)  : -1;
 
-  // Stops & shape to show on the map
-  const displayedStops = cutAtId
-    ? orderedStops.slice(0, orderedStops.findIndex(s => s.stop_id === cutAtId) + 1)
+  // Segment de la carte : du point d'embarquement (ou début) jusqu'à la destination choisie
+  const segStart = cutIdx >= 0 && currentIdx >= 0 ? currentIdx : 0;
+  const segEnd   = cutIdx >= 0 ? cutIdx : orderedStops.length - 1;
+
+  const displayedStops = cutIdx >= 0
+    ? orderedStops.slice(segStart, segEnd + 1)
     : orderedStops;
 
-  const displayedShape = cutAtId
-    ? (() => {
-        const cut = orderedStops.find(s => s.stop_id === cutAtId);
-        if (!cut || !shapePoints.length) return shapePoints;
-        return shapePoints.slice(0, nearestShapeIdx(shapePoints, cut.stop_lat, cut.stop_lon) + 1);
-      })()
-    : shapePoints;
+  const displayedShape = (() => {
+    if (!shapePoints.length || cutIdx < 0) return shapePoints;
+    const startStop = orderedStops[segStart];
+    const endStop   = orderedStops[segEnd];
+    const i0 = startStop ? nearestShapeIdx(shapePoints, startStop.stop_lat, startStop.stop_lon) : 0;
+    const i1 = endStop   ? nearestShapeIdx(shapePoints, endStop.stop_lat,   endStop.stop_lon)   : shapePoints.length - 1;
+    return shapePoints.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
+  })();
 
-  const estimatedMin = Math.max(5, displayedStops.length * 2);
+  // Durée et prix basés sur le trajet réel (embarquement → destination)
+  const journeyStart = currentIdx >= 0 ? currentIdx : 0;
+  const journeyEnd   = cutIdx    >= 0 ? cutIdx    : orderedStops.length - 1;
+  const journeyStops = Math.max(1, journeyEnd - journeyStart + 1);
+  const estimatedMin = Math.max(3, journeyStops * 2);
+  const estimatedPrice = journeyStops <= 3 ? '100F' : journeyStops <= 7 ? '200F' : journeyStops <= 12 ? '300F' : '500F';
 
   const handleDescendIci = useCallback((stop: StopRow) => {
     setCutAtId(stop.stop_id);
@@ -73,9 +83,9 @@ export default function RouteInteractive({
       {/* ── Info pills (dynamic) ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
         {tripHeadsign && <Pill color="var(--green)">{cutAtId ? `→ ${orderedStops.find(s => s.stop_id === cutAtId)?.stop_name ?? tripHeadsign}` : `→ ${tripHeadsign}`}</Pill>}
-        <Pill color="var(--ink)">200F</Pill>
+        <Pill color="var(--ink)">{estimatedPrice}</Pill>
         <Pill color="var(--blue)">~{estimatedMin} min</Pill>
-        <Pill color="var(--orange)">{displayedStops.length} arrêts</Pill>
+        <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
         {cutAtId && (
           <button
             onClick={() => setCutAtId(null)}
