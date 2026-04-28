@@ -27,7 +27,7 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: lignes }, { data: favRow }, { data: profile }] = await Promise.all([
+  const [{ data: lignes }, { data: favRow }, { data: profile }, { data: reports }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
       ? supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('stop_id', stopId).eq('kind', 'stop').limit(1).maybeSingle()
@@ -35,10 +35,39 @@ export default async function ArretPage({ params }: Props) {
     user
       ? supabase.from('profiles').select('preferred_transit_modes, display_name').eq('id', user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('stop_reports')
+      .select('id, display_name, category, content, created_at')
+      .eq('stop_id', stopId)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10),
   ]);
 
   const isFavorited = !!favRow;
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
+
+  const CAT_META: Record<string, { label: string; emoji: string; color: string }> = {
+    trafic:   { label: 'Trafic',   emoji: '🚦', color: 'var(--orange-deep)' },
+    tarif:    { label: 'Tarif',    emoji: '💰', color: 'var(--green)'        },
+    incident: { label: 'Incident', emoji: '⚠️', color: 'var(--orange)'      },
+    travaux:  { label: 'Travaux',  emoji: '🚧', color: 'var(--gold)'         },
+    ambiance: { label: 'Ambiance', emoji: '✨', color: 'var(--blue)'         },
+  };
+
+  // Priorité d'affichage : incidents/trafic/travaux d'abord, puis le reste
+  const PRIORITY: Record<string, number> = { incident: 0, trafic: 1, travaux: 2, tarif: 3, ambiance: 4 };
+  const sortedReports = (reports ?? []).sort((a, b) =>
+    (PRIORITY[a.category] ?? 9) - (PRIORITY[b.category] ?? 9)
+  );
+
+  function timeAgo(iso: string): string {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60) return 'à l\'instant';
+    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`;
+    return `il y a ${Math.floor(diff / 86400)}j`;
+  }
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -146,25 +175,44 @@ export default async function ArretPage({ params }: Props) {
         <div style={{ marginTop: 32, paddingBottom: 40 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>C'comment ?</h3>
-            <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 800 }}>VOIR TOUT</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { user: 'Koffi S.', text: 'Gare bien organisée ce matin. Pas trop de rang.', time: 'il y a 12 min', color: 'var(--orange)' },
-              { user: 'Marie-Noëlle', text: 'Attention, le tarif pour Plateau est passé à 300F.', time: 'il y a 45 min', color: 'var(--green)' },
-            ].map((r, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: r.color, color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{r.user[0]}</div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800 }}>{r.user}</span>
-                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{r.time}</span>
-                  </div>
-                  <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.4 }}>{r.text}</p>
-                </div>
+            {sortedReports.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', fontWeight: 800 }}>
+                <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+                {sortedReports.length} signalement{sortedReports.length > 1 ? 's' : ''}
               </div>
-            ))}
+            )}
           </div>
+
+          {sortedReports.length === 0 ? (
+            <div style={{ padding: '28px 16px', borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)', textAlign: 'center' }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>🤫</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Aucun signalement actif</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Sois le premier à signaler quelque chose ici.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sortedReports.map((r) => {
+                const meta = CAT_META[r.category] ?? CAT_META.ambiance;
+                return (
+                  <div key={r.id} style={{ padding: 14, borderRadius: 14, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: `color-mix(in oklab, ${meta.color} 15%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                        {meta.emoji}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>{r.display_name ?? 'Un Babi'}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>{timeAgo(r.created_at)}</div>
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 900, color: meta.color, background: `color-mix(in oklab, ${meta.color} 12%, transparent)`, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                        {meta.label}
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.5 }}>{r.content}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
