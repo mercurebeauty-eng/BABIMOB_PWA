@@ -126,14 +126,35 @@ function AppPageContent() {
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); clearSearch(); };
 
-  const TICKER = [
+  const TICKER_FALLBACK: [string, string, string][] = [
     ['Cocody', 'fluide', 'var(--green)'],
     ['Yop → Plateau', '15 min', 'var(--green)'],
     ['Pont HKB', 'embouteillé', 'var(--orange-deep)'],
     ['Adjamé Liberté', 'Gbaka 200F', 'var(--ink)'],
     ['Riviera 2', 'fluide', 'var(--green)'],
-    ['Cocody', 'fluide', 'var(--green)'],
   ];
+
+  // Source A — présences live (checkins < 3h sur les POIs visibles)
+  const tickerCheckins: [string, string, string][] = liveTickerFeed.map(c => [
+    c.display_name ?? 'Un Babi',
+    `à ${c.place_name}`,
+    'var(--orange)',
+  ]);
+
+  // Source B — alertes broadcast utilisateurs (< 4h, texte libre)
+  const tickerBroadcasts: [string, string, string][] = (broadcasts as any[])
+    .filter(b => b.broadcast_text)
+    .map(b => [
+      b.display_name ?? 'Un Babi',
+      b.broadcast_text as string,
+      'var(--green)',
+    ]);
+
+  // Fusion : broadcasts d'abord (alertes terrain), puis présences, puis fallback
+  const TICKER: [string, string, string][] =
+    tickerBroadcasts.length + tickerCheckins.length > 0
+      ? [...tickerBroadcasts, ...tickerCheckins]
+      : TICKER_FALLBACK;
 
   const RECENT = [
     { from: 'Cocody Saint-Jean', to: 'Plateau', tarif: '300F' },
