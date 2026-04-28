@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import React, { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
@@ -12,7 +12,7 @@ import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import BroadcastButton from '@/components/BroadcastButton';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
@@ -91,15 +91,58 @@ function AppPageContent() {
     }))}`);
   }, [router]);
 
-  const sheetH = sheet === 'full' ? 620 : sheet === 'half' ? 440 : 240;
+  const SNAP = { peek: 240, half: 440, full: 620 } as const;
+  type SheetState = keyof typeof SNAP;
+
+  const heightMV = useMotionValue(SNAP.peek);
+
+  // Sync programmatic state changes → spring animation
+  useEffect(() => {
+    animate(heightMV, SNAP[sheet], { type: 'spring', damping: 30, stiffness: 300, mass: 0.8 });
+  }, [sheet]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cycleSheet = useCallback(() => {
-    setSheet(current => {
-      if (current === 'peek') return 'half';
-      if (current === 'half') return 'full';
-      return 'peek';
-    });
+    setSheet((cur) => cur === 'peek' ? 'half' : cur === 'half' ? 'full' : 'peek');
   }, []);
+
+  // Pointer-based drag on handle only — no conflict with content scroll
+  const onHandlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const startY = e.clientY;
+    const startH = heightMV.get();
+
+    function onMove(ev: PointerEvent) {
+      const h = Math.min(SNAP.full, Math.max(SNAP.peek, startH - (ev.clientY - startY)));
+      heightMV.set(h);
+    }
+
+    function onUp(ev: PointerEvent) {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+
+      const h = heightMV.get();
+      const velocity = ev.movementY; // positive = moving down
+      const snaps = [SNAP.peek, SNAP.half, SNAP.full] as const;
+
+      // Bias toward velocity direction if fast enough
+      let target: number;
+      if (velocity > 8 && h < SNAP.full) {
+        const lower = snaps.filter((s) => s < h);
+        target = lower.length ? lower[lower.length - 1] : SNAP.peek;
+      } else if (velocity < -8 && h > SNAP.peek) {
+        const higher = snaps.filter((s) => s > h);
+        target = higher.length ? higher[0] : SNAP.full;
+      } else {
+        target = snaps.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a);
+      }
+
+      animate(heightMV, target, { type: 'spring', damping: 30, stiffness: 300, mass: 0.8 });
+      setSheet((target === SNAP.full ? 'full' : target === SNAP.half ? 'half' : 'peek') as SheetState);
+    }
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [heightMV]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
@@ -263,24 +306,14 @@ function AppPageContent() {
 
       {/* ── Bottom Sheet ── */}
       <motion.div
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0.1}
-        onDragEnd={(_, info) => {
-          if (info.offset.y > 50 || info.velocity.y > 200) {
-            if (sheet === 'full') setSheet('half');
-            else if (sheet === 'half') setSheet('peek');
-          } else if (info.offset.y < -50 || info.velocity.y < -200) {
-            if (sheet === 'peek') setSheet('half');
-            else if (sheet === 'half') setSheet('full');
-          }
-        }}
-        animate={{ height: sheetH }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: heightMV, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
-        {/* Sheet handle */}
-        <div onClick={cycleSheet} style={{ cursor: 'pointer', paddingTop: 4 }}>
+        {/* Sheet handle — seul élément draggable */}
+        <div
+          onPointerDown={onHandlePointerDown}
+          onClick={cycleSheet}
+          style={{ cursor: 'grab', paddingTop: 4, touchAction: 'none', userSelect: 'none' }}
+        >
           <div className="sheet-handle" />
         </div>
 
