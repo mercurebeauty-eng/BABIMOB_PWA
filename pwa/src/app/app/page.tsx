@@ -265,28 +265,8 @@ const sheetH = sheetHeights[sheet];
         </div>
       )}
 
-{/* BOTTOM SHEET – DRAG */}
+{/* BOTTOM SHEET – CLIC CYCLIQUE */}
       <motion.div
-        drag="y"
-        dragConstraints={{ top: 60, bottom: 620 }}
-        dragElastic={0.1}
-        onDragEnd={(_, info) => {
-          const currentHeight = sheetH - info.offset.y;
-          const anchors = [60, 120, 400, 620]; // mini, peek, half, full
-          let closest = anchors[0];
-          let minDiff = Infinity;
-          for (const a of anchors) {
-            const diff = Math.abs(currentHeight - a);
-            if (diff < minDiff) {
-              minDiff = diff;
-              closest = a;
-            }
-          }
-          if (closest === 60) setSheet('mini');
-          else if (closest === 120) setSheet('peek');
-          else if (closest === 400) setSheet('half');
-          else setSheet('full');
-        }}
         animate={{ height: sheetH }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
@@ -301,10 +281,9 @@ const sheetH = sheetHeights[sheet];
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          touchAction: 'none',
         }}
       >
-        {/* Poignée unique – clic + drag */}
+        {/* Poignée cliquable */}
         <div
           onClick={() =>
             setSheet(s =>
