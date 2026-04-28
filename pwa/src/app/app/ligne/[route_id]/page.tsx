@@ -137,10 +137,10 @@ export default async function LignePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* TIMELINE */}
+        {/* STOP TIMELINE (fusionnée) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
-            ITINÉRAIRE · {orderedStops.length} ARRÊTS
+            Itinéraire · {orderedStops.length} arrêts
           </div>
           {fromStop && (
             <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--green)', background: 'color-mix(in oklab, var(--green) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)', borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -150,107 +150,109 @@ export default async function LignePage({ params, searchParams }: Props) {
         </div>
 
         <div style={{ position: 'relative' }}>
-          {orderedStops.map((s, i) => {
-            const isFirst = i === 0;
-            const isLast = i === orderedStops.length - 1;
-            const isNow = fromStop === s.stop_id;
-            const isPast = !fromStop ? false : orderedStops.findIndex(x => x.stop_id === fromStop) > i;
-            const isFuture = !fromStop ? true : orderedStops.findIndex(x => x.stop_id === fromStop) < i;
+          {orderedStops.map((stop, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === orderedStops.length - 1;
             const isTerminus = isFirst || isLast;
+            const isCurrent = fromStop === stop.stop_id;
+            const isPast = !fromStop ? false : orderedStops.findIndex(x => x.stop_id === fromStop) > idx;
+            const isFuture = !fromStop ? true : orderedStops.findIndex(x => x.stop_id === fromStop) < idx;
 
-            // Couleurs de la ligne de connexion (hardcodées pour éviter les variables manquantes)
-            const lineColor = isPast ? '#e53935' : '#2e7d32'; // rouge / vert
+            // Couleurs de ligne : rouge pour passé, vert pour futur
+            const lineColor = isPast ? '#e53935' : '#2e7d32';
 
-            // Point : rouge pour passé, vert pour futur, orange pour l'actuel, couleur route pour terminus
-            let dotColor = '#2e7d32'; // futur par défaut
-            if (isNow) dotColor = 'var(--orange)';
+            // Couleur du point
+            let dotColor = '#2e7d32'; // futur
+            if (isCurrent) dotColor = 'var(--orange)';
             else if (isPast) dotColor = '#e53935';
-            else if (isTerminus && !isNow) dotColor = routeColor;
+            else if (isTerminus && !isCurrent) dotColor = routeColor;
 
             return (
-              <div key={i} style={{ display: 'flex', gap: 16, position: 'relative', minHeight: isNow ? 110 : (isTerminus ? 64 : 52) }}>
-                {/* Ligne verticale de connexion */}
-                {i < orderedStops.length - 1 && (
+              <div key={`${stop.stop_id}-${stop.stop_sequence}`} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', gap: 16, minHeight: isCurrent ? 110 : (isTerminus ? 64 : 52) }}>
+
+                {/* Ligne verticale colorée */}
+                {!isLast && (
                   <div style={{
                     position: 'absolute',
                     left: 19,
-                    top: isNow ? 40 : 24,
+                    top: isCurrent ? 40 : 24,
                     bottom: -8,
                     width: 2,
                     background: lineColor,
                   }} />
                 )}
 
-                {/* Point */}
-                <div style={{ position: 'relative', flexShrink: 0, paddingTop: isNow ? 22 : 18 }}>
-                  {isNow && (
-                    <div className="pulse-ring" style={{
-                      position: 'absolute', left: 4, top: 18, width: 32, height: 32, borderRadius: '50%',
-                      background: 'var(--orange)', opacity: 0.4
-                    }} />
-                  )}
+                {/* Point sur la timeline */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
+                  <div style={{ flex: 1, width: 2, background: 'transparent' }} />
                   <div style={{
-                    width: isNow ? 40 : (isTerminus ? 20 : 12),
-                    height: isNow ? 40 : (isTerminus ? 20 : 12),
+                    width: isCurrent ? 40 : (isTerminus ? 20 : 12),
+                    height: isCurrent ? 40 : (isTerminus ? 20 : 12),
                     borderRadius: '50%',
                     background: dotColor,
-                    border: isNow ? '4px solid var(--cream)' : 'none',
-                    boxShadow: isNow
+                    flexShrink: 0,
+                    border: isCurrent ? '4px solid var(--cream)' : 'none',
+                    boxShadow: isCurrent
                       ? '0 0 0 2px var(--orange), 0 4px 12px rgba(242,108,26,0.4)'
                       : isTerminus ? `0 0 0 4px color-mix(in oklab, ${routeColor} 20%, transparent)` : 'none',
-                    marginLeft: isNow ? -12 : 0,
-                    marginTop: isNow ? -4 : 4,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    marginLeft: isCurrent ? -10 : 0,
+                    marginTop: isCurrent ? -4 : 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative',
+                    zIndex: 2,
                   }}>
-                    {isNow && <Vehicle kind={typeKind} size={22} color="#fff" />}
+                    {isCurrent && <Vehicle kind={typeKind} size={22} color="#fff" />}
                   </div>
+                  <div style={{ flex: 1, width: 2, background: 'transparent' }} />
                 </div>
 
-                {/* Texte & encart */}
-                <div style={{ flex: 1, paddingTop: isNow ? 18 : 14, paddingBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                    <div className={isNow ? 'font-display' : ''} style={{
-                      fontSize: isNow ? 20 : 15,
-                      fontWeight: isNow ? 900 : 600,
-                      color: isPast ? 'var(--ink-2)' : 'var(--ink)',
-                    }}>
-                      {s.stop_name}
-                      {isNow && (
-                        <span style={{
-                          fontSize: 8,
-                          fontWeight: 900,
-                          color: 'var(--green)',
-                          background: 'color-mix(in oklab, var(--green) 15%, transparent)',
-                          border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)',
-                          borderRadius: 99,
-                          padding: '2px 6px',
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.4,
-                          marginLeft: 8,
-                          verticalAlign: 'middle'
-                        }}>
-                          VOTRE ARRÊT
-                        </span>
-                      )}
-                    </div>
-                    {s.commune && (
-                      <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{s.commune}</div>
-                    )}
-                  </div>
+                {/* Contenu de l'arrêt */}
+                <div style={{ flex: 1, minWidth: 0, padding: '10px 0', borderBottom: !isLast ? '1px solid var(--line)' : 'none' }}>
 
-                  {/* Encart "Tu es ici" */}
-                  {isNow && (
-                    <div className="slide-up" style={{ marginTop: 8, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)', boxShadow: '0 4px 12px rgba(242,108,26,0.15)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>TU ES ICI</span>
+                  {/* Lien cliquable pour l'arrêt (sauf si c'est l'arrêt courant, car on a les boutons en dessous) */}
+                  {isCurrent ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                        <div className="font-display" style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)' }}>
+                          {stop.stop_name}
+                          <span style={{ fontSize: 8, fontWeight: 900, color: 'var(--green)', background: 'color-mix(in oklab, var(--green) 15%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)', borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4, marginLeft: 8, verticalAlign: 'middle' }}>
+                            VOTRE ARRÊT
+                          </span>
+                        </div>
+                        {stop.commune && (
+                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{stop.commune}</div>
+                        )}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>Descends pour : {s.commune}, Marché vivrier, Pharmacie.</div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <Link href={`/app/arret/${encodeURIComponent(s.stop_id)}`} style={{ flex: 1, padding: '8px', borderRadius: 10, background: 'var(--orange)', color: '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>Détail arrêt</Link>
-                        <button className="press" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', fontSize: 12, fontWeight: 700, color: 'var(--ink)', cursor: 'pointer' }}>Je descends</button>
+
+                      {/* Encart "Tu es ici" */}
+                      <div className="slide-up" style={{ marginTop: 8, padding: 12, borderRadius: 14, background: 'var(--cream-2)', border: '1.5px solid var(--orange)', boxShadow: '0 4px 12px rgba(242,108,26,0.15)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                          <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
+                          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5 }}>TU ES ICI</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>Descends pour : {stop.commune}, Marché vivrier, Pharmacie.</div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <Link href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ flex: 1, padding: '8px', borderRadius: 10, background: 'var(--orange)', color: '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>Détail arrêt</Link>
+                          <button className="press" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream)', fontSize: 12, fontWeight: 700, color: 'var(--ink)', cursor: 'pointer' }}>Je descends</button>
+                        </div>
                       </div>
-                    </div>
+                    </>
+                  ) : (
+                    <Link href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, textDecoration: 'none' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: isTerminus ? 15 : 13, fontWeight: isTerminus ? 800 : 600, color: isPast ? 'var(--ink-2)' : 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {stop.stop_name}
+                          </div>
+                        </div>
+                        {stop.commune && (
+                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1 }}>{stop.commune}</div>
+                        )}
+                      </div>
+                      <div style={{ color: 'var(--line)', flexShrink: 0 }}>
+                        <Ic.Arrow s={16} />
+                      </div>
+                    </Link>
                   )}
                 </div>
               </div>
