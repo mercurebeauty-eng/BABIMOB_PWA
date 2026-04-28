@@ -21,8 +21,6 @@ import { useMapPois } from '@/hooks/useMapPois';
 import { useHotspots } from '@/hooks/useHotspots';
 import { useItinerary } from '@/hooks/useItinerary';
 
-
-
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
@@ -92,18 +90,19 @@ function AppPageContent() {
   }, [router]);
 
   const sheetHeights: Record<string, number> = {
-  mini: 60,
-  peek: 120,
-  half: 400,
-  full: 620,
-};
-const sheetH = sheetHeights[sheet];
+    mini: 60,
+    peek: 120,
+    half: 400,
+    full: 620,
+  };
+  const sheetH = sheetHeights[sheet];
 
   const cycleSheet = useCallback(() => {
     setSheet(current => {
+      if (current === 'mini') return 'peek';
       if (current === 'peek') return 'half';
       if (current === 'half') return 'full';
-      return 'peek';
+      return 'mini';
     });
   }, []);
 
@@ -140,14 +139,12 @@ const sheetH = sheetHeights[sheet];
     ['Riviera 2', 'fluide', 'var(--green)'],
   ];
 
-  // Présences live (checkins < 3h sur les POIs visibles de la carte)
   const tickerCheckins: [string, string, string][] = liveTickerFeed.map(c => [
     c.display_name ?? 'Un Babi',
     `à ${c.place_name}`,
     'var(--orange)',
   ]);
 
-  // Fallback statique si aucune donnée live
   const TICKER: [string, string, string][] =
     tickerCheckins.length > 0 ? tickerCheckins : TICKER_FALLBACK;
 
@@ -265,8 +262,28 @@ const sheetH = sheetHeights[sheet];
         </div>
       )}
 
-{/* BOTTOM SHEET – CLIC CYCLIQUE */}
+      {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
       <motion.div
+        drag="y"
+        dragConstraints={{ top: 60, bottom: 620 }}
+        dragElastic={0.1}
+        onDragEnd={(_, info) => {
+          const currentHeight = sheetH - info.offset.y;
+          const anchors = [60, 120, 400, 620];
+          let closest = anchors[0];
+          let minDiff = Infinity;
+          for (const a of anchors) {
+            const diff = Math.abs(currentHeight - a);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closest = a;
+            }
+          }
+          if (closest === 60) setSheet('mini');
+          else if (closest === 120) setSheet('peek');
+          else if (closest === 400) setSheet('half');
+          else setSheet('full');
+        }}
         animate={{ height: sheetH }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
@@ -281,19 +298,14 @@ const sheetH = sheetHeights[sheet];
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          touchAction: 'none',
         }}
       >
-        {/* Poignée cliquable */}
+        {/* Poignée unique (clic + drag) */}
         <div
           onClick={() =>
             setSheet(s =>
-              s === 'mini'
-                ? 'peek'
-                : s === 'peek'
-                ? 'half'
-                : s === 'half'
-                ? 'full'
-                : 'mini'
+              s === 'mini' ? 'peek' : s === 'peek' ? 'half' : s === 'half' ? 'full' : 'mini'
             )
           }
           style={{ cursor: 'pointer', paddingTop: 4, flexShrink: 0 }}
@@ -301,9 +313,11 @@ const sheetH = sheetHeights[sheet];
           <div className="sheet-handle" />
         </div>
 
-        {/* Contenu scrollable */}
-        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}>
-
+        {/* Contenu scrollable unique */}
+        <div
+          className="no-scrollbar"
+          style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}
+        >
           {selectedPoi ? (
             /* ── POI PREVIEW ── */
             <div>
@@ -382,17 +396,8 @@ const sheetH = sheetHeights[sheet];
 
               {/* Transport cards */}
               <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
-                {(nearbyStops.length > 0
-                  ? nearbyStops.slice(0, 4).map((s, i) => ({
-                      kind: (['gbaka', 'woro', 'taxi', 'saloni'] as const)[i % 4],
-                      line: s.stop_name,
-                      eta: `${Math.round(s.distance_m)}m`,
-                      color: ['var(--orange)', 'var(--green)', 'var(--gold)', 'var(--blue)'][i % 4],
-                      stopId: s.stop_id,
-                    }))
-                  : TRANSPORT_DEMO
-                ).map((v, i) => (
-                  <div key={i} className="press" onClick={() => 'stopId' in v && v.stopId ? handleSelectStop({ stop_id: v.stopId, stop_name: v.line, stop_lat: 0, stop_lon: 0, commune: null } as any) : undefined} style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: 'pointer' }}>
+                {TRANSPORT_DEMO.map((v, i) => (
+                  <div key={i} className="press" style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <Vehicle kind={v.kind} size={32} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -455,11 +460,9 @@ const sheetH = sheetHeights[sheet];
               </div>
             </>
           )}
-
         </div>
       </motion.div>
 
-      
       {/* ── Search Overlay ── */}
       <AnimatePresence>
         {searchOpen && (
