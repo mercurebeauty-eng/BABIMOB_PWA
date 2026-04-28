@@ -265,7 +265,7 @@ const sheetH = sheetHeights[sheet];
         </div>
       )}
 
-      {/* BOTTOM SHEET – DRAG */}
+{/* BOTTOM SHEET – DRAG */}
       <motion.div
         drag="y"
         dragConstraints={{ top: 60, bottom: 620 }}
@@ -304,7 +304,7 @@ const sheetH = sheetHeights[sheet];
           touchAction: 'none',
         }}
       >
-        {/* Poignée : clic + drag */}
+        {/* Poignée unique – clic + drag */}
         <div
           onClick={() =>
             setSheet(s =>
@@ -322,18 +322,7 @@ const sheetH = sheetHeights[sheet];
           <div className="sheet-handle" />
         </div>
 
-        {/* Contenu scrollable (identique à l'original) */}
-        <div
-          className="no-scrollbar"
-          style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 120px' }}
-        >
-         
-        {/* Sheet handle */}
-        <div onClick={cycleSheet} style={{ cursor: 'pointer', paddingTop: 4 }}>
-          <div className="sheet-handle" />
-        </div>
-
-        {/* Scrollable content */}
+        {/* Contenu scrollable */}
         <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}>
 
           {selectedPoi ? (
@@ -414,8 +403,17 @@ const sheetH = sheetHeights[sheet];
 
               {/* Transport cards */}
               <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
-                {TRANSPORT_DEMO.map((v, i) => (
-                  <div key={i} className="press" style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: 'pointer' }}>
+                {(nearbyStops.length > 0
+                  ? nearbyStops.slice(0, 4).map((s, i) => ({
+                      kind: (['gbaka', 'woro', 'taxi', 'saloni'] as const)[i % 4],
+                      line: s.stop_name,
+                      eta: `${Math.round(s.distance_m)}m`,
+                      color: ['var(--orange)', 'var(--green)', 'var(--gold)', 'var(--blue)'][i % 4],
+                      stopId: s.stop_id,
+                    }))
+                  : TRANSPORT_DEMO
+                ).map((v, i) => (
+                  <div key={i} className="press" onClick={() => 'stopId' in v && v.stopId ? handleSelectStop({ stop_id: v.stopId, stop_name: v.line, stop_lat: 0, stop_lon: 0, commune: null } as any) : undefined} style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <Vehicle kind={v.kind} size={32} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -482,6 +480,7 @@ const sheetH = sheetHeights[sheet];
         </div>
       </motion.div>
 
+      
       {/* ── Search Overlay ── */}
       <AnimatePresence>
         {searchOpen && (
