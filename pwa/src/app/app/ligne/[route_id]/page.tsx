@@ -136,7 +136,7 @@ export default async function LignePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* TIMELINE – fusionnée : style de main + couleurs de terminus de l'autre branche */}
+        {/* TIMELINE */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
             ITINÉRAIRE · {orderedStops.length} ARRÊTS
@@ -155,6 +155,7 @@ export default async function LignePage({ params, searchParams }: Props) {
             const isNow = fromStop === s.stop_id;
             const isPast = !fromStop ? false : orderedStops.findIndex(x => x.stop_id === fromStop) > i;
             const isFuture = !fromStop ? true : orderedStops.findIndex(x => x.stop_id === fromStop) < i;
+            const isTerminus = isFirst || isLast;
 
             // Couleurs de la ligne de connexion
             const lineColor = isPast ? 'var(--red, #e53935)' : 'var(--green, #2e7d32)';
@@ -164,8 +165,6 @@ export default async function LignePage({ params, searchParams }: Props) {
             if (isNow) dotColor = 'var(--orange)';
             else if (isPast) dotColor = 'var(--red, #e53935)';
             else if (isTerminus && !isNow) dotColor = routeColor; // terminus de la ligne
-
-            const isTerminus = isFirst || isLast;
 
             return (
               <div key={i} style={{ display: 'flex', gap: 16, position: 'relative', minHeight: isNow ? 110 : (isTerminus ? 64 : 52) }}>
@@ -213,7 +212,6 @@ export default async function LignePage({ params, searchParams }: Props) {
                       fontSize: isNow ? 20 : 15,
                       fontWeight: isNow ? 900 : 600,
                       color: isPast ? 'var(--ink-2)' : 'var(--ink)',
-                      // Pas de line-through, juste une différence de couleur
                     }}>
                       {s.stop_name}
                       {isNow && (
