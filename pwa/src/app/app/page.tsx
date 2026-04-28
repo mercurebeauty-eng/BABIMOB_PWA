@@ -92,7 +92,7 @@ function AppPageContent() {
   const SNAP = { mini: 60, peek: 120, half: 400, full: 620 } as const;
   type SheetState = keyof typeof SNAP;
 
-  const heightMV = useMotionValue(SNAP.mini);
+  const heightMV = useMotionValue<number>(SNAP.mini);
 
   // Sync programmatic state changes → spring animation
   useEffect(() => {
