@@ -8,6 +8,7 @@ import { WaxStrip } from '@/components/ui/WaxStrip';
 import Map from '@/components/MapWrapper';
 import FavoriteButton from './FavoriteButton';
 import StopLinesList from './StopLinesList';
+import StopCheckinButton from './StopCheckinButton';
 
 type Props = { params: Promise<{ stop_id: string }> };
 
@@ -32,7 +33,7 @@ export default async function ArretPage({ params }: Props) {
       ? supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('stop_id', stopId).eq('kind', 'stop').limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     user
-      ? supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).maybeSingle()
+      ? supabase.from('profiles').select('preferred_transit_modes, display_name').eq('id', user.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -47,7 +48,7 @@ export default async function ArretPage({ params }: Props) {
         <Map
           center={[stop.stop_lat, stop.stop_lon]}
           zoom={16}
-          className="w-full h-full"
+          className="absolute inset-0"
           stops={[stop]}
           selectedStopId={stop.stop_id}
         />
@@ -168,17 +169,27 @@ export default async function ArretPage({ params }: Props) {
       </div>
 
       {/* Fixed Bottom CTA */}
-      <div style={{ position: 'sticky', bottom: 0, padding: '16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)', background: 'var(--cream)', borderTop: '1px solid var(--line)', zIndex: 100 }}>
-        <button className="press wax-bg" style={{
-          width: '100%', height: 56, borderRadius: 18, border: 'none',
-          background: 'var(--ink)', color: 'var(--cream)',
-          fontSize: 14, fontWeight: 800, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        }}>
-          SUIVRE CETTE LIGNE EN DIRECT
-          <Ic.Route s={20} />
-        </button>
+      <div style={{ position: 'sticky', bottom: 0, padding: '12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px)', background: 'linear-gradient(0deg, var(--cream) 70%, transparent)', zIndex: 100 }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {user && (
+            <StopCheckinButton
+              stopId={stopId}
+              stopName={stop.stop_name}
+              userId={user.id}
+              displayName={profile?.display_name ?? null}
+            />
+          )}
+          <button className="press" style={{
+            flex: 2, height: 56, borderRadius: 18, border: 'none',
+            background: 'var(--orange)', color: '#fff',
+            fontSize: 14, fontWeight: 800, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            boxShadow: '0 4px 14px rgba(242,108,26,0.4)',
+          }}>
+            Suivre en direct
+            <Ic.Route s={18} />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -134,27 +134,16 @@ function AppPageContent() {
     ['Riviera 2', 'fluide', 'var(--green)'],
   ];
 
-  // Source A — présences live (checkins < 3h sur les POIs visibles)
+  // Présences live (checkins < 3h sur les POIs visibles de la carte)
   const tickerCheckins: [string, string, string][] = liveTickerFeed.map(c => [
     c.display_name ?? 'Un Babi',
     `à ${c.place_name}`,
     'var(--orange)',
   ]);
 
-  // Source B — alertes broadcast utilisateurs (< 4h, texte libre)
-  const tickerBroadcasts: [string, string, string][] = (broadcasts as any[])
-    .filter(b => b.broadcast_text)
-    .map(b => [
-      b.display_name ?? 'Un Babi',
-      b.broadcast_text as string,
-      'var(--green)',
-    ]);
-
-  // Fusion : broadcasts d'abord (alertes terrain), puis présences, puis fallback
+  // Fallback statique si aucune donnée live
   const TICKER: [string, string, string][] =
-    tickerBroadcasts.length + tickerCheckins.length > 0
-      ? [...tickerBroadcasts, ...tickerCheckins]
-      : TICKER_FALLBACK;
+    tickerCheckins.length > 0 ? tickerCheckins : TICKER_FALLBACK;
 
   const RECENT = [
     { from: 'Cocody Saint-Jean', to: 'Plateau', tarif: '300F' },
@@ -350,7 +339,7 @@ function AppPageContent() {
                 </div>
                 <button onClick={clearSelection} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
               </div>
-              <button onClick={() => router.push(`/app/arret/${selected.stop_id}`)} style={{ width: '100%', background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '20px 0', borderRadius: 24, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>Voir les lignes</button>
+              <button onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)} style={{ width: '100%', background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '20px 0', borderRadius: 24, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>Voir les détails & tarifs</button>
             </div>
 
           ) : (
