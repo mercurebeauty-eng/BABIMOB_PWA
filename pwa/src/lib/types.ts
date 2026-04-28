@@ -41,3 +41,9 @@ export type UserQuota = {
   essai_premium_expire: string | null;
   premium_active: boolean;
 };
+
+export const SUB_TIERS = ['free', 'messenger', 'social', 'pro', 'elite'] as const;
+export type SubTier = typeof SUB_TIERS[number];
+export function toSubTier(s: string | null | undefined): SubTier {
+  return (SUB_TIERS as readonly string[]).includes(s ?? '') ? (s as SubTier) : 'free';
+}

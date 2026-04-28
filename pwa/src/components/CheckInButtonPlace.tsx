@@ -66,7 +66,7 @@ export default function CheckInButtonPlace({ placeId, placeName, commune, lat, l
           const { data: created } = await supabase
             .from('profiles')
             .insert({ id: user.id, display_name: defaultName, avatar_emoji: '🧭' })
-            .select('display_name, avatar_emoji').single();
+            .select('display_name, avatar_emoji, is_public_visits').single();
           profile = created;
         }
 

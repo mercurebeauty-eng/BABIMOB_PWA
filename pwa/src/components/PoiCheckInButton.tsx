@@ -85,7 +85,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
        if (!profile) {
          const raw = user.email?.split('@')[0] ?? 'Explorateur';
          const defaultName = raw.replace(/[._-]/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-         const { data: created } = await supabase.from('profiles').insert({ id: user.id, display_name: defaultName, avatar_emoji: '🧭' }).select('display_name, avatar_emoji').single();
+         const { data: created } = await supabase.from('profiles').insert({ id: user.id, display_name: defaultName, avatar_emoji: '🧭' }).select('display_name, avatar_emoji, is_public_visits').single();
          profile = created;
        }
 
