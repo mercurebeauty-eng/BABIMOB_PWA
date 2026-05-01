@@ -8,6 +8,7 @@ type Review = {
   id: string;
   display_name: string;
   category: string;
+  rating: number;
   content: string;
   upvotes: number;
   downvotes: number;
@@ -125,7 +126,14 @@ export default function StopReviewsListModal({ stopId, stopName, onClose, onAddR
                 <div key={r.id} style={{ padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{r.display_name || 'Un Babi'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{r.display_name || 'Un Babi'}</div>
+                            <div style={{ display: 'flex', gap: 2 }}>
+                                {[1, 2, 3, 4, 5].map(s => (
+                                    <Ic.Star key={s} s={10} fill={s <= (r.rating || 5)} style={{ color: s <= (r.rating || 5) ? 'var(--orange)' : 'var(--line)' }} />
+                                ))}
+                            </div>
+                        </div>
                         <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>{timeAgo(r.created_at)} · <span style={{ color: 'var(--orange)' }}>{CAT_LABELS[r.category] || r.category}</span></div>
                     </div>
                     {/* Voting */}

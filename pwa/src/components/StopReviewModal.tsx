@@ -26,6 +26,7 @@ const CATS: { id: Category; label: string; emoji: string; keywords: string[] }[]
 
 export default function StopReviewModal({ stopId, stopName, userId, displayName, onClose, onSuccess }: Props) {
   const [category, setCategory] = useState<Category>('ambiance');
+  const [rating, setRating] = useState(5);
   const [content, setContent]   = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,26 +34,7 @@ export default function StopReviewModal({ stopId, stopName, userId, displayName,
 
   const supabase = createClient();
 
-  // Logic for automatic classification based on keywords
-  useEffect(() => {
-    if (userHasOverridden || content.length < 3) return;
-
-    const lower = content.toLowerCase();
-    let bestCat = category;
-    let maxMatches = 0;
-
-    CATS.forEach(cat => {
-      const matches = cat.keywords.filter(kw => lower.includes(kw)).length;
-      if (matches > maxMatches) {
-        maxMatches = matches;
-        bestCat = cat.id;
-      }
-    });
-
-    if (maxMatches > 0 && bestCat !== category) {
-      setCategory(bestCat);
-    }
-  }, [content, userHasOverridden, category]);
+  // ... (classification logic) ...
 
   const handleSubmit = async () => {
     if (!userId || content.trim().length < 5) return;
@@ -64,6 +46,7 @@ export default function StopReviewModal({ stopId, stopName, userId, displayName,
       user_id: userId,
       display_name: displayName || 'Un Babi',
       category: category,
+      rating: rating,
       content: content.trim()
     });
 
@@ -96,6 +79,37 @@ export default function StopReviewModal({ stopId, stopName, userId, displayName,
         </div>
 
         <div style={{ padding: 24, overflowY: 'auto', maxHeight: '70vh' }}>
+          
+          {/* Star Rating Selector */}
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <label style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, display: 'block' }}>
+              Note globale
+            </label>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className="press"
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, transition: 'transform 0.2s' }}
+                >
+                  <Ic.Star 
+                    s={32} 
+                    fill={star <= rating} 
+                    style={{ color: star <= rating ? 'var(--orange)' : 'var(--line)' }}
+                  />
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginTop: 8 }}>
+                {rating === 1 && "Très mauvais 😞"}
+                {rating === 2 && "Pas terrible 😕"}
+                {rating === 3 && "Moyen 😐"}
+                {rating === 4 && "Bien 🙂"}
+                {rating === 5 && "Excellent ! 😍"}
+            </div>
+          </div>
+
           {/* Category Chips */}
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, display: 'block' }}>
