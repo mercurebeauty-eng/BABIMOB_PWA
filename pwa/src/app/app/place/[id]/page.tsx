@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import PlaceHeroMap from '@/components/PlaceHeroMap';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
+import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import PlaceSocialSections from '@/components/PlaceSocialSections';
 import { Ic } from '@/components/ui/Ic';
 
