@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
-import { Ic } from '@/components/ui/Ic';
 
 export default function AdminGate() {
   const [email, setEmail] = useState('');
@@ -17,33 +16,63 @@ export default function AdminGate() {
     setLoading(true);
     setError(null);
 
+    console.log("Tentative de connexion pour:", email);
+
+    // 1. Authentification
     const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: email.trim(),
+      password: password.trim(),
     });
 
     if (authError) {
-      setError("Identifiants invalides ou accès refusé.");
+      console.error("Erreur Auth:", authError.message);
+      setError("Email ou mot de passe incorrect.");
       setLoading(false);
       return;
     }
 
-    // Vérifier si c'est vraiment un admin
-    const { data: profile } = await supabase
+    if (!data.user) {
+      setError("Utilisateur non trouvé.");
+      setLoading(false);
+      return;
+    }
+
+    console.log("Auth réussie, ID:", data.user.id);
+
+    // 2. Vérification du profil Admin
+    // On essaie d'abord par ID, puis par Email si l'ID échoue
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', data.user.id)
-      .single();
+      .maybeSingle();
+
+    if (!profile) {
+      console.log("Profil non trouvé par ID, tentative par email...");
+      const { data: p2 } = await supabase
+        .from('profiles')
+        .select('is_admin, email')
+        .eq('email', email.trim())
+        .maybeSingle();
+      profile = p2;
+    }
+
+    console.log("Profil récupéré:", profile);
 
     if (!profile?.is_admin) {
+      console.warn("Accès refusé: is_admin est", profile?.is_admin);
       await supabase.auth.signOut();
-      setError("Accès réservé aux administrateurs.");
+      setError("Ton compte n'a pas les droits Administrateur.");
       setLoading(false);
       return;
     }
 
-    // Succès ! On recharge pour laisser passer le Layout
-    window.location.reload();
+    console.log("Accès Admin validé !");
+    
+    // Succès ! On attend un peu et on recharge
+    setTimeout(() => {
+      window.location.href = '/app/admin';
+    }, 500);
   }
 
   return (
