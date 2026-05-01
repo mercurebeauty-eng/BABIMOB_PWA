@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
@@ -11,6 +12,7 @@ import StopLinesList from './StopLinesList';
 import TarifsSection from './TarifsSection';
 import CcommentSection from './CcommentSection';
 import StopReviewModal from '@/components/StopReviewModal';
+import StopReviewsListModal from './StopReviewsListModal';
 import CcommentButton from '@/components/CcommentButton';
 
 type Props = { 
@@ -23,8 +25,23 @@ type Props = {
 
 export default function ArretClientPage({ stop, lignes, user, profile, isFavorited }: Props) {
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showReviewsListModal, setShowReviewsListModal] = useState(false);
+  const [reviewsCount, setReviewsCount] = useState(0);
   const stopId = stop.stop_id;
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
+  const supabase = createClient();
+
+  const loadReviewsCount = useCallback(async () => {
+    const { count } = await supabase
+      .from('avis_arret')
+      .select('*', { count: 'exact', head: true })
+      .eq('stop_id', stopId);
+    setReviewsCount(count || 0);
+  }, [supabase, stopId]);
+
+  useEffect(() => {
+    loadReviewsCount();
+  }, [loadReviewsCount]);
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -76,12 +93,12 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, fontSize: 12 }}>
             <button 
-              onClick={() => setShowReviewModal(true)}
+              onClick={() => setShowReviewsListModal(true)}
               className="press" 
               style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--orange)', fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}
             >
               <Ic.Star s={14} fill /> 4.6
-              <span style={{ color: 'var(--muted)', fontWeight: 500 }}>· 1 247 avis</span>
+              <span style={{ color: 'var(--muted)', fontWeight: 500 }}>· {reviewsCount} avis réel{reviewsCount > 1 ? 's' : ''}</span>
             </button>
           </div>
         </div>
@@ -115,6 +132,18 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
         />
       </div>
 
+      {showReviewsListModal && (
+        <StopReviewsListModal
+          stopId={stopId}
+          stopName={stop.stop_name}
+          onClose={() => setShowReviewsListModal(false)}
+          onAddReview={() => {
+              setShowReviewsListModal(false);
+              setShowReviewModal(true);
+          }}
+        />
+      )}
+
       {showReviewModal && (
         <StopReviewModal
           stopId={stopId}
@@ -124,6 +153,7 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
           onClose={() => setShowReviewModal(false)}
           onSuccess={() => {
             setShowReviewModal(false);
+            loadReviewsCount();
             window.dispatchEvent(new CustomEvent('ccomment-refresh'));
           }}
         />

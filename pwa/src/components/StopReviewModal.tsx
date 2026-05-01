@@ -59,16 +59,12 @@ export default function StopReviewModal({ stopId, stopName, userId, displayName,
     setSubmitting(true);
     setError(null);
 
-    // Persistent reviews: expires in 1 year
-    const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-
-    const { error: err } = await supabase.from('stop_reports').insert({
+    const { error: err } = await supabase.from('avis_arret').insert({
       stop_id: stopId,
       user_id: userId,
       display_name: displayName || 'Un Babi',
       category: category,
-      content: content.trim(),
-      expires_at: expiresAt
+      content: content.trim()
     });
 
     if (err) {
