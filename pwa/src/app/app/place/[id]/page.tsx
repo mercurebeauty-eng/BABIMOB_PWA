@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import PlaceHeroMap from '@/components/PlaceHeroMap';
-import CheckInButtonPlace from '@/components/CheckInButtonPlace';
+import PoiCheckInButton from '@/components/PoiCheckInButton';
 import PlaceSocialSections from '@/components/PlaceSocialSections';
 import { Ic } from '@/components/ui/Ic';
 
@@ -72,203 +72,213 @@ export default async function PlacePage({ params }: Props) {
   const color = place.cover_color ?? 'var(--orange)';
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', position: 'relative' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', position: 'relative', overflowX: 'hidden' }}>
       
       {/* MAP HERO */}
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', height: '45vh', minHeight: 300 }}>
         <PlaceHeroMap lat={place.lat} lon={place.lon} emoji={place.logo_emoji ?? '📍'} name={place.name} id={place.id} />
 
         {/* TOP HEADER OVERLAY */}
-        <div style={{ position: 'absolute', top: 20, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+        <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
           <Link href="/app" className="press" style={{ 
-            width: 44, height: 44, borderRadius: '50%', background: '#fff', 
+            width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', 
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: 'none'
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: 'none', backdropFilter: 'blur(10px)'
           }}>
             <Ic.Back s={22} />
           </Link>
           
           {sponsoredActive && (
              <div style={{ 
-               background: 'rgba(255,255,255,0.9)', padding: '6px 12px', borderRadius: 20,
-               display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900,
-               boxShadow: '0 4px 12px rgba(0,0,0,0.05)', color: color
+               background: 'rgba(255,255,255,0.95)', padding: '8px 16px', borderRadius: 24,
+               display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 900,
+               boxShadow: '0 8px 24px rgba(0,0,0,0.08)', color: color, backdropFilter: 'blur(10px)',
+               border: `1.5px solid ${color}20`
              }}>
-               <span style={{ fontSize: 14 }}>{place.sponsor_tier === 'elite' ? '⭐' : '✓'}</span>
-               {place.sponsor_tier === 'elite' ? 'ÉLITE' : 'PRO'}
+               <span style={{ fontSize: 16 }}>{place.sponsor_tier === 'elite' ? '⭐' : '✓'}</span>
+               {place.sponsor_tier === 'elite' ? 'PARTENAIRE ÉLITE' : 'PARTENAIRE PRO'}
              </div>
           )}
         </div>
+
+        {/* Bottom Fade */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to top, var(--cream), transparent)', zIndex: 2 }} />
       </div>
 
-      <div className="no-scrollbar" style={{ position: 'relative', marginTop: -40, padding: '0 20px 100px 20px' }}>
+      <div className="no-scrollbar" style={{ position: 'relative', marginTop: -60, padding: '0 16px 120px 16px', zIndex: 5 }}>
         
         {/* TITLE CARD */}
         <div className="slide-up" style={{ 
-          background: '#fff', padding: 24, borderRadius: 28, 
-          boxShadow: '0 10px 40px rgba(26,20,16,0.08)',
-          marginBottom: 20, position: 'relative'
+          background: '#fff', padding: 24, borderRadius: 32, 
+          boxShadow: '0 20px 60px rgba(26,20,16,0.1)',
+          marginBottom: 20, position: 'relative',
+          border: '1px solid rgba(0,0,0,0.03)'
         }}>
-          <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
             <div style={{ 
-              width: 72, height: 72, borderRadius: 20, 
-              background: 'var(--cream)', display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', fontSize: 36,
-              border: '1.5px solid var(--cream-2)'
+              width: 80, height: 80, borderRadius: 22, 
+              background: 'var(--cream-2)', display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', fontSize: 40,
+              border: '2px solid #fff', boxShadow: '0 8px 20px rgba(0,0,0,0.05)'
             }}>
               {place.logo_emoji ?? '📍'}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1, marginBottom: 4 }}>
-                {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune.toUpperCase()}` : ''}
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, marginBottom: 6, textTransform: 'uppercase' }}>
+                {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
               </div>
-              <h1 className="font-display" style={{ fontSize: 24, margin: 0, lineHeight: 1.1 }}>{place.name}</h1>
+              <h1 className="font-display" style={{ fontSize: 28, margin: 0, lineHeight: 1.1, fontWeight: 900 }}>{place.name}</h1>
+              {place.address && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, opacity: 0.6 }}>
+                  <Ic.Pin s={14} />
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>{place.address}</div>
+                </div>
+              )}
             </div>
           </div>
 
           {place.description && (
-            <p style={{ marginTop: 16, fontSize: 14, color: 'var(--muted)', lineHeight: 1.5, margin: '16px 0 0 0' }}>
+            <p style={{ marginTop: 20, fontSize: 15, color: 'var(--muted)', lineHeight: 1.6, margin: '20px 0 0 0', fontWeight: 500 }}>
               {place.description}
             </p>
           )}
-
-          {place.address && (
-            <div style={{ 
-              marginTop: 16, padding: '12px 16px', borderRadius: 16, 
-              background: 'var(--cream-2)', display: 'flex', gap: 10, alignItems: 'center' 
-            }}>
-              <Ic.Pin s={16} color="var(--muted)" />
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{place.address}</div>
-            </div>
-          )}
         </div>
 
-        {/* CHECK-IN CTA */}
-        <div className="slide-up" style={{ marginBottom: 24, animationDelay: '0.1s' }}>
-          <CheckInButtonPlace 
+        {/* CHECK-IN CTA - NOW USING PREMIUM PoiCheckInButton */}
+        <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
+          <PoiCheckInButton 
             placeId={place.id} 
             placeName={place.name} 
-            commune={place.commune ?? null} 
+            commune={place.commune ?? undefined} 
             lat={place.lat}
             lon={place.lon}
           />
         </div>
 
-        {/* OFFRES & PROMOS */}
-        {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
-          <div className="slide-up" style={{ 
-            background: '#fff', padding: 24, borderRadius: 28, marginBottom: 24,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.03)', animationDelay: '0.2s'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <Ic.Bolt s={20} color="var(--orange)" />
-              <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>OFFRES & ÉVÉNEMENTS</h2>
-            </div>
-
-            {place.has_campaign && place.campaign_label && (
-              <div style={{ 
-                background: 'var(--orange)', color: '#fff', padding: 16, 
-                borderRadius: 20, marginBottom: 12, position: 'relative', overflow: 'hidden' 
-              }}>
-                <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, opacity: 0.9 }}>CAMPAGNE EN COURS</div>
-                  <div className="font-display" style={{ fontSize: 18, marginTop: 4 }}>{place.campaign_label}</div>
-                </div>
-              </div>
-            )}
-
-            {offers?.map((offer) => (
-              <div key={offer.id} style={{ 
-                background: 'var(--cream-2)', padding: 16, borderRadius: 20, 
-                display: 'flex', gap: 14, alignItems: 'center', marginBottom: 10
-              }}>
-                {offer.discount_pct && (
-                  <div style={{ 
-                    width: 50, height: 50, borderRadius: 12, background: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, fontWeight: 900, color: 'var(--orange)',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
-                  }}>
-                    -{offer.discount_pct}%
-                  </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{offer.title}</div>
-                  {offer.description && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{offer.description}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* CONTACT QUICK LINKS */}
+        {/* CONTACT QUICK LINKS - MODERNIZED */}
         {(place.phone || place.whatsapp || place.instagram || place.website) && (
           <div className="slide-up" style={{ 
-            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24,
-            animationDelay: '0.3s'
+            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28,
+            animationDelay: '0.2s'
           }}>
-            {place.whatsapp && (
-              <a href={`https://wa.me/${place.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <div className="press" style={{ background: '#25D366', color: '#fff', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>💬</span>
-                  <span style={{ fontSize: 12, fontWeight: 800 }}>WHATSAPP</span>
+            {place.phone && (
+              <a href={`tel:${place.phone}`} style={{ textDecoration: 'none' }}>
+                <div className="press" style={{ background: 'var(--ink)', color: '#fff', padding: '16px 12px', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }}>
+                  <span style={{ fontSize: 20 }}>📞</span>
+                  <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>APPELER</span>
                 </div>
               </a>
             )}
-            {place.phone && (
-              <a href={`tel:${place.phone}`} style={{ textDecoration: 'none' }}>
-                <div className="press" style={{ background: 'var(--ink)', color: '#fff', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>📞</span>
-                  <span style={{ fontSize: 12, fontWeight: 800 }}>APPELER</span>
+            {place.whatsapp && (
+              <a href={`https://wa.me/${place.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div className="press" style={{ background: '#25D366', color: '#fff', padding: '16px 12px', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 8px 20px rgba(37,211,102,0.2)' }}>
+                  <span style={{ fontSize: 20 }}>💬</span>
+                  <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>WHATSAPP</span>
                 </div>
               </a>
             )}
             {place.instagram && (
               <a href={`https://instagram.com/${place.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <div className="press" style={{ background: '#E4405F', color: '#fff', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="press" style={{ background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', color: '#fff', padding: '16px 12px', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 8px 20px rgba(220,39,67,0.2)' }}>
                   <span style={{ fontSize: 20 }}>📸</span>
-                  <span style={{ fontSize: 12, fontWeight: 800 }}>INSTAGRAM</span>
+                  <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>INSTAGRAM</span>
                 </div>
               </a>
             )}
             {place.website && (
               <a href={place.website} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <div className="press" style={{ background: '#fff', color: 'var(--ink)', padding: 16, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <div className="press" style={{ background: '#fff', color: 'var(--ink)', padding: '16px 12px', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 8px 20px rgba(0,0,0,0.05)', border: '1.5px solid var(--line)' }}>
                   <span style={{ fontSize: 20 }}>🌐</span>
-                  <span style={{ fontSize: 12, fontWeight: 800 }}>SITE WEB</span>
+                  <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>SITE WEB</span>
                 </div>
               </a>
             )}
           </div>
         )}
 
-        {/* ARRÊTS PROCHES */}
-        {nearbyStops && nearbyStops.length > 0 && (
+        {/* OFFRES & PROMOS */}
+        {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
           <div className="slide-up" style={{ 
-            background: '#fff', padding: 24, borderRadius: 28, marginBottom: 24,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.03)', animationDelay: '0.4s'
+            background: '#fff', padding: 24, borderRadius: 32, marginBottom: 28,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.3s',
+            border: '1px solid rgba(0,0,0,0.02)'
           }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <Ic.Route s={20} color="var(--orange)" />
-              <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>ARRÊTS À PROXIMITÉ</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+              <Ic.Bolt s={22} color="var(--orange)" />
+              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>OFFRES & ÉVÉNEMENTS</h2>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {place.has_campaign && place.campaign_label && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', padding: 20, 
+                borderRadius: 24, marginBottom: 16, position: 'relative', overflow: 'hidden',
+                boxShadow: '0 12px 30px rgba(242,108,26,0.25)' 
+              }}>
+                <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.15 }} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 900, opacity: 0.8, letterSpacing: 1 }}>EXCLUSIVITÉ BABIMOB</div>
+                  <div className="font-display" style={{ fontSize: 20, marginTop: 6, fontWeight: 900 }}>{place.campaign_label}</div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {offers?.map((offer) => (
+                <div key={offer.id} style={{ 
+                  background: 'var(--cream-2)', padding: 18, borderRadius: 24, 
+                  display: 'flex', gap: 16, alignItems: 'center', border: '1px solid rgba(0,0,0,0.02)'
+                }}>
+                  {offer.discount_pct && (
+                    <div style={{ 
+                      width: 54, height: 54, borderRadius: 16, background: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 15, fontWeight: 900, color: 'var(--orange)',
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.06)'
+                    }}>
+                      -{offer.discount_pct}%
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{offer.title}</div>
+                    {offer.description && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>{offer.description}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ARRÊTS PROCHES - DESIGN REVISITÉ */}
+        {nearbyStops && nearbyStops.length > 0 && (
+          <div className="slide-up" style={{ 
+            background: '#fff', padding: 24, borderRadius: 32, marginBottom: 28,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.4s',
+            border: '1px solid rgba(0,0,0,0.02)'
+          }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ic.Route s={18} color="var(--orange)" />
+              </div>
+              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>POUR VENIR ICI</h2>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(nearbyStops as any[]).map((stop) => (
                 <Link key={stop.stop_id} href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ textDecoration: 'none' }}>
                   <div className="press" style={{ 
-                    background: 'var(--cream-2)', padding: '12px 16px', borderRadius: 20,
-                    display: 'flex', alignItems: 'center', gap: 14
+                    background: 'var(--cream-2)', padding: '14px 18px', borderRadius: 24,
+                    display: 'flex', alignItems: 'center', gap: 16, border: '1px solid rgba(0,0,0,0.01)'
                   }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
                       🚐
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{stop.stop_name}</div>
-                      <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--orange)', marginTop: 2 }}>{formatDist(stop.distance_m)}</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{stop.stop_name}</div>
+                      <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Ic.Locate s={12} /> {formatDist(stop.distance_m)}
+                      </div>
                     </div>
-                    <Ic.Arrow s={18} color="var(--muted)" />
+                    <Ic.Arrow s={20} color="var(--muted)" />
                   </div>
                 </Link>
               ))}

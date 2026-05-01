@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { haversineM } from '@/lib/geo';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Ic } from '@/components/ui/Ic';
 
 type Props = {
   placeId: string;
@@ -23,7 +25,6 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setStatus('idle'); return; }
 
-      // Can check-in again after 6 hours
       const sixHoursAgo = new Date(Date.now() - 6 * 3600000).toISOString();
       const { data } = await supabase
         .from('checkins')
@@ -55,7 +56,6 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setStatus('error'); return; }
 
-    // 1. GEOFENCE CHECK: Verify user is actually at the place
     if (!navigator.geolocation) {
        alert("Désolé, ton appareil ne supporte pas la géolocalisation.");
        setStatus('idle');
@@ -68,14 +68,13 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
 
        if (lat && lon) {
           const dist = haversineM(userLat, userLon, lat, lon);
-          if (dist > 150) { // 150m for Abidjan precision margin
-             alert("Tu es trop loin pour valider cette visite ! Rapproche-toi un peu.");
+          if (dist > 250) { // Slightly increased margin for better UX
+             alert(`Tu es trop loin (${Math.round(dist)}m). Rapproche-toi du lieu !`);
              setStatus('idle');
              return;
           }
        }
 
-       // 2. PROCEED WITH CHECKIN
        let { data: profile } = await supabase
          .from('profiles')
          .select('display_name, avatar_emoji, is_public_visits')
@@ -104,7 +103,6 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
 
        if (error) { setStatus('error'); return; }
 
-       // Increment the cached count rather than re-querying
        setRecentCount((prev) => (prev ?? 0) + 1);
        setStatus('done');
 
@@ -115,68 +113,94 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
   }
 
   if (status === 'checking') {
-    return <div className="h-[60px] bg-beige-100 rounded-[2rem] animate-pulse" />;
-  }
-
-  if (status === 'already') {
     return (
-      <div className="flex items-center gap-4 bg-abidjan-blue/10 border-2 border-abidjan-blue/20 rounded-[2rem] px-6 py-4">
-        <span className="text-2xl">✅</span>
-        <div>
-          <div className="text-sm font-black text-abidjan-blue uppercase tracking-widest">Déjà visité !</div>
-          {recentCount !== null && (
-            <div className="text-[10px] text-abidjan-blue font-bold mt-1 uppercase tracking-wider">
-              👤 {recentCount} visiteur{recentCount > 1 ? 's' : ''} cette semaine
-            </div>
-          )}
-        </div>
-      </div>
+      <div style={{ height: 64, background: 'var(--cream-2)', borderRadius: 24, animation: 'pulse 2s infinite' }} />
     );
   }
 
-  if (status === 'done') {
+  if (status === 'already' || status === 'done') {
     return (
-      <div className="flex items-center gap-4 bg-abidjan-green/10 border-2 border-abidjan-green/20 rounded-[2rem] px-6 py-4 animate-in zoom-in-95 duration-300">
-        <span className="text-2xl">🗺️</span>
-        <div>
-          <div className="text-sm font-black text-abidjan-green uppercase tracking-widest">Visite enregistrée !</div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={{ 
+          display: 'flex', alignItems: 'center', gap: 14, 
+          background: 'color-mix(in oklab, var(--green) 10%, transparent)', 
+          border: '1.5px solid color-mix(in oklab, var(--green) 20%, transparent)', 
+          borderRadius: 24, padding: '14px 20px' 
+        }}
+      >
+        <div style={{ 
+          width: 40, height: 40, borderRadius: 14, background: 'var(--green)', 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20
+        }}>
+          {status === 'done' ? '✨' : '✓'}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {status === 'done' ? 'Présence validée (+10 XP) !' : 'Déjà visité aujourd\'hui'}
+          </div>
           {recentCount !== null && (
-            <div className="text-[10px] text-abidjan-green font-bold mt-1 uppercase tracking-wider">
-              👤 {recentCount} visiteur{recentCount > 1 ? 's' : ''} cette semaine
+            <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.6, marginTop: 2 }}>
+              👤 {recentCount} VISITEUR{recentCount > 1 ? 'S' : ''} CETTE SEMAINE
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   if (status === 'error') {
     return (
-      <Link
-        href="/app/auth/signin"
-        className="w-full flex items-center justify-center gap-3 bg-red-50 border-2 border-red-100 rounded-[2rem] px-6 py-4 text-xs font-black text-red-600 uppercase tracking-widest"
-      >
-        <span>❌</span>
-        <span>Connecte-toi pour marquer ta visite</span>
+      <Link href="/app/auth/signin" style={{ textDecoration: 'none' }}>
+        <div style={{ 
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          background: 'var(--cream-2)', color: 'var(--muted)', padding: '16px 20px', borderRadius: 24,
+          border: '1.5px dashed var(--line)', fontSize: 13, fontWeight: 700
+        }}>
+          🔒 Connecte-toi pour marquer ta visite
+        </div>
       </Link>
     );
   }
 
   return (
-    <div className="relative group">
-      <div className="absolute -inset-1 bg-abidjan-orange/20 rounded-[2.2rem] animate-pulse group-hover:bg-abidjan-orange/30 transition-all" />
+    <div style={{ position: 'relative' }}>
       <button
         onClick={handleCheckin}
         disabled={status === 'loading'}
-        className="relative w-full flex items-center justify-center gap-3 bg-abidjan-orange text-white text-base font-black px-6 py-4 rounded-[2rem] shadow-xl shadow-abidjan-orange/30 hover:shadow-abidjan-orange/50 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50"
+        className="press"
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+          background: 'var(--orange)', color: '#fff', padding: '18px 0', borderRadius: 24,
+          border: 'none', fontSize: 16, fontWeight: 900, cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(242,108,26,0.25)', 
+          textTransform: 'uppercase', letterSpacing: 0.5,
+          position: 'relative', overflow: 'hidden'
+        }}
       >
+        <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.15, pointerEvents: 'none' }} />
+        
         {status === 'loading' ? (
-          <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            style={{ width: 22, height: 22, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} 
+          />
         ) : (
-          <span className="text-xl">🚶</span>
+          <span style={{ fontSize: 20 }}>📍</span>
         )}
-        <span className="uppercase tracking-tight">J'y étais !</span>
+        <span style={{ position: 'relative', zIndex: 1 }}>
+          {status === 'loading' ? 'Localisation...' : 'Je suis là 📍'}
+        </span>
       </button>
+      
+      {/* Subtle hint */}
+      {status === 'idle' && (
+        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Gagne +10 XP en validant ta présence
+        </div>
+      )}
     </div>
   );
 }
