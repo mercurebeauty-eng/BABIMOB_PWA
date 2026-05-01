@@ -27,21 +27,41 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReviewsListModal, setShowReviewsListModal] = useState(false);
   const [reviewsCount, setReviewsCount] = useState(0);
+  const [avgRating, setAvgRating] = useState(0);
   const stopId = stop.stop_id;
+  // ... (rest of states)
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
   const supabase = createClient();
 
-  const loadReviewsCount = useCallback(async () => {
-    const { count } = await supabase
+  const loadReviewsData = useCallback(async () => {
+    const { data, count } = await supabase
       .from('avis_arret')
-      .select('*', { count: 'exact', head: true })
+      .select('rating', { count: 'exact' })
       .eq('stop_id', stopId);
+    
     setReviewsCount(count || 0);
+    if (data && data.length > 0) {
+      const sum = data.reduce((acc, curr) => acc + (curr.rating || 5), 0);
+      setAvgRating(sum / data.length);
+    } else {
+      setAvgRating(0);
+    }
   }, [supabase, stopId]);
 
   useEffect(() => {
-    loadReviewsCount();
-  }, [loadReviewsCount]);
+    loadReviewsData();
+  }, [loadReviewsData]);
+
+  const renderStars = (rating: number) => {
+    return (
+      <div style={{ display: 'flex', gap: 2 }}>
+        {[1, 2, 3, 4, 5].map((s) => {
+          const filled = s <= Math.round(rating);
+          return <Ic.Star key={s} s={14} fill={filled} color={filled ? 'var(--orange)' : 'var(--line)'} />;
+        })}
+      </div>
+    );
+  };
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -95,9 +115,12 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
             <button 
               onClick={() => setShowReviewsListModal(true)}
               className="press" 
-              style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--orange)', fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--orange)', fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}
             >
-              <Ic.Star s={14} fill /> 4.6
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {renderStars(avgRating)}
+                <span style={{ marginLeft: 4 }}>{avgRating > 0 ? avgRating.toFixed(1) : '0.0'}</span>
+              </div>
               <span style={{ color: 'var(--muted)', fontWeight: 500 }}>· {reviewsCount} avis réel{reviewsCount > 1 ? 's' : ''}</span>
             </button>
           </div>
@@ -153,7 +176,7 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
           onClose={() => setShowReviewModal(false)}
           onSuccess={() => {
             setShowReviewModal(false);
-            loadReviewsCount();
+            loadReviewsData();
             window.dispatchEvent(new CustomEvent('ccomment-refresh'));
           }}
         />
