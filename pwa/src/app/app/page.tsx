@@ -480,7 +480,9 @@ function AppPageContent() {
                       )}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: card.available ? 'var(--ink)' : 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {card.available && card.stop ? card.stop.stop_name : 'Bientôt dispo'}
+                      {card.available && card.stop 
+                        ? card.stop.stop_name 
+                        : card.kind === 'saloni' ? 'Bientôt dispo' : 'Non desservi'}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{card.label}</div>
                   </div>
