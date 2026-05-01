@@ -91,7 +91,7 @@ export default async function LignePage({ params, searchParams }: Props) {
         paddingBottom: 16, paddingLeft: 16, paddingRight: 16,
         borderBottom: '1px solid var(--line)',
       }}>
-        <div className=\"wax-bg\" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.07, pointerEvents: 'none' }} />
+        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.07, pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
@@ -100,7 +100,7 @@ export default async function LignePage({ params, searchParams }: Props) {
               <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>
                 LIGNE {typeLabel.toUpperCase()}{route.route_short_name ? ` · ${route.route_short_name}` : ''}
               </div>
-              <div className=\"font-display\" style={{ fontSize: 20, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div className="font-display" style={{ fontSize: 20, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {route.route_long_name}
               </div>
             </div>
@@ -108,16 +108,16 @@ export default async function LignePage({ params, searchParams }: Props) {
           </div>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {currentTrip.wheelchair_accessible === 1 && <Pill color=\"var(--muted)\">♿ Accessible</Pill>}
-            {route.route_desc && <Pill color=\"var(--muted)\">{route.route_desc}</Pill>}
+            {currentTrip.wheelchair_accessible === 1 && <Pill color="var(--muted)">♿ Accessible</Pill>}
+            {route.route_desc && <Pill color="var(--muted)">{route.route_desc}</Pill>}
           </div>
         </div>
       </div>
 
-      <WaxStrip color=\"var(--orange)\" height={4} />
+      <WaxStrip color="var(--orange)" height={4} />
 
       {/* ── Interactive: map + timeline ── */}
-      <div className=\"no-scrollbar\" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
         <RouteInteractive
           orderedStops={orderedStops}
           shapePoints={(shapePoints ?? []) as { shape_pt_lat: number; shape_pt_lon: number }[]}
