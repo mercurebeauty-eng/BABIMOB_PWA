@@ -79,7 +79,7 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', activeDi
 
       const icon = L.divIcon({
         className: '',
-        html: `<div style=\"width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid ${border};box-shadow:0 2px 6px rgba(0,0,0,0.2)\"></div>`,
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid ${border};box-shadow:0 2px 6px rgba(0,0,0,0.2)"></div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       });
