@@ -176,7 +176,7 @@ export default function CompassPage() {
             <div style={{ fontSize: 13, fontWeight: 700 }}>Signal {target ? 'Optimal' : 'Faible'}</div>
             <div style={{ fontSize: 11, opacity: 0.6 }}>Précision GPS: {target ? '±5m' : 'Calibrage...'}</div>
           </div>
-          <Ic.Users s={20} opacity={0.6} />
+          <div style={{ opacity: 0.6 }}><Ic.Users s={20} /></div>
         </div>
       </div>
     </div>
