@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import RouteMapWrapper from './RouteMapWrapper';
 import Vehicle from '@/components/ui/Vehicle';
@@ -46,6 +46,28 @@ export default function RouteInteractive({
 }: Props) {
   const [cutAtId, setCutAtId] = useState<string | null>(null);
   const [showSegmentedView, setShowSegmentedView] = useState(false);
+
+  // Sauvegarder dans les récents
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const lineData = {
+        id: routeId,
+        name: tripHeadsign || `Ligne ${routeId}`,
+        type: typeKind,
+        color: routeColorRaw,
+        timestamp: Date.now()
+      };
+      
+      try {
+        const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
+        const filtered = saved.filter((l: any) => l.id !== routeId);
+        const updated = [lineData, ...filtered].slice(0, 5);
+        localStorage.setItem('babimob_recentLines', JSON.stringify(updated));
+      } catch (e) {
+        console.error("Erreur localStorage recents:", e);
+      }
+    }
+  }, [routeId, tripHeadsign, typeKind, routeColorRaw]);
 
   const currentIdx = fromStop ? orderedStops.findIndex(s => s.stop_id === fromStop) : -1;
   const cutIdx     = cutAtId  ? orderedStops.findIndex(s => s.stop_id === cutAtId)  : -1;

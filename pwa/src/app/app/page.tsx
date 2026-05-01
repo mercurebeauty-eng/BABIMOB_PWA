@@ -63,6 +63,18 @@ function AppPageContent() {
     if (typeof window === 'undefined') return null;
     try { return JSON.parse(localStorage.getItem('babimob_lastDest') ?? 'null'); } catch { return null; }
   });
+  const [recentLines, setRecentLines] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
+        setRecentLines(saved);
+      } catch (e) {
+        console.error("Erreur lecture recents:", e);
+      }
+    }
+  }, []);
 
   const { heatMode, setHeatMode, hotspots } = useHotspots();
   const { activeItinerary, setActiveItinerary } = useItinerary();
@@ -209,11 +221,7 @@ function AppPageContent() {
   const TICKER: [string, string, string][] =
     tickerCheckins.length > 0 ? tickerCheckins : TICKER_FALLBACK;
 
-  const RECENT = [
-    { from: 'Cocody Saint-Jean', to: 'Plateau', tarif: '300F' },
-    { from: 'Adjamé Liberté', to: 'Yopougon Selmer', tarif: '200F' },
-    { from: 'Riviera 2', to: 'Marcory Zone 4', tarif: '500F' },
-  ];
+  // Suppression de la constante RECENT hardcodée au profit du state recentLines
 
   const selectedDistanceM = selected && userLoc
     ? haversineM(userLoc[0], userLoc[1], selected.stop_lat, selected.stop_lon)
@@ -500,21 +508,25 @@ function AppPageContent() {
               </div>
 
               {/* Récents */}
-              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, margin: '8px 4px 8px' }}>RÉCENTS</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                {RECENT.map((r, i) => (
-                  <div key={i} onClick={() => router.push('/app/chat')} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                      <Ic.Route s={18} />
-                    </div>
-                    <div style={{ flex: 1, fontSize: 13 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Tarif moyen · {r.tarif}</div>
-                    </div>
-                    <Ic.Arrow s={16} />
+              {recentLines.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, margin: '8px 4px 8px' }}>LIGNES RÉCENTES</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {recentLines.map((r, i) => (
+                      <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}`} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', textDecoration: 'none' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}`, flexShrink: 0 }}>
+                          <Vehicle kind={r.type || 'gbaka'} size={20} />
+                        </div>
+                        <div style={{ flex: 1, fontSize: 13 }}>
+                          <div style={{ fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginTop: 1 }}>{r.type || 'Transport'} · Ligne {r.id}</div>
+                        </div>
+                        <Ic.Arrow s={16} />
+                      </Link>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
 
               {/* Community pulse */}
               <div onClick={() => router.push('/app/community')} className="press" style={{ padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 8 }}>
@@ -562,12 +574,17 @@ function AppPageContent() {
               ))}
               {!query && (
                 <>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>Récents</div>
-                  {RECENT.map((r, i) => (
-                    <div key={i} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}><Ic.Route s={16} /></div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{r.from} → {r.to}</div>
-                    </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>LIGNES RÉCENTES</div>
+                  {recentLines.map((r, i) => (
+                    <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}`} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, textDecoration: 'none' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}` }}>
+                        <Vehicle kind={r.type || 'gbaka'} size={20} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>Ligne {r.id}</div>
+                      </div>
+                    </Link>
                   ))}
                 </>
               )}
