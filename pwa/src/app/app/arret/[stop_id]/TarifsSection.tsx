@@ -82,7 +82,7 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
     <>
       <div style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Tarifs réels aujourd&apos;hui</h3>
+          <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Tarifs réels aujourd'hui</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', fontWeight: 800 }}>
             <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
             EN DIRECT
