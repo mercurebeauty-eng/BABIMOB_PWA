@@ -15,9 +15,15 @@ type Review = {
   created_at: string;
 };
 
+type UserVote = {
+    review_id: string;
+    vote_type: 'up' | 'down';
+};
+
 type Props = {
   stopId: string;
   stopName: string;
+  userId: string | null;
   onClose: () => void;
   onAddReview: () => void;
 };
@@ -39,34 +45,78 @@ function timeAgo(iso: string): string {
   return `il y a ${Math.floor(diff / 86400)}j`;
 }
 
-export default function StopReviewsListModal({ stopId, stopName, onClose, onAddReview }: Props) {
+export default function StopReviewsListModal({ stopId, stopName, userId, onClose, onAddReview }: Props) {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [userVotes, setUserVotes] = useState<Record<string, 'up' | 'down'>>({});
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    
+    // Fetch reviews
+    const { data: revs } = await supabase
       .from('avis_arret')
       .select('*')
       .eq('stop_id', stopId)
       .order('created_at', { ascending: false });
     
-    if (data) setReviews(data);
+    if (revs) setReviews(revs);
+
+    // Fetch user votes if logged in
+    if (userId && revs && revs.length > 0) {
+        const { data: votes } = await supabase
+            .from('avis_votes')
+            .select('review_id, vote_type')
+            .eq('user_id', userId)
+            .in('review_id', revs.map(r => r.id));
+        
+        if (votes) {
+            const votesMap: Record<string, 'up' | 'down'> = {};
+            votes.forEach(v => { votesMap[v.review_id] = v.vote_type as 'up' | 'down'; });
+            setUserVotes(votesMap);
+        }
+    }
+
     setLoading(false);
-  }, [supabase, stopId]);
+  }, [supabase, stopId, userId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const handleVote = async (id: string, type: 'up' | 'down') => {
-    const field = type === 'up' ? 'upvotes' : 'downvotes';
-    const current = reviews.find(r => r.id === id);
-    if (!current) return;
+  const handleVote = async (reviewId: string, type: 'up' | 'down') => {
+    if (!userId) return;
 
-    // Optimistic update
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, [field]: r[field] + 1 } : r));
+    // Optimistic update logic
+    const existing = userVotes[reviewId];
+    setReviews(prev => prev.map(r => {
+        if (r.id !== reviewId) return r;
+        
+        let newUp = r.upvotes;
+        let newDown = r.downvotes;
 
-    await supabase.rpc('increment_vote', { row_id: id, field_name: field });
+        if (!existing) {
+            if (type === 'up') newUp++; else newDown++;
+        } else if (existing === type) {
+            if (type === 'up') newUp--; else newDown--;
+        } else {
+            if (type === 'up') { newUp++; newDown--; } else { newDown++; newUp--; }
+        }
+
+        return { ...r, upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) };
+    }));
+
+    setUserVotes(prev => {
+        const next = { ...prev };
+        if (existing === type) delete next[reviewId];
+        else next[reviewId] = type;
+        return next;
+    });
+
+    await supabase.rpc('toggle_avis_vote', { 
+        p_review_id: reviewId, 
+        p_user_id: userId, 
+        p_vote_type: type 
+    });
   };
 
   return (
@@ -141,10 +191,15 @@ export default function StopReviewsListModal({ stopId, stopName, onClose, onAddR
                         <button 
                             onClick={() => handleVote(r.id, 'up')}
                             className="press" 
+                            disabled={!userId}
                             style={{ 
-                                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', 
-                                borderRadius: 8, background: 'var(--cream)', border: '1px solid var(--line)', 
-                                color: 'var(--green)', fontSize: 11, fontWeight: 800, cursor: 'pointer' 
+                                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', 
+                                borderRadius: 8, border: '1px solid',
+                                background: userVotes[r.id] === 'up' ? 'var(--green)' : 'var(--cream)', 
+                                borderColor: userVotes[r.id] === 'up' ? 'var(--green)' : 'var(--line)',
+                                color: userVotes[r.id] === 'up' ? 'white' : 'var(--green)', 
+                                fontSize: 11, fontWeight: 800, cursor: userId ? 'pointer' : 'default',
+                                transition: 'all 0.2s', opacity: !userId ? 0.5 : 1
                             }}
                         >
                             👍 {r.upvotes}
@@ -152,10 +207,15 @@ export default function StopReviewsListModal({ stopId, stopName, onClose, onAddR
                         <button 
                             onClick={() => handleVote(r.id, 'down')}
                             className="press" 
+                            disabled={!userId}
                             style={{ 
-                                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', 
-                                borderRadius: 8, background: 'var(--cream)', border: '1px solid var(--line)', 
-                                color: 'var(--orange-deep)', fontSize: 11, fontWeight: 800, cursor: 'pointer' 
+                                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', 
+                                borderRadius: 8, border: '1px solid',
+                                background: userVotes[r.id] === 'down' ? 'var(--orange-deep)' : 'var(--cream)', 
+                                borderColor: userVotes[r.id] === 'down' ? 'var(--orange-deep)' : 'var(--line)',
+                                color: userVotes[r.id] === 'down' ? 'white' : 'var(--orange-deep)', 
+                                fontSize: 11, fontWeight: 800, cursor: userId ? 'pointer' : 'default',
+                                transition: 'all 0.2s', opacity: !userId ? 0.5 : 1
                             }}
                         >
                             👎 {r.downvotes}

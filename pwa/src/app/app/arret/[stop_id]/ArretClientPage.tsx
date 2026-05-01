@@ -159,6 +159,7 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
         <StopReviewsListModal
           stopId={stopId}
           stopName={stop.stop_name}
+          userId={user?.id || null}
           onClose={() => setShowReviewsListModal(false)}
           onAddReview={() => {
               setShowReviewsListModal(false);
