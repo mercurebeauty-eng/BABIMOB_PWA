@@ -16,74 +16,96 @@ type Props = {
   shape: ShapePoint[];
   stops: RouteStop[];
   routeColor?: string;
+  activeDirection: number;
+  isSegmented: boolean;
 };
 
-export default function RouteMap({ shape, stops, routeColor = '1565c0' }: Props) {
+export default function RouteMap({ shape, stops, routeColor = '1565c0', activeDirection, isSegmented }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // @ts-expect-error Leaflet internal
-    if (containerRef.current._leaflet_id) containerRef.current._leaflet_id = null;
+    // Nettoyage si déjà initialisé
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
 
     const map = L.map(containerRef.current, {
       scrollWheelZoom: false,
       zoomControl: false,
       attributionControl: false,
     });
+    mapRef.current = map;
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       subdomains: 'abcd',
       maxZoom: 20,
     }).addTo(map);
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
     const color = `#${routeColor}`;
+    const segmentColor = isSegmented ? 'var(--gold)' : color;
 
     if (shape.length > 1) {
       const latlngs = shape.map((p) => [p.shape_pt_lat, p.shape_pt_lon] as [number, number]);
-      L.polyline(latlngs, { color, weight: 4, opacity: 0.85 }).addTo(map);
-      map.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24] });
-    } else if (stops.length > 0) {
-      const bounds = L.latLngBounds(stops.map((s) => [s.stop_lat, s.stop_lon]));
-      map.fitBounds(bounds, { padding: [24, 24] });
+      
+      // Orientation départ en haut : si retour (1), on inverse les points pour fitBounds ou on joue sur l'ordre
+      // Pour Leaflet, fitBounds calcule l'enveloppe, mais on veut forcer le départ en haut
+      const bounds = L.latLngBounds(latlngs);
+      
+      L.polyline(latlngs, { 
+        color: segmentColor, 
+        weight: 5, 
+        opacity: isSegmented ? 1 : 0.85,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
+
+      map.fitBounds(bounds, { padding: [40, 40] });
+      
+      // Rotation symbolique : si on veut vraiment le départ en haut, il faudrait faire pivoter le container CSS 
+      // ou utiliser un plugin de rotation. Ici on optimise le cadrage.
     }
 
     stops.forEach((stop, idx) => {
-      const isEndpoint = idx === 0 || idx === stops.length - 1;
-      const size = isEndpoint ? 14 : 8;
-      const bg = isEndpoint ? color : '#ffffff';
-      const border = color;
+      const isFirst = idx === 0;
+      const isLast = idx === stops.length - 1;
+      const isEndpoint = isFirst || isLast;
+      const size = isEndpoint ? 16 : 8;
+      const bg = isEndpoint ? (isFirst ? 'var(--green)' : 'var(--blue)') : '#ffffff';
+      const border = segmentColor;
 
       const icon = L.divIcon({
         className: '',
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid ${border};box-shadow:0 1px 4px rgba(0,0,0,0.25)"></div>`,
+        html: `<div style=\"width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid ${border};box-shadow:0 2px 6px rgba(0,0,0,0.2)\"></div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       });
 
-      L.marker([stop.stop_lat, stop.stop_lon], { icon })
-        .bindPopup(
-          `<div class="bm-popup"><strong>${escapeHtml(stop.stop_name)}</strong></div>`,
-          { className: 'bm-popup-wrapper', offset: [0, -4] }
-        )
-        .addTo(map);
+      L.marker([stop.stop_lat, stop.stop_lon], { icon }).addTo(map);
     });
 
-    return () => { map.remove(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => { 
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [shape, stops, routeColor, activeDirection, isSegmented]);
 
-  return <div ref={containerRef} style={{ width: '100%', height: '220px' }} />;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div 
+        ref={containerRef} 
+        style={{ 
+          width: '100%', 
+          height: '100%',
+          // Si direction retour, on pourrait appliquer une rotation CSS 180deg au container
+          // transform: activeDirection === 1 ? 'rotate(180deg)' : 'none'
+        }} 
+      />
+    </div>
+  );
 }
