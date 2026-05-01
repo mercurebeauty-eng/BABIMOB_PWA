@@ -21,7 +21,7 @@ type Props = {
   placeName: string;
   userId: string;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (data: any) => void;
 };
 
 export default function PlaceReviewModal({ placeId, placeName, userId, onClose, onSuccess }: Props) {
