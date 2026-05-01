@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 
@@ -10,6 +10,7 @@ type Props = {
   stopIdDepart: string;
   stopNameDepart: string;
   userId: string | null;
+  lines: any[];
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -23,36 +24,66 @@ const MOMENTS = [
   { value: 'nuit',    label: 'Nuit',    emoji: '🌙' },
 ];
 
-export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId, onClose, onSuccess }: Props) {
+export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId, lines, onClose, onSuccess }: Props) {
   const supabase = useRef(createClient()).current;
 
   const [direction, setDirection]       = useState<0 | 1>(0);
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [searchResults, setSearchResults] = useState<StopResult[]>([]);
-  const [selectedStop, setSelectedStop] = useState<StopResult | null>(null);
+  const [selectedLineId, setSelectedLineId] = useState<string>(lines[0]?.route_id || '');
+  const [segments, setSegments]         = useState<{from: string, to: string, to_id: string}[]>([]);
+  const [selectedSegment, setSelectedSegment] = useState<string>('');
   const [prix, setPrix]                 = useState<number | null>(null);
   const [moment, setMoment]             = useState('journee');
   const [submitting, setSubmitting]     = useState(false);
   const [error, setError]               = useState<string | null>(null);
+  const [loadingSegments, setLoadingSegments] = useState(false);
 
-  const searchStops = useCallback(async (query: string) => {
-    if (query.length < 2) { setSearchResults([]); return; }
-    const { data } = await supabase
-      .from('gtfs_stops')
-      .select('stop_id, stop_name, commune')
-      .ilike('stop_name', `%${query}%`)
-      .limit(8);
-    setSearchResults(data ?? []);
-  }, [supabase]);
+  // Charger les segments pour la ligne et le sens choisis
+  useEffect(() => {
+    async function loadSegments() {
+      if (!selectedLineId) return;
+      setLoadingSegments(true);
+      
+      // Récupérer le trip_id pour cette ligne et ce sens
+      const { data: trips } = await supabase
+        .from('gtfs_trips')
+        .select('trip_id, trip_headsign')
+        .eq('route_id', selectedLineId)
+        .eq('direction_id', direction)
+        .limit(1);
 
-  const handleSearch = (q: string) => {
-    setSearchQuery(q);
-    setSelectedStop(null);
-    searchStops(q);
-  };
+      if (trips && trips.length > 0) {
+        const tripId = trips[0].trip_id;
+        // Récupérer les arrêts de ce trip
+        const { data: st } = await supabase
+          .from('gtfs_stop_times')
+          .select('stop_id, stop_sequence, gtfs_stops(stop_name)')
+          .eq('trip_id', tripId)
+          .order('stop_sequence');
+
+        if (st) {
+          const currentStopIdx = st.findIndex(s => s.stop_id === stopIdDepart);
+          if (currentStopIdx !== -1) {
+            // Segments possibles : de cet arrêt vers tous les arrêts suivants
+            const possible = st.slice(currentStopIdx + 1).map(s => ({
+              from: stopNameDepart,
+              to: (s.gtfs_stops as any)?.stop_name || 'Inconnu',
+              to_id: s.stop_id
+            }));
+            setSegments(possible);
+          } else {
+            setSegments([]);
+          }
+        }
+      }
+      setLoadingSegments(false);
+    }
+    loadSegments();
+  }, [selectedLineId, direction, stopIdDepart, stopNameDepart, supabase]);
 
   const handleSubmit = async () => {
-    if (!selectedStop || prix === null) return;
+    const seg = segments.find(s => s.to_id === selectedSegment);
+    if (!seg || prix === null) return;
+    
     setSubmitting(true);
     setError(null);
 
@@ -60,8 +91,8 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
       user_id: userId,
       stop_id_depart: stopIdDepart,
       stop_name_depart: stopNameDepart,
-      stop_id_arrivee: selectedStop.stop_id,
-      stop_name_arrivee: selectedStop.stop_name,
+      stop_id_arrivee: seg.to_id,
+      stop_name_arrivee: seg.to,
       direction_id: direction,
       prix,
       moment,
@@ -72,7 +103,11 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
     onSuccess();
   };
 
-  const canSubmit = selectedStop !== null && prix !== null && !submitting;
+  const canSubmit = selectedSegment !== '' && prix !== null && !submitting;
+
+  // Trouver le headsign actuel pour le libellé de direction
+  const currentLine = lines.find(l => l.route_id === selectedLineId);
+  const destinationLabel = direction === 0 ? "Aller" : "Retour";
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -99,9 +134,27 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
           </button>
         </div>
 
+        {/* Ligne */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Ligne</div>
+          <select
+            value={selectedLineId}
+            onChange={(e) => setSelectedLineId(e.target.value)}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 12,
+              border: '1px solid var(--line)', background: 'var(--cream-2)',
+              fontSize: 14, color: 'var(--ink)', outline: 'none',
+            }}
+          >
+            {lines.map(l => (
+              <option key={l.route_id} value={l.route_id}>{l.route_long_name}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Direction */}
         <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Sens</div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Direction</div>
           <div style={{ display: 'flex', gap: 8, padding: 4, background: 'var(--cream-2)', borderRadius: 12, border: '1px solid var(--line)' }}>
             {([0, 1] as const).map(d => (
               <button
@@ -115,60 +168,36 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
                   boxShadow: direction === d ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
-                {d === 0 ? '→ Sens aller' : '← Sens retour'}
+                {d === 0 ? '→ Aller' : '← Retour'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Destination search */}
+        {/* Segment selector */}
         <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Arrêt d&apos;arrivée</div>
-          {selectedStop ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12, background: 'color-mix(in oklab, var(--green) 10%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 30%, transparent)' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{selectedStop.stop_name}</div>
-                {selectedStop.commune && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{selectedStop.commune}</div>}
-              </div>
-              <button
-                onClick={() => { setSelectedStop(null); setSearchQuery(''); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20, padding: 0, lineHeight: 1 }}
-              >
-                ✕
-              </button>
-            </div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Trajet effectué</div>
+          {loadingSegments ? (
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Chargement des segments...</div>
           ) : (
-            <div>
-              <input
-                type="text"
-                placeholder="Chercher un arrêt..."
-                value={searchQuery}
-                onChange={e => handleSearch(e.target.value)}
-                style={{
-                  width: '100%', padding: '12px 14px', borderRadius: 12,
-                  border: '1px solid var(--line)', background: 'var(--cream-2)',
-                  fontSize: 14, color: 'var(--ink)', outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-              {searchResults.length > 0 && (
-                <div style={{ marginTop: 4, borderRadius: 12, border: '1px solid var(--line)', overflow: 'hidden', background: 'var(--cream-2)' }}>
-                  {searchResults.map((s, i) => (
-                    <button
-                      key={s.stop_id}
-                      onClick={() => { setSelectedStop(s); setSearchQuery(s.stop_name); setSearchResults([]); }}
-                      style={{
-                        width: '100%', padding: '12px 14px', textAlign: 'left', border: 'none',
-                        borderTop: i === 0 ? 'none' : '1px solid var(--line)',
-                        background: 'transparent', cursor: 'pointer', display: 'block',
-                      }}
-                    >
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{s.stop_name}</div>
-                      {s.commune && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.commune}</div>}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <select
+              value={selectedSegment}
+              onChange={(e) => setSelectedSegment(e.target.value)}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 12,
+                border: '1px solid var(--line)', background: 'var(--cream-2)',
+                fontSize: 14, color: 'var(--ink)', outline: 'none',
+              }}
+            >
+              <option value="">Choisir votre destination...</option>
+              {segments.map(s => (
+                <option key={s.to_id} value={s.to_id}>{s.from} → {s.to}</option>
+              ))}
+            </select>
+          )}
+          {!loadingSegments && segments.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--orange-deep)', marginTop: 4 }}>
+              Aucun arrêt de destination trouvé pour ce sens.
             </div>
           )}
         </div>
