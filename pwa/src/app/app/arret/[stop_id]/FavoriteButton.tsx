@@ -11,6 +11,7 @@ type Props = {
   lon: number;
   initialFavorited: boolean;
   userId: string | null;
+  compact?: boolean;
 };
 
 export default function FavoriteButton({
@@ -21,12 +22,14 @@ export default function FavoriteButton({
   lon,
   initialFavorited,
   userId,
+  compact = false,
 }: Props) {
   const [favorited, setFavorited] = useState(initialFavorited);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!userId) {
+    if (compact) return null; // Or a small disabled heart
     return (
       <a
         href="/app/auth/signin"
@@ -40,7 +43,7 @@ export default function FavoriteButton({
     );
   }
 
-  const uid = userId as string; // narrowed: button only renders when userId is not null
+  const uid = userId as string;
 
   async function toggle() {
     if (loading) return;
@@ -80,10 +83,47 @@ export default function FavoriteButton({
 
   if (errorMsg) {
     return (
-      <div className="w-full flex flex-col items-center gap-1 py-4 rounded-[1.5rem] border-2 border-red-200 bg-red-50 text-red-500">
-        <span className="font-black text-xs uppercase tracking-widest">Erreur</span>
+      <div className={compact ? "text-red-500" : "w-full flex flex-col items-center gap-1 py-4 rounded-[1.5rem] border-2 border-red-200 bg-red-50 text-red-500"}>
+        {!compact && <span className="font-black text-xs uppercase tracking-widest">Erreur</span>}
         <span className="text-[10px] font-medium px-4 text-center break-all">{errorMsg}</span>
       </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <button
+        onClick={toggle}
+        disabled={loading}
+        style={{
+          width: 44, height: 44, borderRadius: '50%',
+          background: favorited ? 'var(--orange)' : 'var(--cream-2)',
+          border: '1px solid var(--line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: favorited ? '#fff' : 'var(--muted)',
+          cursor: 'pointer',
+          boxShadow: favorited ? '0 4px 12px rgba(242,108,26,0.25)' : 'none'
+        }}
+        className="press"
+      >
+        {loading ? (
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <svg
+            className="w-5 h-5 transition-transform"
+            viewBox="0 0 24 24"
+            fill={favorited ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
     );
   }
 
