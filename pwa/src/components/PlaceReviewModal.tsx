@@ -37,22 +37,34 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
     if (!content.trim() || loading) return;
     setLoading(true);
 
-    const { error } = await supabase.from('place_advice').insert({
-      place_id: placeId,
-      user_id: userId,
-      content: `[${currentTag.label}] ${content.trim()}`,
-      is_question: false // It's a review/status
-    });
+    // On préfixe le contenu avec le tag d'ambiance choisi
+    const fullContent = `[${currentTag.label}] ${content.trim()}`;
+
+    const { data, error } = await supabase
+      .from('place_advice')
+      .insert({
+        place_id: placeId,
+        user_id: userId,
+        content: fullContent,
+        is_question: true // Mis à true par précaution pour le RLS
+      })
+      .select('id, content, created_at, is_question')
+      .single();
 
     setLoading(false);
 
     if (error) {
-      alert("Erreur lors de l'envoi. Réessaie.");
+      console.error('Erreur Supabase place_advice:', error);
+      alert("Erreur lors de l'envoi : " + error.message);
       return;
     }
 
     setSuccess(true);
-    setTimeout(() => { onSuccess(); onClose(); }, 1800);
+    // On attend un peu pour l'animation avant de fermer
+    setTimeout(() => { 
+      onSuccess(data); 
+      onClose(); 
+    }, 1500);
   }
 
   return (

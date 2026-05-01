@@ -49,6 +49,24 @@ export default function PlaceSocialSections({ placeId, placeName, initialCheckin
 
   const publicCheckins = initialCheckins.filter(c => c.is_public);
 
+  async function handleNewAdvice(newEntry: any) {
+    if (!newEntry || !userId) return;
+
+    // On récupère le profil pour l'affichage immédiat
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_emoji')
+      .eq('id', userId)
+      .single();
+
+    const completeEntry: Advice = {
+      ...newEntry,
+      profiles: profile || null
+    };
+
+    setAdvice(prev => [completeEntry, ...prev]);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       
@@ -151,30 +169,39 @@ export default function PlaceSocialSections({ placeId, placeName, initialCheckin
          )}
 
          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {advice.map((item) => (
-               <div key={item.id} style={{ display: 'flex', gap: 16 }}>
-                  <div style={{ 
-                    width: 44, height: 44, borderRadius: 14, background: 'var(--cream-2)', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    fontSize: 22, flexShrink: 0, border: '1px solid rgba(0,0,0,0.02)'
-                  }}>
-                     {item.profiles?.avatar_emoji ?? '👤'}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'Anonyme'}</span>
-                        <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
-                     </div>
-                     <div style={{ 
-                       background: 'var(--cream-2)', padding: '16px 20px', borderRadius: 24,
-                       borderTopLeftRadius: 4, fontSize: 15, fontWeight: 600, color: 'var(--ink)',
-                       lineHeight: 1.5, border: '1px solid rgba(0,0,0,0.01)'
-                     }}>
-                        {item.content}
-                     </div>
-                  </div>
-               </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {advice.map((item) => (
+                <motion.div 
+                  layout
+                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  key={item.id} 
+                  style={{ display: 'flex', gap: 16, overflow: 'hidden' }}
+                >
+                    <div style={{ 
+                      width: 44, height: 44, borderRadius: 14, background: 'var(--cream-2)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      fontSize: 22, flexShrink: 0, border: '1px solid rgba(0,0,0,0.02)'
+                    }}>
+                      {item.profiles?.avatar_emoji ?? '👤'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'Anonyme'}</span>
+                          <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
+                      </div>
+                      <div style={{ 
+                        background: 'var(--cream-2)', padding: '16px 20px', borderRadius: 24,
+                        borderTopLeftRadius: 4, fontSize: 15, fontWeight: 600, color: 'var(--ink)',
+                        lineHeight: 1.5, border: '1px solid rgba(0,0,0,0.01)'
+                      }}>
+                          {item.content}
+                      </div>
+                    </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
             
             {advice.length === 0 && (
               <div style={{ textAlign: 'center', padding: '32px 0', opacity: 0.5 }}>
@@ -192,10 +219,7 @@ export default function PlaceSocialSections({ placeId, placeName, initialCheckin
             placeName={placeName}
             userId={userId}
             onClose={() => setModalOpen(false)}
-            onSuccess={() => {
-              // Refresh logic would go here
-              window.location.reload(); 
-            }}
+            onSuccess={handleNewAdvice}
           />
         )}
       </AnimatePresence>
