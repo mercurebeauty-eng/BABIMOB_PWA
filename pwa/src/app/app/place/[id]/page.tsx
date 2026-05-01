@@ -54,7 +54,7 @@ export default async function PlacePage({ params }: Props) {
       .order('created_at', { ascending: false })
       .limit(10),
     user 
-      ? supabase.from('profiles').select('is_verified_explorer').eq('id', user.id).single()
+      ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -308,6 +308,8 @@ export default async function PlacePage({ params }: Props) {
             initialCheckins={checkins || []} 
             initialAdvice={(advice as any[]) || []}
             userId={user?.id || null}
+            userDisplayName={userProfile?.display_name || 'Un Babi'}
+            userAvatarEmoji={userProfile?.avatar_emoji || '👤'}
             isVerifiedExplorer={!!userProfile?.is_verified_explorer}
           />
         </div>

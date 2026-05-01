@@ -31,6 +31,8 @@ type Props = {
   initialCheckins: Checkin[];
   initialAdvice: Advice[];
   userId: string | null;
+  userDisplayName: string;
+  userAvatarEmoji: string;
   isVerifiedExplorer: boolean;
 };
 
@@ -42,8 +44,16 @@ function timeAgo(iso: string): string {
   return `${Math.floor(mins / 1440)} J`;
 }
 
-export default function PlaceSocialSections({ placeId, placeName, initialCheckins, initialAdvice, userId, isVerifiedExplorer }: Props) {
-  const supabase = createClient();
+export default function PlaceSocialSections({ 
+  placeId, 
+  placeName, 
+  initialCheckins, 
+  initialAdvice, 
+  userId, 
+  userDisplayName,
+  userAvatarEmoji,
+  isVerifiedExplorer 
+}: Props) {
   const [advice, setAdvice] = useState<Advice[]>(initialAdvice);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -52,16 +62,14 @@ export default function PlaceSocialSections({ placeId, placeName, initialCheckin
   async function handleNewAdvice(newEntry: any) {
     if (!newEntry || !userId) return;
 
-    // On récupère le profil pour l'affichage immédiat
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, avatar_emoji')
-      .eq('id', userId)
-      .single();
-
+    // Plus besoin de requêter Supabase ici pour le profil, 
+    // on l'a déjà via les props, ce qui évite l'erreur de récursion RLS.
     const completeEntry: Advice = {
       ...newEntry,
-      profiles: profile || null
+      profiles: {
+        display_name: userDisplayName,
+        avatar_emoji: userAvatarEmoji
+      }
     };
 
     setAdvice(prev => [completeEntry, ...prev]);
