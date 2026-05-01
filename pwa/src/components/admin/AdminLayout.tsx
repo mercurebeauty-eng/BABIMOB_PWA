@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from '@/components/ui/Ic';
 import { createClient } from '@/lib/supabase/client';
+import AdminGate from './AdminGate';
 
 type Props = {
   children: React.ReactNode;
@@ -22,14 +23,16 @@ const MENU_ITEMS = [
 export default function AdminLayout({ children }: Props) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null = checking
   const supabase = createClient();
 
   useEffect(() => {
     async function checkAccess() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -37,19 +40,25 @@ export default function AdminLayout({ children }: Props) {
         .eq('id', user.id)
         .single();
       
-      // En phase de dev, on laisse passer pour toi, mais on garde la logique
-      setIsAdmin(true); 
-      setLoading(false);
+      setIsAdmin(!!profile?.is_admin);
     }
     checkAccess();
   }, [supabase]);
 
-  if (loading) return (
-    <div style={{ height: '100vh', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} style={{ fontSize: 40 }}>🌀</motion.div>
+  // ÉCRAN DE CHARGEMENT
+  if (isAdmin === null) return (
+    <div style={{ height: '100vh', width: '100vw', background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ fontSize: 40 }}>🌀</motion.div>
+      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 2 }}>Vérification des accès...</div>
     </div>
   );
 
+  // SI PAS ADMIN -> ON MONTRE LA PORTE D'ENTRÉE
+  if (!isAdmin) {
+    return <AdminGate />;
+  }
+
+  // SI ADMIN -> ON MONTRE LE DASHBOARD
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--cream)', overflow: 'hidden' }}>
       
