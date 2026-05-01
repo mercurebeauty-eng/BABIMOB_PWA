@@ -15,6 +15,10 @@ type Props = {
   lon?: number;
 };
 
+/**
+ * Composant de check-in premium avec calcul de proximité GPS, 
+ * gestion des XP (+10) et design Babi-tech (glassmorphism).
+ */
 export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon }: Props) {
   const supabase = createClient();
   const [status, setStatus] = useState<'checking' | 'idle' | 'loading' | 'done' | 'already' | 'error'>('checking');
