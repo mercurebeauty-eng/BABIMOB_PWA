@@ -137,7 +137,7 @@ export default function RouteInteractive({
       <div style={{ padding: '16px 16px 100px', position: 'relative' }}>
         {fromStop && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-            <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--green)', background: 'color-mix(in oklab, var(--green) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)', borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--blue)', background: 'color-mix(in oklab, var(--blue) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--blue) 25%, transparent)', borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
               Votre arrêt mis en évidence
             </span>
           </div>
@@ -153,16 +153,17 @@ export default function RouteInteractive({
           const noCtx = currentIdx < 0; 
           const isDestination = cutAtId === stop.stop_id;
 
+          // Alignement des couleurs avec la carte : Départ segment = Bleu, Fin segment = Vert
           const dotColor = isCurrent
-            ? 'var(--orange)'
-            : isDestination ? 'var(--gold)'
+            ? 'var(--blue)'
+            : isDestination ? 'var(--green)'
             : isPast ? '#e53935'
-            : isTerminus ? 'var(--blue)'
-            : isFuture ? 'var(--green)'
+            : isTerminus ? 'var(--ink)'
+            : isFuture ? 'color-mix(in oklab, var(--line) 40%, transparent)'
             : 'var(--line)';
 
-          const lineColor = isPast ? '#e53935' : isCurrent ? 'var(--orange)' : noCtx ? 'var(--line)' : 'var(--green)';
-          const lineDashed = !isPast && !isCurrent && !noCtx;
+          const lineColor = isPast ? '#e53935' : (isCurrent || (currentIdx >=0 && idx < cutIdx)) ? 'var(--gold)' : noCtx ? 'var(--line)' : 'var(--line)';
+          const lineDashed = !isPast && !isCurrent && !(currentIdx >=0 && idx < cutIdx);
 
           const dotSize = isCurrent ? 40 : isDestination ? 30 : isTerminus ? 20 : 14;
 
@@ -171,11 +172,11 @@ export default function RouteInteractive({
               key={`${stop.stop_id}-${stop.stop_sequence}`}
               style={{
                 display: 'flex', gap: 12, alignItems: 'stretch',
-                background: isCurrent ? 'color-mix(in oklab, var(--orange) 6%, transparent)' : isDestination ? 'color-mix(in oklab, var(--gold) 6%, transparent)' : 'transparent',
+                background: isCurrent ? 'color-mix(in oklab, var(--blue) 6%, transparent)' : isDestination ? 'color-mix(in oklab, var(--green) 6%, transparent)' : 'transparent',
                 borderRadius: (isCurrent || isDestination) ? 14 : 0,
                 margin: (isCurrent || isDestination) ? '2px -8px' : 0,
                 padding: (isCurrent || isDestination) ? '0 8px' : 0,
-                border: (isCurrent || isDestination) ? `1px solid color-mix(in oklab, ${isCurrent ? 'var(--orange)' : 'var(--gold)'} 18%, transparent)` : 'none',
+                border: (isCurrent || isDestination) ? `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 18%, transparent)` : 'none',
               }}
             >
               {/* Timeline column */}
@@ -191,7 +192,7 @@ export default function RouteInteractive({
                       position: 'absolute', top: '50%', left: '50%',
                       transform: 'translate(-50%,-50%)',
                       width: 52, height: 52, borderRadius: '50%',
-                      background: isCurrent ? 'var(--orange)' : 'var(--gold)', opacity: 0.2, pointerEvents: 'none',
+                      background: isCurrent ? 'var(--blue)' : 'var(--green)', opacity: 0.2, pointerEvents: 'none',
                     }} />
                   )}
                   <div style={{
@@ -199,8 +200,8 @@ export default function RouteInteractive({
                     background: dotColor,
                     border: (isCurrent || isDestination) ? '3px solid var(--cream)' : 'none',
                     boxShadow: (isCurrent || isDestination)
-                      ? `0 0 0 2px ${isCurrent ? 'var(--orange)' : 'var(--gold)'}, 0 4px 12px rgba(0,0,0,0.15)`
-                      : isTerminus ? `0 0 0 3px color-mix(in oklab, var(--blue) 20%, transparent)` : 'none',
+                      ? `0 0 0 2px ${isCurrent ? 'var(--blue)' : 'var(--green)'}, 0 4px 12px rgba(0,0,0,0.15)`
+                      : isTerminus ? `0 0 0 3px color-mix(in oklab, var(--ink) 10%, transparent)` : 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {isCurrent && <Vehicle kind={typeKind} size={22} color="#fff" />}
@@ -223,11 +224,11 @@ export default function RouteInteractive({
                 {isCurrent || isDestination ? (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span className="font-display" style={{ fontSize: 18, fontWeight: 900, color: isCurrent ? 'var(--orange)' : 'var(--gold)' }}>
+                      <span className="font-display" style={{ fontSize: 18, fontWeight: 900, color: isCurrent ? 'var(--blue)' : 'var(--green)' }}>
                         {stop.stop_name}
                       </span>
-                      <span style={{ fontSize: 8, fontWeight: 900, color: isCurrent ? 'var(--orange)' : 'var(--gold)', background: `color-mix(in oklab, ${isCurrent ? 'var(--orange)' : 'var(--gold)'} 12%, transparent)`, border: `1px solid color-mix(in oklab, ${isCurrent ? 'var(--orange)' : 'var(--gold)'} 25%, transparent)`, borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        {isCurrent ? 'TU ES ICI' : 'DESTINATION'}
+                      <span style={{ fontSize: 8, fontWeight: 900, color: isCurrent ? 'var(--blue)' : 'var(--green)', background: `color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 12%, transparent)`, border: `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 25%, transparent)`, borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                        {isCurrent ? 'DÉPART' : 'DESTINATION'}
                       </span>
                     </div>
                     {stop.commune && (
