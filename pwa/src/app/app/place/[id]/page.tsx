@@ -304,6 +304,7 @@ export default async function PlacePage({ params }: Props) {
         <div className="slide-up" style={{ animationDelay: '0.5s' }}>
           <PlaceSocialSections 
             placeId={id} 
+            placeName={place.name}
             initialCheckins={checkins || []} 
             initialAdvice={(advice as any[]) || []}
             userId={user?.id || null}
