@@ -50,19 +50,25 @@ export default async function LignePage({ params, searchParams }: Props) {
 
   // Organisation des deux sens
   const directions = [0, 1];
-  const tripPerDir = new Map();
+  const tripPerDirMap = new Map();
   directions.forEach(d => {
-    const trip = trips.find(t => t.direction_id === d) || trips.find(t => t.direction_id === (d === 0 ? 1 : 0));
-    tripPerDir.set(d, trip);
+    // On cherche un trip pour la direction d. Si absent, on ne met rien (pas de fallback automatique)
+    const trip = trips.find(t => t.direction_id === d);
+    if (trip) tripPerDirMap.set(d, trip);
   });
 
   const { label: typeLabel, kind: typeKind } = detectType(route.route_long_name ?? '');
   const routeColorRaw = route.route_color ?? 'F26C1A';
   const routeColor = `#${routeColorRaw}`;
 
-  // Récupérer les données pour le sens actif (basé sur searchParams)
-  const activeDirection = dir === '1' ? 1 : 0;
-  const currentTrip = tripPerDir.get(activeDirection);
+  // Récupérer les sens disponibles
+  const availableDirs = Array.from(tripPerDirMap.keys()).sort();
+  
+  // Sens actif : si dir est spécifié et disponible, on l'utilise, sinon on prend le premier dispo
+  let activeDirection = (dir !== undefined && tripPerDirMap.has(parseInt(dir))) ? parseInt(dir) : availableDirs[0];
+  const currentTrip = tripPerDirMap.get(activeDirection);
+
+  if (!currentTrip) notFound();
 
   const [{ data: stopTimes }, { data: shapePoints }] = await Promise.all([
     supabase.from('gtfs_stop_times').select('stop_id, stop_sequence').eq('trip_id', currentTrip.trip_id).order('stop_sequence'),
@@ -127,7 +133,7 @@ export default async function LignePage({ params, searchParams }: Props) {
           typeKind={typeKind}
           tripHeadsign={currentTrip.trip_headsign}
           activeDirection={activeDirection}
-          tripPerDir={Array.from(tripPerDir.entries()).map(([id, t]) => ({id, headsign: t.trip_headsign}))}
+          tripPerDir={availableDirs.map(d => ({id: d, headsign: tripPerDirMap.get(d).trip_headsign}))}
           routeId={routeId}
         />
       </div>
