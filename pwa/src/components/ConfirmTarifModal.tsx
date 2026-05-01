@@ -75,14 +75,15 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
   const canSubmit = selectedStop !== null && prix !== null && !submitting;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
 
       <div style={{
-        position: 'relative', width: '100%', zIndex: 1,
+        position: 'relative', width: '100%', maxWidth: 500, zIndex: 1,
         background: 'var(--cream)', borderRadius: '24px 24px 0 0',
         padding: '20px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)',
-        maxHeight: '90vh', overflowY: 'auto',
+        maxHeight: '92vh', overflowY: 'auto',
+        boxShadow: '0 -10px 40px rgba(0,0,0,0.2)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
