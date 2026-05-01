@@ -122,7 +122,7 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div className=\"font-display\" style={{ fontSize: 18, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                <div className="font-display" style={{ fontSize: 18, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
                   {g.minPrix}F {g.isHot && <span style={{ fontSize: 16 }}>🔥</span>}
                 </div>
                 {g.maxPrix > g.minPrix ? (
@@ -138,7 +138,7 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
 
           <button
             onClick={() => setShowModal(true)}
-            className=\"press\"
+            className="press"
             style={{
               width: '100%', padding: 14, borderRadius: 16, border: '2px dashed var(--line-strong)',
               background: 'transparent', color: 'var(--muted)', fontSize: 12, fontWeight: 800,
@@ -162,4 +162,6 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
           onSuccess={() => { setShowModal(false); load(); }}
         />
       )}
-    </>\n  );\n}\n
+    </>
+  );
+}
