@@ -64,6 +64,7 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
   const [showModal, setShowModal] = useState(false);
 
   const load = useCallback(async () => {
+    setLoading(true);
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from('tarif_confirmations')
@@ -76,7 +77,14 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
     setLoading(false);
   }, [supabase, stopId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { 
+    setGroups([]); // Clear stale data when stop changes
+    load(); 
+
+    const handleRefresh = () => load();
+    window.addEventListener('tarif-refresh', handleRefresh);
+    return () => window.removeEventListener('tarif-refresh', handleRefresh);
+  }, [load]);
 
   return (
     <>

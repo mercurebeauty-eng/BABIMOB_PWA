@@ -144,6 +144,7 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
 
     setSubmitting(false);
     if (err) { setError("Erreur lors de l'envoi. Réessaye."); return; }
+    window.dispatchEvent(new CustomEvent('tarif-refresh'));
     onSuccess();
   };
 
