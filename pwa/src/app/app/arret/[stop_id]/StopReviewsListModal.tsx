@@ -130,7 +130,7 @@ export default function StopReviewsListModal({ stopId, stopName, onClose, onAddR
                             <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{r.display_name || 'Un Babi'}</div>
                             <div style={{ display: 'flex', gap: 2 }}>
                                 {[1, 2, 3, 4, 5].map(s => (
-                                    <Ic.Star key={s} s={10} fill={s <= (r.rating || 5)} style={{ color: s <= (r.rating || 5) ? 'var(--orange)' : 'var(--line)' }} />
+                                    <Ic.Star key={s} s={10} fill={s <= (r.rating || 5)} color={s <= (r.rating || 5) ? 'var(--orange)' : 'var(--line)'} />
                                 ))}
                             </div>
                         </div>

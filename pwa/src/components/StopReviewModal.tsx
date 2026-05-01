@@ -96,7 +96,7 @@ export default function StopReviewModal({ stopId, stopName, userId, displayName,
                   <Ic.Star 
                     s={32} 
                     fill={star <= rating} 
-                    style={{ color: star <= rating ? 'var(--orange)' : 'var(--line)' }}
+                    color={star <= rating ? 'var(--orange)' : 'var(--line)'}
                   />
                 </button>
               ))}
