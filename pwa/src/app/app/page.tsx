@@ -488,7 +488,12 @@ function AppPageContent() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BOUSSOLE BABI</div>
-                    <div className="font-display" style={{ fontSize: 18, marginTop: 2 }}>Le prochain Gbaka<br />est à 60m, pointe →</div>
+                    <div className="font-display" style={{ fontSize: 18, marginTop: 2 }}>
+                      {nearbyStops[0] 
+                        ? <>L'arrêt le plus proche<br />est à {formatDistance(nearbyStops[0].distance_m)}, pointe →</>
+                        : <>Le prochain Gbaka<br />est proche, pointe →</>
+                      }
+                    </div>
                   </div>
                   <Ic.Arrow s={22} />
                 </div>
