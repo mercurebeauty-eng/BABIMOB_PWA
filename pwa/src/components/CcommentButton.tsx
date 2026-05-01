@@ -42,7 +42,10 @@ export default function CcommentButton({ stopId, stopName, userId, displayName }
           userId={userId}
           displayName={displayName}
           onClose={() => setOpen(false)}
-          onSuccess={() => setDone(true)}
+          onSuccess={() => {
+            setDone(true);
+            window.dispatchEvent(new CustomEvent('ccomment-refresh'));
+          }}
         />
       )}
     </>

@@ -64,7 +64,7 @@ export default function TarifsSection({ stopId, stopName, userId, lines }: Props
   const [showModal, setShowModal] = useState(false);
 
   const load = useCallback(async () => {
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from('tarif_confirmations')
       .select('stop_id_arrivee, stop_name_arrivee, prix')
