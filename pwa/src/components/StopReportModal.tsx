@@ -52,6 +52,7 @@ export default function StopReportModal({ stopId, stopName, userId, displayName,
     setLoading(false);
 
     if (err) {
+      console.error('Error inserting report:', err);
       setError('Erreur lors de l\'envoi. Réessaie.');
       return;
     }
@@ -63,101 +64,148 @@ export default function StopReportModal({ stopId, stopName, userId, displayName,
   return (
     <div
       onClick={() => !loading && onClose()}
-      style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(26,20,16,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end' }}
+      style={{ 
+        position: 'fixed', inset: 0, zIndex: 900, 
+        background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(8px)', 
+        display: 'flex', alignItems: 'flex-end',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
     >
+      <style jsx>{`
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      `}</style>
+
       <div
         onClick={e => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', padding: '24px 20px calc(32px + env(safe-area-inset-bottom, 0px))', boxShadow: '0 -8px 40px rgba(0,0,0,0.2)' }}
+        style={{ 
+          width: '100%', maxWidth: 480, margin: '0 auto', 
+          background: 'var(--cream-2)', borderRadius: '32px 32px 0 0', 
+          padding: '24px 20px calc(32px + env(safe-area-inset-bottom, 0px))', 
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.25)',
+          animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
       >
+        {/* Handle bar */}
+        <div style={{ width: 40, height: 4, background: 'var(--line-strong)', borderRadius: 2, margin: '0 auto 20px', opacity: 0.5 }} />
+
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'color-mix(in oklab, var(--orange) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
-            <Ic.Pin s={20} fill />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+          <div style={{ 
+            width: 48, height: 48, borderRadius: 16, 
+            background: 'var(--orange)', color: '#fff', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(242,108,26,0.2)'
+          }}>
+            <Ic.Pin s={24} fill />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 0.5 }}>J'étais ici</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, marginTop: 1 }}>{stopName}</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 0.5 }}>C&apos;comment ?</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, marginTop: 1 }}>{stopName}</div>
           </div>
-          <button onClick={onClose} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
+          <button 
+            onClick={onClose} 
+            className="press"
+            style={{ padding: 8, background: 'var(--line)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--ink)' }}
+          >
             <Ic.X s={20} />
           </button>
         </div>
 
         {success ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--green)' }}>
-            <div style={{ fontSize: 42, marginBottom: 10 }}>✓</div>
-            <div style={{ fontSize: 15, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.5 }}>Merci, Babi !</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>Ton signalement aide la communauté.</div>
+          <div style={{ textAlign: 'center', padding: '32px 0', animation: 'fadeIn 0.5s' }}>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>🙌</div>
+            <div style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--green)' }}>Merci, Babi !</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8, fontWeight: 600 }}>Ton signalement est maintenant en direct.</div>
           </div>
         ) : (
           <>
             {/* Category picker */}
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 10 }}>Type de signalement</div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>Choisis une catégorie</div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setCategory(cat.id)}
-                  aria-pressed={category === cat.id}
-                  aria-label={cat.label}
+                  className="press"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 99,
-                    border: category === cat.id ? 'none' : '1.5px solid var(--line)',
-                    background: category === cat.id ? cat.color : 'transparent',
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 14,
+                    border: 'none',
+                    background: category === cat.id ? cat.color : 'var(--cream)',
                     color: category === cat.id ? '#fff' : 'var(--ink)',
-                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                    boxShadow: category === cat.id ? `0 4px 12px ${cat.color}40` : 'none',
+                    transition: 'all 0.2s'
                   }}
                 >
-                  <span aria-hidden="true">{cat.emoji}</span> {cat.label}
+                  <span style={{ fontSize: 16 }}>{cat.emoji}</span> {cat.label}
                 </button>
               ))}
             </div>
 
-            {/* Expiry hint */}
-            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 12 }}>
-              Ce signalement expirera dans <span style={{ color: selectedCat.color, fontWeight: 900 }}>{selectedCat.expireH}h</span> automatiquement.
+            {/* Input area */}
+            <div style={{ position: 'relative', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Ton commentaire</div>
+              <textarea
+                value={content}
+                onChange={e => setContent(e.target.value.slice(0, 140))}
+                placeholder={
+                  category === 'trafic'   ? 'Ex: Ça roule bien ici, pas de bouchons…' :
+                  category === 'tarif'    ? 'Ex: Le trajet est à 300F ce soir…' :
+                  category === 'incident' ? 'Ex: Attention, accident au carrefour…' :
+                  category === 'travaux'  ? 'Ex: Rue barrée pour travaux…' :
+                                            'Ex: Gare calme, beaucoup de gbakas…'
+                }
+                rows={4}
+                style={{ 
+                  width: '100%', background: 'var(--cream)', border: '2px solid var(--line)', 
+                  borderRadius: 20, padding: '16px', fontSize: 15, fontWeight: 600, 
+                  color: 'var(--ink)', outline: 'none', resize: 'none', fontFamily: 'inherit', 
+                  boxSizing: 'border-box', transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = selectedCat.color}
+                onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
+                autoFocus
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>
+                  Expirera dans <span style={{ color: selectedCat.color, fontWeight: 900 }}>{selectedCat.expireH}h</span>
+                </div>
+                <div style={{ fontSize: 11, color: content.length > 130 ? 'var(--orange)' : 'var(--muted)', fontWeight: 800 }}>
+                  {content.length}/140
+                </div>
+              </div>
             </div>
 
-            {/* Text area */}
-            <textarea
-              value={content}
-              onChange={e => setContent(e.target.value.slice(0, 140))}
-              placeholder={
-                category === 'trafic'   ? 'Ex: Bouchon sens Plateau depuis 30min…' :
-                category === 'tarif'    ? 'Ex: Gbaka pour Yop demande 250F ce soir…' :
-                category === 'incident' ? 'Ex: Accident au carrefour, évitez ce côté…' :
-                category === 'travaux'  ? 'Ex: Travaux de voirie côté marché…' :
-                                          'Ex: Gare propre et bien organisée ce matin…'
-              }
-              rows={3}
-              style={{ width: '100%', background: 'var(--cream)', border: '1.5px solid var(--line)', borderRadius: 14, padding: '12px 14px', fontSize: 14, fontWeight: 500, color: 'var(--ink)', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              autoFocus
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, marginBottom: 16 }}>
-              <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{content.length}/140</span>
-              {error && <span style={{ fontSize: 11, color: '#e53935', fontWeight: 700 }}>{error}</span>}
-            </div>
+            {error && (
+              <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: 14, color: '#dc2626', fontSize: 12, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>⚠️</span> {error}
+              </div>
+            )}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={onClose}
-                style={{ flex: 1, padding: '13px 0', borderRadius: 14, border: '1.5px solid var(--line)', background: 'transparent', color: 'var(--muted)', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                className="press"
+                style={{ flex: 1, height: 56, borderRadius: 18, border: '2px solid var(--line)', background: 'transparent', color: 'var(--muted)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
               >
                 Annuler
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={!content.trim() || loading}
+                className="press"
                 style={{
-                  flex: 2, padding: '13px 0', borderRadius: 14, border: 'none',
-                  background: content.trim() && !loading ? selectedCat.color : 'var(--line)',
-                  color: content.trim() && !loading ? '#fff' : 'var(--muted)',
-                  fontSize: 13, fontWeight: 900, cursor: content.trim() && !loading ? 'pointer' : 'default',
-                  textTransform: 'uppercase', letterSpacing: 0.5,
+                  flex: 2, height: 56, borderRadius: 18, border: 'none',
+                  background: content.trim() && !loading ? selectedCat.color : 'var(--line-strong)',
+                  color: content.trim() && !loading ? '#fff' : 'rgba(255,255,255,0.5)',
+                  fontSize: 14, fontWeight: 900, cursor: content.trim() && !loading ? 'pointer' : 'default',
+                  textTransform: 'uppercase', letterSpacing: 1,
+                  boxShadow: content.trim() && !loading ? `0 8px 24px ${selectedCat.color}40` : 'none'
                 }}
               >
-                {loading ? '…' : 'Signaler'}
+                {loading ? 'Envoi...' : 'Publier'}
               </button>
             </div>
           </>

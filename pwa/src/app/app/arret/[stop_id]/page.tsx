@@ -9,8 +9,33 @@ import Map from '@/components/MapWrapper';
 import FavoriteButton from './FavoriteButton';
 import StopLinesList from './StopLinesList';
 import TarifsSection from './TarifsSection';
+import CcommentButton from '@/components/CcommentButton';
 
 type Props = { params: Promise<{ stop_id: string }> };
+
+const PRIORITY: Record<string, number> = {
+  incident: 0,
+  trafic: 1,
+  travaux: 2,
+  tarif: 3,
+  ambiance: 4,
+};
+
+const CAT_META: Record<string, { label: string; emoji: string; color: string }> = {
+  trafic:   { label: 'Trafic',   emoji: '🚦', color: 'var(--orange-deep)' },
+  tarif:    { label: 'Tarif',    emoji: '💰', color: 'var(--green)'        },
+  incident: { label: 'Incident', emoji: '⚠️', color: 'var(--orange)'       },
+  travaux:  { label: 'Travaux',  emoji: '🚧', color: 'var(--gold)'         },
+  ambiance: { label: 'Ambiance', emoji: '✨', color: 'var(--blue)'         },
+};
+
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return "à l'instant";
+  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`;
+  return `il y a ${Math.floor(diff / 86400)}j`;
+}
 
 export default async function ArretPage({ params }: Props) {
   const supabase = await createClient();
@@ -27,18 +52,29 @@ export default async function ArretPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: lignes }, { data: favRow }, { data: profile }] = await Promise.all([
+  const [{ data: lignes }, { data: favRow }, { data: profile }, { data: reports }] = await Promise.all([
     supabase.rpc('lignes_par_arret', { p_stop_id: stopId }),
     user
       ? supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('stop_id', stopId).eq('kind', 'stop').limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     user
-      ? supabase.from('profiles').select('preferred_transit_modes').eq('id', user.id).maybeSingle()
+      ? supabase.from('profiles').select('preferred_transit_modes, display_name').eq('id', user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('stop_reports')
+      .select('*')
+      .eq('stop_id', stopId)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
   ]);
 
   const isFavorited = !!favRow;
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
+
+  // Trier les signalements par priorité
+  const sortedReports = (reports || []).sort((a, b) => 
+    (PRIORITY[a.category] ?? 9) - (PRIORITY[b.category] ?? 9)
+  );
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -92,7 +128,7 @@ export default async function ArretPage({ params }: Props) {
           <WaxStrip color="var(--orange)" height={4} />
         </div>
 
-        {/* Tarifs réels — Live Section (Replaced hardcoded with dynamic component) */}
+        {/* Tarifs réels — Live Section */}
         <TarifsSection
           stopId={stopId}
           stopName={stop.stop_name}
@@ -111,41 +147,81 @@ export default async function ArretPage({ params }: Props) {
         {/* C'COMMENT ? */}
         <div style={{ marginTop: 32, paddingBottom: 40 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>C'comment ?</h3>
-            <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 800 }}>VOIR TOUT</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { user: 'Koffi S.', text: 'Gare bien organisée ce matin. Pas trop de rang.', time: 'il y a 12 min', color: 'var(--orange)' },
-              { user: 'Marie-Noëlle', text: 'Attention, le tarif pour Plateau est passé à 300F.', time: 'il y a 45 min', color: 'var(--green)' },
-            ].map((r, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: r.color, color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{r.user[0]}</div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800 }}>{r.user}</span>
-                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{r.time}</span>
-                  </div>
-                  <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.4 }}>{r.text}</p>
-                </div>
+            <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>C&apos;comment ?</h3>
+            {sortedReports.length > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+                {sortedReports.length} SIGNALEMENT{sortedReports.length > 1 ? 'S' : ''}
               </div>
-            ))}
+            )}
           </div>
+
+          {sortedReports.length === 0 ? (
+            <div style={{ padding: '32px 16px', borderRadius: 20, background: 'var(--cream-2)', border: '1.5px dashed var(--line)', textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🤫</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Aucun signalement actif</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Sois le premier à dire comment c&apos;est ici !</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {sortedReports.map((r) => {
+                const meta = CAT_META[r.category] || CAT_META.ambiance;
+                return (
+                  <div key={r.id} style={{ 
+                    padding: 16, borderRadius: 18, background: 'var(--cream-2)', 
+                    border: '1px solid var(--line)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <div style={{ 
+                        width: 32, height: 32, borderRadius: 10, 
+                        background: `color-mix(in oklab, ${meta.color} 12%, transparent)`, 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 
+                      }}>
+                        {meta.emoji}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{r.display_name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>{timeAgo(r.created_at)}</div>
+                      </div>
+                      <div style={{ 
+                        fontSize: 9, fontWeight: 900, color: meta.color, 
+                        background: `color-mix(in oklab, ${meta.color} 10%, transparent)`, 
+                        padding: '4px 8px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: 0.5 
+                      }}>
+                        {meta.label}
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 14, color: 'var(--ink-2)', margin: 0, lineHeight: 1.5, fontWeight: 500 }}>{r.content}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Fixed Bottom CTA */}
-      <div style={{ position: 'sticky', bottom: 0, padding: '16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)', background: 'var(--cream)', borderTop: '1px solid var(--line)', zIndex: 100 }}>
-        <button className="press wax-bg" style={{
-          width: '100%', height: 56, borderRadius: 18, border: 'none',
-          background: 'var(--ink)', color: 'var(--cream)',
-          fontSize: 14, fontWeight: 800, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        }}>
-          SUIVRE CETTE LIGNE EN DIRECT
-          <Ic.Route s={20} />
-        </button>
+      <div style={{ position: 'sticky', bottom: 0, padding: '16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)', background: 'linear-gradient(0deg, var(--cream) 80%, transparent)', borderTop: '1px solid var(--line)', zIndex: 100 }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {user && (
+            <CcommentButton 
+              stopId={stopId}
+              stopName={stop.stop_name}
+              userId={user.id}
+              displayName={profile?.display_name ?? null}
+            />
+          )}
+          <button className="press wax-bg" style={{
+            flex: 2, height: 56, borderRadius: 18, border: 'none',
+            background: 'var(--ink)', color: 'var(--cream)',
+            fontSize: 14, fontWeight: 800, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+          }}>
+            SUIVRE EN DIRECT
+            <Ic.Route s={20} />
+          </button>
+        </div>
       </div>
     </div>
   );
