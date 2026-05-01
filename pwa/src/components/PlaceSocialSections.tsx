@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from './ui/Ic';
+import { motion, AnimatePresence } from 'framer-motion';
+import PlaceReviewModal from './PlaceReviewModal';
 
 type Checkin = {
   id: string;
@@ -25,6 +27,7 @@ type Advice = {
 
 type Props = {
   placeId: string;
+  placeName: string;
   initialCheckins: Checkin[];
   initialAdvice: Advice[];
   userId: string | null;
@@ -39,65 +42,33 @@ function timeAgo(iso: string): string {
   return `${Math.floor(mins / 1440)} J`;
 }
 
-export default function PlaceSocialSections({ placeId, initialCheckins, initialAdvice, userId, isVerifiedExplorer }: Props) {
+export default function PlaceSocialSections({ placeId, placeName, initialCheckins, initialAdvice, userId, isVerifiedExplorer }: Props) {
   const supabase = createClient();
   const [advice, setAdvice] = useState<Advice[]>(initialAdvice);
-  const [newContent, setNewContent] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  // Filter public checkins
   const publicCheckins = initialCheckins.filter(c => c.is_public);
 
-  async function handlePostAdvice() {
-    if (!newContent.trim() || !userId) return;
-    setLoading(true);
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, avatar_emoji')
-      .eq('id', userId)
-      .single();
-
-    const { data, error } = await supabase
-      .from('place_advice')
-      .insert({
-        place_id: placeId,
-        user_id: userId,
-        content: newContent,
-        is_question: true
-      })
-      .select('id, content, created_at, is_question')
-      .single();
-
-    if (error) {
-      alert(error.message);
-    } else if (data) {
-      const newEntry: Advice = {
-        ...data,
-        profiles: profile || null
-      };
-      setAdvice([newEntry, ...advice]);
-      setNewContent('');
-    }
-    setLoading(false);
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       
-      {/* 1. SOCIAL TRACES */}
+      {/* 1. SOCIAL TRACES - MODERNIZED */}
       <div style={{ 
-        background: '#fff', padding: 24, borderRadius: 28,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+        background: '#fff', padding: 24, borderRadius: 32,
+        boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+        border: '1px solid rgba(0,0,0,0.02)'
       }}>
-         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Ic.Pin s={18} color="var(--orange)" />
-              <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>DERNIERS PASSAGES</h2>
+         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ic.Users s={18} color="var(--orange)" />
+              </div>
+              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>DERNIERS PASSAGES</h2>
             </div>
             <div style={{ 
               fontSize: 10, fontWeight: 900, background: 'var(--cream-2)', 
-              padding: '4px 10px', borderRadius: 12, color: 'var(--muted)'
+              padding: '6px 12px', borderRadius: 12, color: 'var(--muted)',
+              border: '1px solid rgba(0,0,0,0.05)'
             }}>
                {publicCheckins.length} VISIBLES
             </div>
@@ -105,105 +76,99 @@ export default function PlaceSocialSections({ placeId, initialCheckins, initialA
 
          {publicCheckins.length === 0 ? (
            <div style={{ 
-             padding: 20, borderRadius: 20, background: 'var(--cream-2)', 
-             textAlign: 'center', fontSize: 13, color: 'var(--muted)', fontWeight: 600,
-             border: '1.5px dashed rgba(0,0,0,0.05)'
+             padding: 32, borderRadius: 24, background: 'var(--cream-2)', 
+             textAlign: 'center', fontSize: 14, color: 'var(--muted)', fontWeight: 600,
+             border: '2px dashed rgba(0,0,0,0.06)'
            }}>
-              Sois le premier à partager ton passage ! 📍
+              Sois le premier à marquer ton passage ici ! 📍
            </div>
          ) : (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }} className="no-scrollbar">
               {publicCheckins.map((c) => (
-                <div key={c.id} className="press" style={{ 
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  background: 'var(--cream-2)', padding: 12, borderRadius: 20
-                }}>
+                <motion.div 
+                  key={c.id} 
+                  whileTap={{ scale: 0.95 }}
+                  style={{ 
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                    background: 'var(--cream-2)', padding: '16px', borderRadius: 24,
+                    minWidth: 100, border: '1px solid rgba(0,0,0,0.02)'
+                  }}
+                >
                    <div style={{ 
-                     width: 40, height: 40, borderRadius: '50%', background: '#fff', 
+                     width: 52, height: 52, borderRadius: '50%', background: '#fff', 
                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                     fontSize: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                     fontSize: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                     border: '2px solid var(--cream)'
                    }}>
                       {c.avatar_emoji}
                    </div>
-                   <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{c.display_name}</div>
-                      <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', marginTop: 2 }}>{timeAgo(c.created_at)}</div>
+                   <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.display_name}</div>
+                      <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--orange)', marginTop: 4 }}>{timeAgo(c.created_at)}</div>
                    </div>
-                </div>
+                </motion.div>
               ))}
            </div>
          )}
       </div>
 
-      {/* 2. COMMUNITY Q&A */}
+      {/* 2. COMMUNITY Q&A - MODERNIZED WITH MODAL */}
       <div style={{ 
-        background: '#fff', padding: 24, borderRadius: 28,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+        background: '#fff', padding: 24, borderRadius: 32,
+        boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+        border: '1px solid rgba(0,0,0,0.02)'
       }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-            <Ic.Chat s={18} color="var(--orange)" />
-            <h2 style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.8, margin: 0 }}>C'EST COMMENT ?</h2>
+         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ic.Chat s={18} color="var(--blue)" />
+              </div>
+              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>C'EST COMMENT ?</h2>
+            </div>
+            
+            {userId && (
+              <button 
+                onClick={() => setModalOpen(true)}
+                className="press"
+                style={{
+                  background: 'var(--orange)', color: '#fff', border: 'none',
+                  padding: '8px 16px', borderRadius: 16, fontSize: 11, fontWeight: 900,
+                  cursor: 'pointer', boxShadow: '0 4px 12px rgba(242,108,26,0.2)'
+                }}
+              >
+                DONNER MON AVIS
+              </button>
+            )}
          </div>
 
-         {userId ? (
+         {!userId && (
             <div style={{ 
-              marginBottom: 24, padding: 4, borderRadius: 24, 
-              background: 'var(--cream-2)', border: '1.5px solid rgba(0,0,0,0.05)'
+              marginBottom: 24, padding: 24, borderRadius: 24, background: 'var(--cream-2)', 
+              textAlign: 'center', border: '2px dashed rgba(0,0,0,0.06)'
             }}>
-               <div style={{ display: 'flex', gap: 12, padding: 8 }}>
-                  <textarea 
-                    value={newContent}
-                    onChange={(e) => setNewContent(e.target.value)}
-                    placeholder="Une question ? Un avis sur le lieu ?"
-                    style={{ 
-                      flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                      padding: 12, fontSize: 14, fontWeight: 600, color: 'var(--ink)',
-                      minHeight: 60, resize: 'none'
-                    }}
-                  />
-                  <button 
-                    onClick={handlePostAdvice}
-                    disabled={loading || !newContent.trim()}
-                    className="press"
-                    style={{ 
-                      width: 48, height: 48, borderRadius: 16, background: 'var(--orange)', 
-                      color: '#fff', border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(242,108,26,0.2)', fontSize: 20
-                    }}
-                  >
-                    {loading ? '...' : '🚀'}
-                  </button>
-               </div>
-            </div>
-         ) : (
-            <div style={{ 
-              marginBottom: 24, padding: 20, borderRadius: 20, background: 'var(--cream-2)', 
-              textAlign: 'center', border: '1.5px dashed rgba(0,0,0,0.05)'
-            }}>
-               <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', margin: 0 }}>CONNECTE-TOI POUR INTERAGIR</p>
+               <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--muted)', margin: 0 }}>CONNECTE-TOI POUR PARTAGER TON AVIS</p>
             </div>
          )}
 
          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {advice.map((item) => (
-               <div key={item.id} style={{ display: 'flex', gap: 14 }}>
+               <div key={item.id} style={{ display: 'flex', gap: 16 }}>
                   <div style={{ 
-                    width: 36, height: 36, borderRadius: 12, background: 'var(--cream-2)', 
+                    width: 44, height: 44, borderRadius: 14, background: 'var(--cream-2)', 
                     display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    fontSize: 18, flexShrink: 0 
+                    fontSize: 22, flexShrink: 0, border: '1px solid rgba(0,0,0,0.02)'
                   }}>
                      {item.profiles?.avatar_emoji ?? '👤'}
                   </div>
                   <div style={{ flex: 1 }}>
-                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'INCONNU'}</span>
-                        <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
+                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'Anonyme'}</span>
+                        <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
                      </div>
                      <div style={{ 
-                       background: 'var(--cream-2)', padding: '12px 16px', borderRadius: 20,
-                       borderTopLeftRadius: 4, fontSize: 14, fontWeight: 500, color: 'var(--ink)',
-                       lineHeight: 1.5
+                       background: 'var(--cream-2)', padding: '16px 20px', borderRadius: 24,
+                       borderTopLeftRadius: 4, fontSize: 15, fontWeight: 600, color: 'var(--ink)',
+                       lineHeight: 1.5, border: '1px solid rgba(0,0,0,0.01)'
                      }}>
                         {item.content}
                      </div>
@@ -212,13 +177,28 @@ export default function PlaceSocialSections({ placeId, initialCheckins, initialA
             ))}
             
             {advice.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.3 }}>💬</div>
-                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Aucune discussion pour le moment</p>
+              <div style={{ textAlign: 'center', padding: '32px 0', opacity: 0.5 }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
+                <p style={{ fontSize: 12, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Aucun avis pour le moment</p>
               </div>
             )}
          </div>
       </div>
+
+      <AnimatePresence>
+        {modalOpen && userId && (
+          <PlaceReviewModal 
+            placeId={placeId}
+            placeName={placeName}
+            userId={userId}
+            onClose={() => setModalOpen(false)}
+            onSuccess={() => {
+              // Refresh logic would go here
+              window.location.reload(); 
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -80,13 +80,26 @@ export default async function PlacePage({ params }: Props) {
 
         {/* TOP HEADER OVERLAY */}
         <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
-          <Link href="/app" className="press" style={{ 
-            width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: 'none', backdropFilter: 'blur(10px)'
-          }}>
-            <Ic.Back s={22} />
-          </Link>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Link href="/app" className="press" style={{ 
+              width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: 'none', backdropFilter: 'blur(10px)'
+            }}>
+              <Ic.Back s={22} />
+            </Link>
+
+            {user && (
+              <PoiFavoriteButton 
+                placeId={place.id}
+                placeName={place.name}
+                commune={place.commune}
+                lat={place.lat}
+                lon={place.lon}
+                userId={user.id}
+              />
+            )}
+          </div>
           
           {sponsoredActive && (
              <div style={{ 

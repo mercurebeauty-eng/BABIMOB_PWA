@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Props = {
   placeId: string;
@@ -27,7 +28,7 @@ export default function PoiFavoriteButton({ placeId, placeName, commune, lat, lo
       .eq('stop_id', placeId)
       .maybeSingle()
       .then(({ data }) => { setFavorited(!!data); setLoading(false); });
-  }, [userId, placeId]);
+  }, [userId, placeId, supabase]);
 
   if (!userId) return null;
 
@@ -61,15 +62,33 @@ export default function PoiFavoriteButton({ placeId, placeName, commune, lat, lo
       onClick={toggle}
       disabled={loading}
       aria-label={favorited ? 'Retirer des favoris' : 'Sauvegarder ce lieu'}
-      className={`p-2.5 rounded-2xl border-2 transition-all active:scale-95 disabled:opacity-50 ${
-        favorited
-          ? 'bg-red-50 border-red-200 text-red-500'
-          : 'bg-beige-50 border-beige-200 text-beige-200 hover:border-red-200 hover:text-red-400'
-      }`}
+      className="press"
+      style={{
+        width: 44, height: 44, borderRadius: '50%', 
+        background: favorited ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.9)',
+        color: favorited ? '#ef4444' : 'var(--muted)',
+        border: favorited ? '1.5px solid rgba(239, 68, 68, 0.2)' : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: favorited ? 'none' : '0 8px 24px rgba(0,0,0,0.1)',
+        cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'all 0.2s'
+      }}
     >
-      <svg className="w-5 h-5" viewBox="0 0 24 24" fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
+      <motion.div
+        animate={favorited ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <svg 
+          width="20" height="20" 
+          viewBox="0 0 24 24" 
+          fill={favorited ? 'currentColor' : 'none'} 
+          stroke="currentColor" 
+          strokeWidth="2.5"
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+        >
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      </motion.div>
     </button>
   );
 }
