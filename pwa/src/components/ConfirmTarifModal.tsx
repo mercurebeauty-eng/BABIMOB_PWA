@@ -29,6 +29,7 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
 
   const [direction, setDirection]           = useState<0 | 1>(0);
   const [selectedLineId, setSelectedLineId]     = useState<string>(lines[0]?.route_id || '');
+  const [availableDirections, setAvailableDirections] = useState<{id: number, headsign: string}[]>([]);
   const [allStops, setAllStops]                 = useState<StopResult[]>([]);
   const [stopIdStart, setStopIdStart]           = useState<string>(stopIdDepart);
   const [stopIdEnd, setStopIdEnd]               = useState<string>('');
@@ -37,6 +38,43 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
   const [submitting, setSubmitting]             = useState(false);
   const [error, setError]                       = useState<string | null>(null);
   const [loadingStops, setLoadingStops]         = useState(false);
+
+  // Extraire les terminus du nom de la ligne (ex: "A ↔ B")
+  const currentLine = useMemo(() => lines.find(l => l.route_id === selectedLineId), [lines, selectedLineId]);
+  const fallbackHeadsigns = useMemo(() => {
+    if (!currentLine?.route_long_name) return ['Direction A', 'Direction B'];
+    const parts = currentLine.route_long_name.split(/[↔\-|]/).map((s: string) => s.trim());
+    if (parts.length >= 2) return [parts[parts.length - 1], parts[0]]; // Souvent inversé en GTFS
+    return [currentLine.route_long_name, currentLine.route_long_name];
+  }, [currentLine]);
+
+  // Charger les directions et headsigns réels
+  useEffect(() => {
+    async function loadDirections() {
+      if (!selectedLineId) return;
+      const { data } = await supabase
+        .from('gtfs_trips')
+        .select('direction_id, trip_headsign')
+        .eq('route_id', selectedLineId);
+      
+      if (data) {
+        const unique = new Map();
+        data.forEach(t => {
+          if (!unique.has(t.direction_id)) {
+            unique.set(t.direction_id, t.trip_headsign || fallbackHeadsigns[t.direction_id] || `Dir. ${t.direction_id}`);
+          }
+        });
+        const sorted = Array.from(unique.entries())
+          .map(([id, headsign]) => ({ id, headsign }))
+          .sort((a, b) => a.id - b.id);
+        setAvailableDirections(sorted);
+        if (sorted.length > 0 && !sorted.find(d => d.id === direction)) {
+          setDirection(sorted[0].id as 0|1);
+        }
+      }
+    }
+    loadDirections();
+  }, [selectedLineId, supabase, fallbackHeadsigns, direction]);
 
   // Charger tous les arrêts de la ligne/direction
   useEffect(() => {
@@ -67,11 +105,10 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
           }));
           setAllStops(formatted);
           
-          // Vérifier si le stop actuel est dans cette liste, sinon reset start
-          if (!formatted.find(s => s.stop_id === stopIdStart)) {
-             // On ne change pas stopIdStart s'il est déjà fixé par le contexte, 
-             // mais si on change de ligne et qu'il n'existe plus, on prend le premier.
-             if (formatted.length > 0) setStopIdStart(formatted[0].stop_id);
+          // Tenter de garder le stop actuel s'il existe dans ce sens
+          const foundCurrent = formatted.find(s => s.stop_id === stopIdStart);
+          if (!foundCurrent && formatted.length > 0) {
+             setStopIdStart(formatted[0].stop_id);
           }
         }
       } else {
@@ -123,12 +160,10 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
         maxHeight: '85vh', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         overflow: 'hidden'
       }}>
-        {/* Handle for aesthetic */}
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--line)', opacity: 0.5 }} />
         </div>
 
-        {/* Header */}
         <div style={{ padding: '12px 20px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Tarification collaborative</div>
@@ -143,37 +178,47 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
           </button>
         </div>
 
-        {/* Scrollable Content */}
         <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
           
-          {/* Ligne & Direction Row */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 2 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Ligne</div>
-              <select
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Ligne</div>
+            <select
                 value={selectedLineId}
                 onChange={(e) => setSelectedLineId(e.target.value)}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--cream-2)', fontSize: 13, color: 'var(--ink)', outline: 'none' }}
-              >
+            >
                 {lines.map(l => (
-                  <option key={l.route_id} value={l.route_id}>{l.route_long_name}</option>
+                    <option key={l.route_id} value={l.route_id}>{l.route_long_name}</option>
                 ))}
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Sens</div>
-              <select
-                value={direction}
-                onChange={(e) => setDirection(parseInt(e.target.value) as 0|1)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--cream-2)', fontSize: 13, color: 'var(--ink)', outline: 'none' }}
-              >
-                <option value={0}>Aller</option>
-                <option value={1}>Retour</option>
-              </select>
+            </select>
+          </div>
+
+          {/* Direction Selector (Dynamic with Headsigns) */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Direction</div>
+            <div style={{ display: 'flex', gap: 8, padding: 4, background: 'var(--cream-2)', borderRadius: 14, border: '1px solid var(--line)' }}>
+                {availableDirections.length > 0 ? availableDirections.map(d => (
+                    <button
+                        key={d.id}
+                        onClick={() => setDirection(d.id as 0|1)}
+                        className="press"
+                        style={{
+                            flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                            background: direction === d.id ? 'var(--cream)' : 'transparent',
+                            color: direction === d.id ? 'var(--orange)' : 'var(--muted)',
+                            fontWeight: 800, fontSize: 11,
+                            boxShadow: direction === d.id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                            textTransform: 'uppercase', letterSpacing: 0.3
+                        }}
+                    >
+                        {d.headsign}
+                    </button>
+                )) : (
+                    <div style={{ flex: 1, padding: 10, textAlign: 'center', fontSize: 11, color: 'var(--muted)' }}>Chargement des sens...</div>
+                )}
             </div>
           </div>
 
-          {/* Segment selection (Double selector as requested) */}
           <div style={{ padding: 16, borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--blue)', flexShrink: 0 }} />
@@ -213,7 +258,6 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
             </div>
           </div>
 
-          {/* Price selection */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Prix payé (FCFA)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 10 }}>
@@ -243,7 +287,6 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
             />
           </div>
 
-          {/* Moment */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Moment du trajet</div>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -275,7 +318,6 @@ export default function ConfirmTarifModal({ stopIdDepart, stopNameDepart, userId
           )}
         </div>
 
-        {/* Footer / Validation */}
         <div style={{ padding: 20, background: 'var(--cream)', borderTop: '1px solid var(--line)' }}>
           <button
             onClick={handleSubmit}
