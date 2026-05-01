@@ -27,7 +27,6 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', activeDi
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Nettoyage si déjà initialisé
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
@@ -50,9 +49,6 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', activeDi
 
     if (shape.length > 1) {
       const latlngs = shape.map((p) => [p.shape_pt_lat, p.shape_pt_lon] as [number, number]);
-      
-      // Orientation départ en haut : si retour (1), on inverse les points pour fitBounds ou on joue sur l'ordre
-      // Pour Leaflet, fitBounds calcule l'enveloppe, mais on veut forcer le départ en haut
       const bounds = L.latLngBounds(latlngs);
       
       L.polyline(latlngs, { 
@@ -64,17 +60,16 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', activeDi
       }).addTo(map);
 
       map.fitBounds(bounds, { padding: [40, 40] });
-      
-      // Rotation symbolique : si on veut vraiment le départ en haut, il faudrait faire pivoter le container CSS 
-      // ou utiliser un plugin de rotation. Ici on optimise le cadrage.
     }
 
     stops.forEach((stop, idx) => {
       const isFirst = idx === 0;
       const isLast = idx === stops.length - 1;
       const isEndpoint = isFirst || isLast;
+      
+      // Nouvelle logique demandée : Départ = Bleu, Arrivée = Vert
+      const bg = isFirst ? 'var(--blue)' : isLast ? 'var(--green)' : '#ffffff';
       const size = isEndpoint ? 16 : 8;
-      const bg = isEndpoint ? (isFirst ? 'var(--green)' : 'var(--blue)') : '#ffffff';
       const border = segmentColor;
 
       const icon = L.divIcon({
@@ -97,15 +92,7 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', activeDi
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div 
-        ref={containerRef} 
-        style={{ 
-          width: '100%', 
-          height: '100%',
-          // Si direction retour, on pourrait appliquer une rotation CSS 180deg au container
-          // transform: activeDirection === 1 ? 'rotate(180deg)' : 'none'
-        }} 
-      />
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 }
