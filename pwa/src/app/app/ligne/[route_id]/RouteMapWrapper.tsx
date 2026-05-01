@@ -22,4 +22,5 @@ type Props = {
 };
 
 export default function RouteMapWrapper({ shape, stops, routeColor, activeDirection, isSegmented }: Props) {
-  return <RouteMap shape={shape} stops={stops} routeColor={routeColor} activeDirection={activeDirection} isSegmented={isSegmented} />;\n}\n
+  return <RouteMap shape={shape} stops={stops} routeColor={routeColor} activeDirection={activeDirection} isSegmented={isSegmented} />;
+}
