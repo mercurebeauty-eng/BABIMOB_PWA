@@ -1,334 +1,395 @@
-import Link from 'next/link';
-import type { Metadata } from 'next';
-import NavMobile from './NavMobile';
-import BeigeMapBackground from '@/components/BeigeMapBackground';
-import ScrollReveal from './ScrollReveal';
-import { Pill } from '@/components/ui/Pill';
-import { WaxStrip } from '@/components/ui/WaxStrip';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'BABIMOB — Bouge à Abidjan comme un local',
-  description: 'Le premier assistant intelligent pour le transport informel à Abidjan. Gbaka, Woro-woro, Taxi.',
+import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+
+// ── TYPES & CONFIG ──────────────────────────────────────────────────
+
+const THEME = {
+  fonts: {
+    title: 'var(--font-syne), system-ui, sans-serif',
+    body: 'var(--font-lexend), system-ui, sans-serif',
+  }
 };
 
-const TG = 'https://t.me/babimobbot';
-
-const FEATURES = [
-  {
-    icon: '🗺️',
-    kicker: 'CARTE QUI PARLE',
-    title: 'Une carte vivante',
-    text: "Chaque arrêt, chaque carrefour s'anime en temps réel. La ville parle, tu écoutes.",
-  },
-  {
-    icon: '💰',
-    kicker: 'TARIFS RÉELS',
-    title: 'Le vrai prix du terrain',
-    text: 'Les tarifs pratiqués par les apprentis, mis à jour par la communauté chaque jour.',
-  },
-  {
-    icon: '📡',
-    kicker: 'LIGNE EN DIRECT',
-    title: 'Infos en temps réel',
-    text: 'Grève, embouteillage, nouvelle ligne — sois le premier informé avant de partir.',
-  },
-  {
-    icon: '💬',
-    kicker: 'C\'COMMENT ?',
-    title: 'Demande à la ville',
-    text: 'La communauté te répond en nouchi. Vrai, local, immédiat.',
-  },
+const REVIEWS = [
+  { id: '1', name: 'Koffi J.', rating: 5, comment: "Enfin une app qui comprend le terrain ! Plus besoin d'attendre 2h un gbaka qui ne vient pas.", initialUpvotes: 42 },
+  { id: '2', name: 'Awa D.', rating: 4.5, comment: "Les tarifs sont super précis. Ça m'a sauvé pas mal d'argent sur mes trajets quotidiens.", initialUpvotes: 28 },
+  { id: '3', name: 'Moussa S.', rating: 5, comment: "Le système de points XP est addictif. Je suis déjà 'Légende de Yopougon' !", initialUpvotes: 156 },
+  { id: '4', name: 'Sery G.', rating: 4, comment: "Top pour voir si les carrefours sont propres avant de sortir. Indispensable à Abidjan.", initialUpvotes: 19 },
+  { id: '5', name: 'Esther B.', rating: 5, comment: "L'interface est magnifique. On sent que c'est fait pour nous, par des gens qui connaissent Babi.", initialUpvotes: 84 },
+  { id: '6', name: 'Issa K.', rating: 4.5, comment: "Les arrêts favoris me font gagner un temps fou le matin.", initialUpvotes: 37 },
+  { id: '7', name: 'Fatou Z.', rating: 5, comment: "Une révolution pour le transport informel. On est enfin organisés.", initialUpvotes: 92 },
 ];
 
-const STATS = [
-  { value: '247K', label: 'Babis actifs' },
-  { value: '4 200', label: 'Arrêts' },
-  { value: '17', label: 'Communes' },
-  { value: '38K', label: 'Tarifs/jour' },
-];
+// ── UTILS ────────────────────────────────────────────────────────────
 
-const SOCIAL_DOTS = [
-  'var(--orange)',
-  'var(--green)',
-  'var(--gold)',
-  'var(--blue)',
-  'var(--orange)',
-];
+function useInView() {
+  const [inView, setInView] = useState(false);
+  const ref = useRef<any>(null);
 
-const TRANSPORTS = [
-  { n: 'Gbaka', e: '🚐', p: 'Très populaire', d: 'Le bus de quartier par excellence. Rapide et partout.' },
-  { n: 'Woro-Woro', e: '🚕', p: 'Collectif', d: 'Taxis communaux à trajet fixe. Économique et convivial.' },
-  { n: 'Taxi Compteur', e: '🚖', p: 'Sur mesure', d: 'Pour vos trajets directs. Négociez le prix si pas de compteur.' },
-  { n: 'Sotra', e: '🚌', p: 'Réseau bus', d: 'Le réseau de bus officiel reliant toutes les communes.' },
-];
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true); },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
 
-function IconArrowRight() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
-  );
+  return { ref, inView };
 }
 
-function IconX({ size = 'w-6 h-6' }: { size?: string }) {
-  return (
-    <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  );
-}
+// ── COMPONENTS ───────────────────────────────────────────────────────
 
-function IconList() {
+const ScrollReveal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { ref, inView } = useInView();
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="8" y1="6" x2="21" y2="6"></line>
-      <line x1="8" y1="12" x2="21" y2="12"></line>
-      <line x1="8" y1="18" x2="21" y2="18"></line>
-      <line x1="3" y1="6" x2="3.01" y2="6"></line>
-      <line x1="3" y1="12" x2="3.01" y2="12"></line>
-      <line x1="3" y1="18" x2="3.01" y2="18"></line>
-    </svg>
+    <div 
+      ref={ref} 
+      style={{ 
+        opacity: inView ? 1 : 0, 
+        transform: inView ? 'translateY(0)' : 'translateY(30px)', 
+        transition: 'opacity 0.8s ease-out, transform 0.8s ease-out' 
+      }}
+    >
+      {children}
+    </div>
   );
-}
+};
 
+const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {[1, 2, 3, 4, 5].map((star) => {
+        const isFull = star <= Math.floor(rating);
+        const isHalf = !isFull && star === Math.ceil(rating) && rating % 1 !== 0;
+        return (
+          <svg key={star} width="16" height="16" viewBox="0 0 24 24" fill={isFull ? 'var(--gold)' : isHalf ? 'url(#halfGrad)' : 'var(--line)'}>
+            <defs>
+              <linearGradient id="halfGrad">
+                <stop offset="50%" stopColor="var(--gold)" />
+                <stop offset="50%" stopColor="var(--line)" />
+              </linearGradient>
+            </defs>
+            <path d="M12 1.75l3.09 6.26 6.91 1-5 4.87 1.18 6.88-6.18-3.25-6.18 3.25 1.18-6.88-5-4.87 6.91-1z" />
+          </svg>
+        );
+      })}
+    </div>
+  );
+};
+
+const PWAInstallButton: React.FC = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) {
+      window.location.href = '/app';
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
+
+  return (
+    <button 
+      onClick={handleInstall}
+      className="btn-primary"
+      style={{
+        background: 'var(--orange)', color: '#fff', border: 'none',
+        padding: '12px 24px', borderRadius: 99, fontWeight: 700, fontSize: 14,
+        cursor: deferredPrompt ? 'pointer' : 'default', transition: 'all 0.2s',
+        boxShadow: '0 4px 12px rgba(242, 108, 26, 0.2)'
+      }}
+    >
+      Installer l'App
+    </button>
+  );
+};
+
+const TestimonialCard: React.FC<{ review: typeof REVIEWS[0] }> = ({ review }) => {
+  const [upvotes, setUpvotes] = useState(review.initialUpvotes);
+  const [hasUpvoted, setHasUpvoted] = useState(false);
+
+  useEffect(() => {
+    const userId = localStorage.getItem('babimob_userId');
+    if (!userId) localStorage.setItem('babimob_userId', Math.random().toString(36).substring(7));
+    
+    const voted = JSON.parse(localStorage.getItem('babimob_voted') || '{}');
+    if (voted[review.id]) setHasUpvoted(true);
+  }, [review.id]);
+
+  const toggleUpvote = () => {
+    const voted = JSON.parse(localStorage.getItem('babimob_voted') || '{}');
+    if (hasUpvoted) {
+      setUpvotes(v => v - 1);
+      delete voted[review.id];
+    } else {
+      setUpvotes(v => v + 1);
+      voted[review.id] = true;
+    }
+    setHasUpvoted(!hasUpvoted);
+    localStorage.setItem('babimob_voted', JSON.stringify(voted));
+  };
+
+  return (
+    <div style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, fontFamily: THEME.fonts.title }}>{review.name}</div>
+        <StarRating rating={review.rating} />
+      </div>
+      <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.6, flex: 1 }}>{review.comment}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button 
+          onClick={toggleUpvote}
+          style={{ 
+            background: hasUpvoted ? 'var(--orange)' : 'var(--muted)', 
+            border: 'none', borderRadius: 8, padding: '4px 12px', color: '#fff',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700
+          }}
+        >
+          👍 {upvotes}
+        </button>
+        <span style={{ color: 'var(--ink-2)', fontSize: 11, fontWeight: 600 }}>Upvotes</span>
+      </div>
+    </div>
+  );
+};
+
+const SmartphoneMockup: React.FC = () => {
+  return (
+    <div className="phone-container">
+      <div className="phone-frame">
+        <div className="phone-screen">
+          <div className="phone-notch" />
+          {/* App Preview Content */}
+          <div style={{ height: '100%', background: 'var(--cream)', position: 'relative', overflow: 'hidden' }}>
+             {/* Map Background Mockup */}
+             <div style={{ height: '70%', background: '#e0e0e0', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '30%', left: '20%', width: 100, height: 4, background: 'var(--orange)', borderRadius: 2, transform: 'rotate(20deg)' }} />
+                <div style={{ position: 'absolute', top: '40%', left: '40%', width: 120, height: 4, background: 'var(--blue)', borderRadius: 2, transform: 'rotate(-10deg)' }} />
+                <div style={{ position: 'absolute', top: '35%', left: '25%', width: 12, height: 12, borderRadius: '50%', background: 'var(--orange)', border: '2px solid #fff' }} />
+             </div>
+             {/* Bottom Sheet Mockup */}
+             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%', background: '#fff', borderRadius: '24px 24px 0 0', padding: 20, boxShadow: '0 -10px 30px rgba(0,0,0,0.05)' }}>
+                <div style={{ width: 40, height: 4, background: 'var(--line)', borderRadius: 2, margin: '0 auto 16px' }} />
+                <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 8 }}>LIGNES À PROXIMITÉ</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                   {[1,2].map(i => (
+                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, background: 'var(--muted)', borderRadius: 12 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 6, background: i === 1 ? 'var(--orange)' : 'var(--blue)' }} />
+                        <div style={{ height: 10, width: 80, background: 'var(--line)', borderRadius: 5 }} />
+                     </div>
+                   ))}
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+      <style jsx>{`
+        .phone-container { perspective: 1000px; }
+        .phone-frame {
+          width: 280px; height: 580px; background: #1a1a1a; borderRadius: 44px;
+          padding: 12px; border: 4px solid #333; position: relative;
+          boxShadow: 0 40px 100px rgba(0,0,0,0.15); transform: rotateY(-10deg) rotateX(5deg);
+        }
+        .phone-screen {
+          width: 100%; height: 100%; background: #fff; borderRadius: 32px;
+          overflow: hidden; position: relative;
+        }
+        .phone-notch {
+          position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+          width: 120px; height: 26px; background: #1a1a1a; borderBottomLeftRadius: 16px; borderBottomRightRadius: 16px;
+          zIndex: 10;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// ── MAIN LANDING PAGE ────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
-    <div style={{ background: 'var(--cream)', color: 'var(--ink)', fontFamily: 'sans-serif', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--cream)', color: 'var(--ink)', fontFamily: THEME.fonts.body, minHeight: '100vh', overflowX: 'hidden' }}>
+      
+      {/* ── HEADER ── */}
+      <header style={{ 
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        background: 'rgba(247, 241, 230, 0.8)', backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid var(--line)', padding: '16px 40px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, background: 'var(--orange)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900 }}>B</div>
+          <span style={{ fontSize: 20, fontWeight: 800, fontFamily: THEME.fonts.title, letterSpacing: -1 }}>BABIMOB</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <Link href="/app" style={{ textDecoration: 'none', color: 'var(--ink)', fontWeight: 700, fontSize: 14 }}>Ouvrir la Map</Link>
+          <PWAInstallButton />
+        </div>
+      </header>
 
-      {/* ── HERO ───────────────────────────────────────────── */}
-      <section
-        className="wax-bg"
-        style={{
-          background: 'var(--ink)',
-          color: '#fff',
-          position: 'relative',
-          overflow: 'hidden',
-          paddingTop: 72,
-          paddingBottom: 96,
-        }}
-      >
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <div style={{ marginBottom: 20 }}>
-            <Pill color="var(--orange)" size="md">
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)', display: 'inline-block', marginRight: 6, animation: 'pulse 2s infinite' }} />
-              ABIDJAN · LIVE
-            </Pill>
+      {/* ── HERO ── */}
+      <section style={{ 
+        paddingTop: 160, paddingBottom: 100, 
+        background: 'linear-gradient(180deg, var(--cream) 0%, var(--cream-2) 100%)' 
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px', display: 'flex', flexWrap: 'wrap', gap: 60, alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ flex: '1 1 500px' }}>
+            <ScrollReveal>
+              <h1 style={{ fontSize: 'clamp(40px, 8vw, 72px)', lineHeight: 0.95, fontWeight: 800, fontFamily: THEME.fonts.title, letterSpacing: -3, marginBottom: 24 }}>
+                Vos transports, <br/> <span style={{ color: 'var(--orange)' }}>simplifiés.</span>
+              </h1>
+              <p style={{ fontSize: 20, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 40, fontWeight: 500 }}>
+                L'assistant intelligent qui guide les <span style={{ fontWeight: 800, color: 'var(--ink)' }}>Mobeurs</span> à travers Abidjan. Gbaka, Wôrô, Taxi — tout est là.
+              </p>
+              <div style={{ display: 'flex', gap: 16 }}>
+                 <Link href="/app/onboarding" className="btn-cta">
+                    Devenir un Mobeur
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                 </Link>
+              </div>
+            </ScrollReveal>
           </div>
-
-          <h1
-            className="font-display"
-            style={{ fontSize: 'clamp(36px, 7vw, 52px)', lineHeight: 1.08, letterSpacing: '-0.02em', marginBottom: 20, color: '#fff' }}
-          >
-            Le premier plan de ville vivant.
-          </h1>
-
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, maxWidth: 480, margin: '0 auto 36px' }}>
-            Abidjan sur le bout des doigts. Gbaka, Woro-woro, Taxi — trouve ton chemin et le tarif exact en 3 secondes.
-          </p>
-
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 40 }}>
-            <Link
-              href="/app/onboarding"
-              className="press"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'var(--orange)', color: '#fff',
-                padding: '14px 28px', borderRadius: 999,
-                fontWeight: 800, fontSize: 15, textDecoration: 'none',
-              }}
-            >
-              Entrer dans Babi
-              <span style={{ fontSize: 18 }}>→</span>
-            </Link>
-            <Link
-              href="/app"
-              className="press"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'rgba(255,255,255,0.10)', color: '#fff',
-                border: '1.5px solid rgba(255,255,255,0.20)',
-                padding: '14px 28px', borderRadius: 999,
-                fontWeight: 800, fontSize: 15, textDecoration: 'none',
-              }}
-            >
-              Voir la map
-            </Link>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', gap: -6 }}>
-              {SOCIAL_DOTS.map((c, i) => (
-                <span
-                  key={i}
-                  style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: c, border: '2px solid var(--ink)',
-                    display: 'inline-block',
-                    marginLeft: i === 0 ? 0 : -8,
-                  }}
-                />
-              ))}
-            </div>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', fontWeight: 600 }}>
-              247 000 Babis déjà en ligne
-            </span>
+          <div style={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}>
+             <ScrollReveal>
+                <SmartphoneMockup />
+             </ScrollReveal>
           </div>
         </div>
       </section>
 
-      {/* ── WAX DIVIDER ────────────────────────────────────── */}
-      <WaxStrip color="var(--orange)" height={8} />
-
-      {/* ══ COMMENT ÇA MARCHE ════════════════════════════════ */}
-      <section id="comment" className="py-24 md:py-32 relative">
-        <div className="max-w-6xl mx-auto px-5">
-          <ScrollReveal direction="up" className="text-center max-w-2xl mx-auto mb-16">
-            <div className="text-sm font-bold uppercase tracking-widest text-abidjan-orange mb-4">Simple comme bonjour</div>
-            <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">3 étapes. C&apos;est tout.</h2>
-            <p className="text-xl text-beige-muted font-medium">Pas de compte. Pas de téléchargement. Juste ta position.</p>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-6">
+      {/* ── COMMENT ÇA MARCHE ── */}
+      <section style={{ padding: '100px 40px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <h2 style={{ textAlign: 'center', fontSize: 40, fontWeight: 800, fontFamily: THEME.fonts.title, marginBottom: 60 }}>Simple comme bonjour</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center' }}>
             {[
-              {
-                n: '01', t: 'Envoie ta position',
-                d: "Partage ta localisation depuis Telegram ou WhatsApp en un clic.",
-                c: 'bg-white', b: 'border-abidjan-orange/20', h: 'hover:border-abidjan-orange',
-                icon: '📍', color: 'text-abidjan-orange bg-abidjan-orange/10', delay: 0
-              },
-              {
-                n: '02', t: 'Dis où tu vas',
-                d: "En nouchi ou abréviations (Yop, Zone 4), l'IA comprend ton langage.",
-                c: 'bg-white', b: 'border-abidjan-blue/20', h: 'hover:border-abidjan-blue',
-                icon: '🗣️', color: 'text-abidjan-blue bg-abidjan-blue/10', delay: 120
-              },
-              {
-                n: '03', t: 'Pars en confiance',
-                d: "Reçois lignes, tarifs et arrêts. Le vrai prix du terrain garanti.",
-                c: 'bg-white', b: 'border-abidjan-green/20', h: 'hover:border-abidjan-green',
-                icon: '🚶🏾‍♂️', color: 'text-abidjan-green bg-abidjan-green/10', delay: 240
-              },
+              { n: '1', t: 'Envoie ta position', d: 'Ouvre l\'app ou le bot et partage ta localisation en un clic.', i: '📍' },
+              { n: '2', t: 'Dis où tu vas', d: 'En nouchi ou français, l\'IA comprend toutes les destinations.', i: '🗣️' },
+              { n: '3', t: 'Pars en confiance', d: 'Reçois lignes, tarifs et arrêts. Le vrai prix du terrain.', i: '🚶🏾‍♂️' }
             ].map((s) => (
-              <ScrollReveal key={s.n} direction="up" delay={s.delay}>
-                <div className={`group relative rounded-[2rem] p-8 border-2 h-full ${s.c} ${s.b} ${s.h} transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-black/5`}>
-                  <div className="absolute top-6 right-6 font-display text-6xl font-black text-beige-100 group-hover:scale-110 transition-transform select-none">{s.n}</div>
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-8 ${s.color}`}>
-                    {s.icon}
-                  </div>
-                  <h3 className="font-display font-bold text-2xl mb-3">{s.t}</h3>
-                  <p className="text-beige-muted text-lg font-medium leading-relaxed">{s.d}</p>
-                </div>
-              </ScrollReveal>
+              <div key={s.n} style={{ flex: '1 1 300px', background: 'var(--muted)', border: '1px solid var(--line)', borderRadius: 24, padding: 32 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, marginBottom: 24, color: '#fff', boxShadow: '0 8px 16px rgba(242,108,26,0.2)' }}>{s.i}</div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 12, fontFamily: THEME.fonts.title }}>{s.t}</h3>
+                <p style={{ color: 'var(--ink-2)', lineHeight: 1.6 }}>{s.d}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
-      {/* ── WHY SECTION ────────────────────────────────────── */}
-      <section style={{ background: 'var(--cream-2)', padding: '80px 24px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto 56px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <Pill color="var(--orange)">POURQUOI BABIMOB ?</Pill>
-          </div>
-          <h2
-            className="font-display"
-            style={{ fontSize: 'clamp(28px, 5vw, 40px)', lineHeight: 1.1, color: 'var(--ink)', letterSpacing: '-0.02em' }}
-          >
-            Tout Ivoirien peut enfin lire sa ville...
-          </h2>
-          <p style={{ marginTop: 16, fontSize: 17, color: 'var(--muted)', lineHeight: 1.6 }}>
-            ...et se déplacer sans se faire avoir sur les tarifs.
-          </p>
-        </div>
-      </section>
 
-      {/* ══ FONCTIONNALITÉS / C'COMMENT ══════════════════════ */}
-      <section id="fonctions" className="py-24 md:py-32 relative">
-        <div className="max-w-6xl mx-auto px-5">
-          <ScrollReveal direction="up" className="text-center max-w-3xl mx-auto mb-20">
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-abidjan-blue bg-abidjan-blue/10 border border-abidjan-blue/20 px-4 py-1.5 rounded-full mb-6">
-              ✨ Nouveau
-            </div>
-            <h2 className="font-display font-black text-4xl md:text-6xl tracking-tight mb-6">
-              C&apos;COMMENT ?<br />
-              <span className="text-abidjan-orange">Le cœur social d&apos;Abidjan.</span>
-            </h2>
-            <p className="text-xl text-beige-muted font-medium leading-relaxed">
-              BABIMOB n&apos;est plus seulement une carte. C&apos;est la communauté qui te dit la vérité sur le terrain.
-            </p>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* ── FONCTIONNALITÉS ── */}
+      <section style={{ padding: '100px 40px', background: 'var(--cream-2)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 40, fontWeight: 800, fontFamily: THEME.fonts.title, marginBottom: 60, textAlign: 'center' }}>Tout ce dont un Mobeur a besoin</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
             {[
-              { icon: '📍', color: 'bg-abidjan-orange/10 text-abidjan-orange', title: 'Check-in Instantané', desc: 'Un bouton "Je suis ici" pour laisser ta trace horodatée. Maquis, arrêt ou marché : montre que tu explores la ville.', delay: 0 },
-              { icon: '💬', color: 'bg-abidjan-blue/10 text-abidjan-blue', title: 'Qui est déjà allé ?', desc: "Demande l'avis des autres en un clic. Pas d'algorithmes, juste des vrais Abidjanais qui te répondent en direct.", delay: 120 },
-              { icon: '🏅', color: 'bg-abidjan-green/10 text-abidjan-green', title: 'Badge Explorateur', desc: "Plus tu visites, plus tu gagnes de points. Deviens une Légende d'Abidjan et débloque des privilèges dans ton profil.", delay: 240 },
-            ].map((f) => (
-              <ScrollReveal key={f.title} direction="up" delay={f.delay}>
-                <div className="bg-white rounded-[2.5rem] p-8 border border-beige-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all h-full">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-8 ${f.color}`}>{f.icon}</div>
-                  <h3 className="font-display font-bold text-2xl mb-4">{f.title}</h3>
-                  <p className="text-beige-muted font-medium leading-relaxed">{f.desc}</p>
-                </div>
-              </ScrollReveal>
+              { t: 'Suivi en direct', d: 'Suis ta ligne en temps réel sur la carte interactive.', i: '📡' },
+              { t: 'Points XP', d: 'Gagne des points à chaque trajet et débloque des récompenses.', i: '🏆' },
+              { t: 'Avis multi-catégories', d: 'Consulte les retours de la communauté sur les lignes.', i: '💬' },
+              { t: 'Boussole intelligente', d: 'Ne perds jamais le nord, même dans les quartiers complexes.', i: '🧭' }
+            ].map((f, i) => (
+              <div key={i} className="feature-card" style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 24, padding: 32, transition: 'all 0.3s' }}>
+                <div style={{ fontSize: 32, marginBottom: 20 }}>{f.i}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 12, fontFamily: THEME.fonts.title }}>{f.t}</h3>
+                <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.6 }}>{f.d}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══ TRANSPORTS ═══════════════════════════════════════ */}
-      <section id="transports" className="py-24 md:py-32 bg-white border-y border-beige-200/50">
-        <div className="max-w-6xl mx-auto px-5">
-          <ScrollReveal direction="left" className="max-w-2xl mb-16">
-            <div className="text-sm font-bold uppercase tracking-widest text-abidjan-green mb-4">Réseau cartographié</div>
-            <h2 className="font-display font-black text-4xl md:text-5xl tracking-tight mb-5">Tous les transports</h2>
-            <p className="text-xl text-beige-muted font-medium">
-              Gbaka bondé ou taxi confort — BABIMOB connaît les tarifs réels pour chaque véhicule.
-            </p>
-          </ScrollReveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {TRANSPORTS.map((t, i) => (
-              <ScrollReveal key={t.n} direction="up" delay={i * 100}>
-                <div className="bg-beige-50 rounded-3xl p-6 border border-beige-200 hover:border-abidjan-green/50 hover:shadow-lg hover:-translate-y-1 transition-all h-full">
-                  <div className="text-5xl mb-6">{t.e}</div>
-                  <h3 className="font-display font-bold text-xl mb-3">{t.n}</h3>
-                  <div className="inline-block bg-white text-abidjan-green font-bold text-sm px-3 py-1.5 rounded-full border border-beige-200 shadow-sm mb-4">
-                    {t.p}
-                  </div>
-                  <p className="text-beige-muted text-sm font-medium leading-relaxed">{t.d}</p>
-                </div>
-              </ScrollReveal>
+      {/* ── TÉMOIGNAGES ── */}
+      <section style={{ padding: '100px 40px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)', letterSpacing: 2, marginBottom: 12 }}>LA COMMUNAUTÉ VOUS GUIDE</div>
+            <h2 style={{ fontSize: 40, fontWeight: 800, fontFamily: THEME.fonts.title }}>197 000 Mobeurs déjà en ligne</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+            {REVIEWS.map((r) => (
+              <TestimonialCard key={r.id} review={r} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══ CTA FOOTER ═══════════════════════════════════════ */}
-      <section className="py-24 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-abidjan-gradient opacity-10" />
-        <ScrollReveal direction="up" className="max-w-4xl mx-auto px-5 text-center relative z-10">
-          <h2 className="font-display font-black text-5xl md:text-6xl tracking-tight mb-8">
-            Prêt à dompter Abidjan ?
-          </h2>
-          <Link
-            href="/app/onboarding"
-            className="inline-flex items-center justify-center gap-3 bg-abidjan-orange text-white text-lg font-black px-10 py-5 rounded-full shadow-xl shadow-abidjan-orange/20 hover:bg-orange-600 hover:-translate-y-1 transition-all"
-          >
-            ENTRER DANS BABI
-            <IconArrowRight />
-          </Link>
-          <div className="mt-8">
-            <a
-              href="https://t.me/Babimob_bot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-bold text-beige-muted hover:text-abidjan-blue transition-colors"
-            >
-              Ou essaie d'abord le bot Telegram →
-            </a>
-          </div>
-        </ScrollReveal>
+      {/* ── INSTALL PWA ── */}
+      <section style={{ padding: '100px 40px', background: 'var(--muted)' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 24 }}>📱</div>
+          <h2 style={{ fontSize: 32, fontWeight: 800, fontFamily: THEME.fonts.title, marginBottom: 16 }}>Installez l'application</h2>
+          <p style={{ color: 'var(--ink-2)', fontSize: 18, marginBottom: 32 }}>L'expérience complète, sans passer par l'App Store. Plus rapide, plus légère, toujours disponible.</p>
+          <Link href="/app" className="btn-primary" style={{ padding: '16px 40px', fontSize: 18, background: 'var(--ink)', color: '#fff', textDecoration: 'none', borderRadius: 16, fontWeight: 700, display: 'inline-block' }}>Ouvrir dans le navigateur</Link>
+        </div>
       </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{ background: 'var(--cream-2)', borderTop: '1px solid var(--line)', padding: '60px 40px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 40 }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, fontFamily: THEME.fonts.title, marginBottom: 16 }}>BABIMOB</div>
+            <p style={{ color: 'var(--ink-2)', maxWidth: 300, fontSize: 14 }}>Fait avec ❤️ pour les Mobeurs d'Abidjan.</p>
+          </div>
+          <div style={{ display: 'flex', gap: 40 }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>NAVIGATION</div>
+                <Link href="/app" style={{ color: 'var(--blue)', fontSize: 14, textDecoration: 'none' }}>La Map</Link>
+                <Link href="/app/chat" style={{ color: 'var(--blue)', fontSize: 14, textDecoration: 'none' }}>Le Chat</Link>
+             </div>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>LÉGAL</div>
+                <Link href="#" style={{ color: 'var(--blue)', fontSize: 14, textDecoration: 'none' }}>Confidentialité</Link>
+                <Link href="#" style={{ color: 'var(--blue)', fontSize: 14, textDecoration: 'none' }}>Contact</Link>
+             </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 1200, margin: '40px auto 0', paddingTop: 24, borderTop: '1px solid var(--line)', color: 'var(--ink-2)', fontSize: 12, textAlign: 'center' }}>
+          © 2026 BABIMOB · TOUS DROITS RÉSERVÉS
+        </div>
+      </footer>
+
+      <style jsx global>{`
+        .btn-cta {
+          background: var(--orange);
+          color: #fff;
+          padding: 16px 32px;
+          borderRadius: 16px;
+          fontWeight: 800;
+          fontSize: 18;
+          textDecoration: none;
+          boxShadow: 0 10px 30px rgba(242, 108, 26, 0.25);
+          display: flex;
+          alignItems: center;
+          gap: 12px;
+          transition: transform 0.2s, background 0.2s;
+        }
+        .btn-cta:hover {
+          background: var(--orange-deep);
+          transform: translateY(-2px);
+        }
+        .feature-card:hover {
+          background: var(--cream-2) !important;
+          transform: translateY(-8px);
+        }
+        @media (max-width: 768px) {
+          header { padding: 12px 20px !important; }
+          .hero-content { text-align: center; }
+        }
+      `}</style>
     </div>
   );
 }
