@@ -26,7 +26,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(mins / 1440)}j`;
 }
 
-export default function CcommentFeed({ initialCheckins }: { initialCheckins: FeedCheckin[] }) {
+export default function GbairaiFeed({ initialCheckins }: { initialCheckins: FeedCheckin[] }) {
   const [checkins, setCheckins] = useState<FeedCheckin[]>(initialCheckins);
   const [newCount, setNewCount] = useState(0);
   const supabase = createClient();

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import CcommentFeed from './CcommentFeed';
-import type { FeedCheckin } from './CcommentFeed';
+import GbairaiFeed from './GbairaiFeed';
+import type { FeedCheckin } from './GbairaiFeed';
 import { Pill } from '@/components/ui/Pill';
 import { Ic } from '@/components/ui/Ic';
 import { WaxStrip } from '@/components/ui/WaxStrip';
@@ -14,7 +14,7 @@ function timeAgo(iso: string): string {
   return `il y a ${Math.floor(mins / 1440)} j`;
 }
 
-export default async function CcommentPage() {
+export default async function GbairaiPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -47,8 +47,8 @@ export default async function CcommentPage() {
             <Ic.Back s={20} />
           </Link>
           <div style={{ flex: 1 }}>
-            <div className="font-display" style={{ fontSize: 22 }}>C'comment ?</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Le pouls d'Abidjan, en direct</div>
+            <div className="font-display" style={{ fontSize: 22 }}>Gbairai</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Le pouls d'Abidjan, en nouchi</div>
           </div>
           {user && (
             <Link href="/app/compte" style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--orange)', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 14 }}>
@@ -75,7 +75,7 @@ export default async function CcommentPage() {
           <div style={{ position: 'relative' }}>
             <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, letterSpacing: 0.6 }}>POULS DE LA VILLE · MAINTENANT</div>
             <div className="font-display" style={{ fontSize: 22, marginTop: 4 }}>Cocody coule.<br/>Plateau bouchonne.</div>
-            <div style={{ fontSize: 13, opacity: 0.9, marginTop: 6 }}>{checkins.length} Babis actifs · MAJ à l'instant</div>
+            <div style={{ fontSize: 13, opacity: 0.9, marginTop: 6 }}>{checkins.length} Mobeurs actifs · MAJ à l'instant</div>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default async function CcommentPage() {
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, textTransform: 'uppercase' }}>En direct ({checkins.length})</div>
           <div className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} />
         </div>
-        <CcommentFeed initialCheckins={checkins} />
+        <GbairaiFeed initialCheckins={checkins} />
       </div>
     </div>
   );

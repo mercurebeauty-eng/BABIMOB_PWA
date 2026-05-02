@@ -289,7 +289,7 @@ function AppPageContent() {
           style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}
         >
           <Ic.Search s={18} />
-          <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Babi ?"}</span>
+          <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Mobeur ?"}</span>
           <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5 }}>IA</span>
         </button>
 
@@ -531,7 +531,7 @@ function AppPageContent() {
               )}
 
               {/* Community pulse */}
-              <div onClick={() => router.push('/app/community')} className="press" style={{ padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 8 }}>
+              <div onClick={() => router.push('/app/gbairai')} className="press" style={{ padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 8 }}>
                 <div style={{ display: 'flex' }}>
                   {(['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C'] as const).map((c, i) => (
                     <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, fontSize: 11, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -540,8 +540,8 @@ function AppPageContent() {
                   ))}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Babis sont en ligne</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Demande ton C'comment</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Mobeurs sont en ligne</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Lance ton Gbairai</div>
                 </div>
                 <Ic.Arrow s={18} />
               </div>
