@@ -308,22 +308,6 @@ function TabTerritoire({
   );
 }
 
-      {/* Prochain badge */}
-      <div style={{ padding: 14, borderRadius: 14, background: 'var(--ink)', color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(232,178,60,0.15)', color: '#E8B23C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Ic.Compass s={26} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: '#E8B23C', letterSpacing: 0.5 }}>PROCHAIN BADGE</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Côte Sud</div>
-          <div style={{ fontSize: 11, color: 'rgba(247,241,230,0.6)' }}>Visite 5 arrêts à Marcory + Treichville</div>
-        </div>
-        <button className="press" style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: '#E8B23C', color: 'var(--ink)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Y ALLER</button>
-      </div>
-    </>
-  );
-}
-
 // ── Tab : Classement ─────────────────────────────────────────
 function TabClassement({ displayName, totalPoints }: { displayName: string; totalPoints: number }) {
   const [scope, setScope] = useState<0 | 1 | 2>(0);
