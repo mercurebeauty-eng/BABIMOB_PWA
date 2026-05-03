@@ -260,7 +260,7 @@ function TabTerritoire({
 
   // Fallback if no checkins
   const displayCommunes = COMMUNES.length > 0 ? COMMUNES : [
-    { n: commune || 'Ma Commune', pct: 0, c: 'var(--orange)', mayor: false }
+    { n: commune || 'Ma Commune', count: 0, pct: 0, c: 'var(--orange)', mayor: false }
   ];
 
   return (
