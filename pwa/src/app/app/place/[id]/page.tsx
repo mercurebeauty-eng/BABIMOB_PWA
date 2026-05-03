@@ -163,12 +163,13 @@ export default async function PlacePage({ params }: Props) {
 
         {/* CHECK-IN CTA - NOW USING PREMIUM PoiCheckInButton */}
         <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
-          <PoiCheckInButton 
-            placeId={place.id} 
-            placeName={place.name} 
-            commune={place.commune ?? undefined} 
+          <PoiCheckInButton
+            placeId={place.id}
+            placeName={place.name}
+            commune={place.commune ?? undefined}
             lat={place.lat}
             lon={place.lon}
+            sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
           />
         </div>
 

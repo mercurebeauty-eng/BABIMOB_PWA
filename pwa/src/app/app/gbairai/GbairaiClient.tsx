@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 
@@ -14,12 +16,52 @@ export type FeedCheckin = {
   avatar_emoji: string | null;
 };
 
+export type StoryItem = {
+  id: string;
+  display_name: string | null;
+  avatar_emoji: string | null;
+  text_content: string | null;
+  media_url: string | null;
+  commune: string | null;
+  user_level: number;
+  created_at: string;
+  expires_at: string;
+};
+
+export type TopSpot = {
+  id: string;
+  name: string;
+  commune: string | null;
+  category: string | null;
+  sponsor_tier: string | null;
+  checkin_count: number;
+};
+
+export type UserProfile = {
+  id: string;
+  display_name: string | null;
+  avatar_emoji: string | null;
+  total_points: number;
+};
+
 type Props = {
   checkins: FeedCheckin[];
+  stories: StoryItem[];
+  topSpots: TopSpot[];
+  userProfile: UserProfile | null;
   isLoggedIn: boolean;
 };
 
 const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A'];
+const LEVEL_THRESHOLDS = [0, 200, 500, 1000, 2000, 3500, 5000, 7500, 10000, 15000];
+
+function getLevel(totalPoints: number): number {
+  let lvl = 0;
+  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
+    if (totalPoints >= LEVEL_THRESHOLDS[i]) lvl = i;
+  }
+  return lvl;
+}
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -29,17 +71,197 @@ function timeAgo(iso: string): string {
   return `il y a ${Math.floor(mins / 1440)}j`;
 }
 
-// ── Tab : Pour toi ────────────────────────────────────────────
-function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn: boolean }) {
-  const STORIES = [
-    { n: 'Aïcha', loc: 'Plateau', c: '#1E5BFF', live: true },
-    { n: 'Boris', loc: 'Cocody', c: '#E8B23C' },
-    { n: 'Awa', loc: 'Yop', c: '#E5337A', live: true },
-    { n: 'Didier', loc: 'Marcory', c: '#0EA85B' },
-    { n: 'Kobi', loc: 'Adjamé', c: '#F26C1A' },
-    { n: 'Ismaël', loc: 'Riviera', c: '#1E5BFF' },
-  ];
+// ── Story Viewer ────────────────────────────────────────────
+function StoryViewer({ story, onClose }: { story: StoryItem; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.92)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{ width: '100%', maxWidth: 380, borderRadius: 24, overflow: 'hidden', background: 'var(--cream)', position: 'relative' }}
+        >
+          {/* Progress bar */}
+          <div style={{ height: 3, background: 'var(--line)', margin: '12px 12px 0' }}>
+            <motion.div
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 5, ease: 'linear' }}
+              onAnimationComplete={onClose}
+              style={{ height: '100%', background: 'var(--orange)', borderRadius: 2 }}
+            />
+          </div>
 
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 12, background: AVATAR_COLORS[0], color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: '2px solid var(--orange)' }}>
+              {story.avatar_emoji || (story.display_name?.[0] ?? '?')}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{story.display_name || 'Babi'}</div>
+              <div style={{ fontSize: 10, color: 'var(--muted)' }}>{story.commune || 'Abidjan'} · {timeAgo(story.created_at)}</div>
+            </div>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'var(--cream-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Ic.X s={16} color="var(--ink)" />
+            </button>
+          </div>
+
+          {/* Content */}
+          {story.media_url ? (
+            <div style={{ margin: '0 12px', borderRadius: 16, overflow: 'hidden', aspectRatio: '9/16', background: 'var(--ink)' }}>
+              {story.media_url.includes('.mp4') || story.media_url.includes('.mov') ? (
+                <video src={story.media_url} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={story.media_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              )}
+            </div>
+          ) : (
+            <div style={{ margin: '0 12px', borderRadius: 16, minHeight: 200, background: `linear-gradient(135deg,${AVATAR_COLORS[0]},${AVATAR_COLORS[2]})`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative', overflow: 'hidden' }}>
+              <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+              <div className="font-display" style={{ fontSize: 24, color: '#fff', textAlign: 'center', position: 'relative', lineHeight: 1.2 }}>
+                {story.text_content || '...'}
+              </div>
+            </div>
+          )}
+          {story.text_content && story.media_url && (
+            <div style={{ padding: '12px 16px', fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>{story.text_content}</div>
+          )}
+
+          {/* Reactions */}
+          <div style={{ display: 'flex', gap: 8, padding: '12px 16px 20px' }}>
+            {['👍', '😍', '😂', '😡', '🔥'].map((r) => (
+              <button key={r} className="press" style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--cream-2)', fontSize: 18, cursor: 'pointer' }}>
+                {r}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ── Story Creator ────────────────────────────────────────────
+function StoryCreatorModal({ userProfile, onClose, onCreated }: { userProfile: UserProfile | null; onClose: () => void; onCreated: (story: StoryItem) => void }) {
+  const [text, setText] = useState('');
+  const [posting, setPosting] = useState(false);
+  const supabase = createClient();
+
+  const userLevel = userProfile ? getLevel(userProfile.total_points) : 0;
+
+  async function handlePost() {
+    if (!userProfile || !text.trim()) return;
+    setPosting(true);
+
+    const expiresAt = new Date(Date.now() + 24 * 3600000).toISOString();
+    const { data, error } = await supabase
+      .from('stories')
+      .insert({
+        user_id: userProfile.id,
+        display_name: userProfile.display_name,
+        avatar_emoji: userProfile.avatar_emoji,
+        text_content: text.trim(),
+        is_public: true,
+        user_level: userLevel,
+        expires_at: expiresAt,
+      })
+      .select('id, display_name, avatar_emoji, text_content, media_url, commune, user_level, created_at, expires_at')
+      .single();
+
+    if (!error && data) {
+      await supabase.rpc('award_xp', { p_xp: 5 });
+      onCreated(data as StoryItem);
+    }
+    setPosting(false);
+    onClose();
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.7)', zIndex: 10000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      >
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{ width: '100%', maxWidth: 480, borderRadius: '24px 24px 0 0', background: 'var(--cream)', padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          {/* Handle */}
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--line)', margin: '0 auto 20px' }} />
+
+          {userLevel < 5 ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+              <div className="font-display" style={{ fontSize: 20, marginBottom: 8 }}>Niveau 5 requis</div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+                Tu dois être <b>Zo Confirmé (niveau 5)</b> pour poster une Story.<br />
+                Continue à explorer Babi pour monter en niveau !
+              </p>
+              <button onClick={onClose} style={{ marginTop: 16, padding: '12px 24px', borderRadius: 999, border: 'none', background: 'var(--cream-2)', color: 'var(--ink)', fontWeight: 800, cursor: 'pointer' }}>
+                Compris
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 14, background: AVATAR_COLORS[0], color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                  {userProfile?.avatar_emoji || '🧭'}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{userProfile?.display_name || 'Toi'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 700 }}>+5 XP après publication · visible 24h</div>
+                </div>
+              </div>
+
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="C'comment là ? Dis-leur !"
+                maxLength={280}
+                style={{ width: '100%', minHeight: 120, padding: 14, borderRadius: 16, border: '1.5px solid var(--line)', background: 'var(--cream-2)', color: 'var(--ink)', fontSize: 16, fontWeight: 600, resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }}
+              />
+              <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{text.length}/280</div>
+
+              <button
+                onClick={handlePost}
+                disabled={posting || !text.trim()}
+                className="press"
+                style={{ marginTop: 12, width: '100%', padding: '16px', borderRadius: 16, border: 'none', background: text.trim() ? 'var(--orange)' : 'var(--line)', color: text.trim() ? '#fff' : 'var(--muted)', fontSize: 15, fontWeight: 900, cursor: text.trim() ? 'pointer' : 'default', transition: 'background 0.2s' }}
+              >
+                {posting ? 'Publication...' : 'Publier la Story ✨'}
+              </button>
+            </>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ── Tab : Pour toi ────────────────────────────────────────────
+function TabVibe({ checkins, isLoggedIn, stories, onStoryClick, onAddStory }: {
+  checkins: FeedCheckin[];
+  isLoggedIn: boolean;
+  stories: StoryItem[];
+  onStoryClick: (story: StoryItem) => void;
+  onAddStory: () => void;
+}) {
   const HASHTAGS = [
     { tag: "#attiéké_du_soir", count: '2,1K', c: '#E8B23C', fire: true },
     { tag: '#cocody_by_night', count: '847', c: '#1E5BFF' },
@@ -50,26 +272,47 @@ function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn
 
   return (
     <>
-      {/* Stories */}
+      {/* Stories row */}
       <div className="no-scrollbar" style={{ display: 'flex', gap: 10, padding: '12px 16px 14px', overflowX: 'auto' }}>
-        <div style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>
+        {/* Add story button */}
+        <div onClick={onAddStory} style={{ flexShrink: 0, textAlign: 'center', width: 64, cursor: 'pointer' }}>
           <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--cream-2)', border: '2px dashed var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
             <Ic.Plus s={22} />
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 4, lineHeight: 1.1 }}>Sors !</div>
         </div>
-        {STORIES.map((s, i) => (
-          <div key={i} style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>
-            <div style={{ width: 64, height: 64, borderRadius: 20, padding: 2.5, background: s.live ? 'linear-gradient(135deg,#FF3B30,#F26C1A,#E8B23C)' : `linear-gradient(135deg,${s.c},#F26C1A)`, position: 'relative' }}>
-              <div style={{ width: '100%', height: '100%', borderRadius: 18, background: s.c, color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
-                {s.n[0]}
+
+        {stories.length === 0 ? (
+          // Placeholder stories when empty
+          [
+            { n: 'Aïcha', loc: 'Plateau', c: '#1E5BFF', live: true },
+            { n: 'Boris', loc: 'Cocody', c: '#E8B23C' },
+            { n: 'Awa', loc: 'Yop', c: '#E5337A', live: true },
+            { n: 'Didier', loc: 'Marcory', c: '#0EA85B' },
+          ].map((s, i) => (
+            <div key={i} style={{ flexShrink: 0, textAlign: 'center', width: 64, opacity: 0.5 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, padding: 2.5, background: `linear-gradient(135deg,${s.c},#F26C1A)`, position: 'relative' }}>
+                <div style={{ width: '100%', height: '100%', borderRadius: 18, background: s.c, color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
+                  {s.n[0]}
+                </div>
               </div>
-              {s.live && <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', background: '#FF3B30', color: '#fff', fontSize: 8, fontWeight: 900, padding: '1px 6px', borderRadius: 5, letterSpacing: 0.4 }}>LIVE</div>}
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 6, lineHeight: 1 }}>{s.n}</div>
+              <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{s.loc}</div>
             </div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 6, lineHeight: 1 }}>{s.n}</div>
-            <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{s.loc}</div>
-          </div>
-        ))}
+          ))
+        ) : (
+          stories.map((s, i) => (
+            <div key={s.id} onClick={() => onStoryClick(s)} style={{ flexShrink: 0, textAlign: 'center', width: 64, cursor: 'pointer' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, padding: 2.5, background: 'linear-gradient(135deg,var(--orange),#E8B23C)', position: 'relative' }}>
+                <div style={{ width: '100%', height: '100%', borderRadius: 18, background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: s.avatar_emoji ? 26 : 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
+                  {s.avatar_emoji || (s.display_name?.[0] ?? '?')}
+                </div>
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 6, lineHeight: 1 }}>{s.display_name?.split(' ')[0] || 'Babi'}</div>
+              <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{s.commune || 'Babi'}</div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pulse */}
@@ -94,7 +337,7 @@ function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn
               ))}
             </div>
             <div style={{ fontSize: 11, opacity: 0.8, marginTop: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Ic.Users s={13} /> {checkins.length} Babis actifs
+              <Ic.Users s={13} /> {checkins.length > 0 ? checkins.length : '4 281'} Babis actifs
             </div>
           </div>
         </div>
@@ -114,7 +357,7 @@ function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn
         </div>
       </div>
 
-      {/* Feed masonry 2 colonnes */}
+      {/* CTA for logged out */}
       {!isLoggedIn && (
         <div style={{ padding: '0 16px', marginBottom: 14 }}>
           <div style={{ padding: 20, borderRadius: 18, background: 'var(--cream-2)', border: '1.5px dashed var(--orange)', textAlign: 'center' }}>
@@ -128,13 +371,14 @@ function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn
         </div>
       )}
 
+      {/* Feed masonry 2 colonnes */}
       <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {checkins.slice(0, 2).map((c, idx) => (
           <div key={c.id} style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
             <div style={{ height: idx === 0 ? 160 : 200, background: `linear-gradient(135deg,${AVATAR_COLORS[idx % AVATAR_COLORS.length]},${AVATAR_COLORS[(idx + 2) % AVATAR_COLORS.length]})`, position: 'relative', overflow: 'hidden' }}>
               <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.45) 100%)' }} />
-              <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: 9, fontWeight: 700, color: '#fff', letterSpacing: 0.4 }}>PHOTO · {c.commune || 'Babi'}</div>
+              <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: 9, fontWeight: 700, color: '#fff', letterSpacing: 0.4 }}>📍 {c.commune || 'Babi'}</div>
             </div>
             <div style={{ padding: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.25 }}>{c.place_name}</div>
@@ -143,9 +387,6 @@ function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn
                   {(c.display_name || 'B')[0].toUpperCase()}
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>{c.display_name || 'Babi'} · {timeAgo(c.created_at)}</span>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--orange)', fontWeight: 800 }}>
-                  <Ic.Heart s={12} fill /> {5 + idx * 7}
-                </div>
               </div>
             </div>
           </div>
@@ -218,13 +459,19 @@ function TabVibe({ checkins, isLoggedIn }: { checkins: FeedCheckin[]; isLoggedIn
 }
 
 // ── Tab : Spots du moment ────────────────────────────────────
-function TabSpots() {
-  const SPOTS = [
-    { rank: 2, n: 'Tata Aya — Adjamé', cat: 'Attiéké · 1 500F', heat: 612, c: 'linear-gradient(135deg,#E8B23C,#F26C1A)', isNew: false },
-    { rank: 3, n: 'Bushman Café — Cocody', cat: 'Café · 2 500F', heat: 481, c: 'linear-gradient(135deg,#2A1F18,#3A2A1E)', isNew: true },
-    { rank: 4, n: 'Yop By Night', cat: 'Boîte · 10 000F', heat: 392, c: 'linear-gradient(135deg,#1A2D6B,#E5337A)', isNew: false },
-    { rank: 5, n: 'Plage Bassam', cat: 'Plage · gratuit', heat: 287, c: 'linear-gradient(135deg,#1E5BFF,#0EA85B)', isNew: false },
-  ];
+function TabSpots({ topSpots }: { topSpots: TopSpot[] }) {
+  const CATEGORY_GRADIENT: Record<string, string> = {
+    restaurant: 'linear-gradient(135deg,#E8B23C,#F26C1A)',
+    cafe: 'linear-gradient(135deg,#2A1F18,#3A2A1E)',
+    bar: 'linear-gradient(135deg,#1A2D6B,#E5337A)',
+    beach: 'linear-gradient(135deg,#1E5BFF,#0EA85B)',
+    default: 'linear-gradient(135deg,#F26C1A,#E5337A)',
+  };
+
+  const getGradient = (spot: TopSpot) => {
+    const cat = spot.category?.toLowerCase() ?? 'default';
+    return CATEGORY_GRADIENT[cat] ?? CATEGORY_GRADIENT.default;
+  };
 
   const EVENTS = [
     { d: 'JEU 6', t: 'Live coupé chez Effa', sub: 'Riviera · 22h', c: 'linear-gradient(135deg,#1A2D6B,#2B4FB7)' },
@@ -232,6 +479,9 @@ function TabSpots() {
     { d: 'SAM 8', t: 'Marché vintage', sub: 'Plateau · 10h', c: 'linear-gradient(135deg,#0EA85B,#0A8A4A)' },
     { d: 'DIM 9', t: 'Plage Babi run', sub: 'Bassam · 7h', c: 'linear-gradient(135deg,#E8B23C,#C4912A)' },
   ];
+
+  const hero = topSpots[0];
+  const rest = topSpots.slice(1, 6);
 
   return (
     <>
@@ -241,54 +491,79 @@ function TabSpots() {
       </div>
 
       {/* Hero #1 */}
-      <div style={{ padding: '0 16px', marginBottom: 12 }}>
-        <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', boxShadow: '0 12px 30px rgba(0,0,0,0.12)' }}>
-          <div style={{ height: 200, background: 'linear-gradient(135deg,#E5337A 0%,#F26C1A 50%,#E8B23C 100%)', position: 'relative' }}>
-            <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(0,0,0,0.7))' }} />
-            <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ background: 'var(--orange)', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 26, padding: '2px 12px', borderRadius: 10 }}>#1</div>
-              <div style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 999, letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Ic.Flame s={11} /> 847 BABIS CE SOIR
+      {hero ? (
+        <div style={{ padding: '0 16px', marginBottom: 12 }}>
+          <Link href={`/app/place/${hero.id}`} style={{ textDecoration: 'none' }}>
+            <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', boxShadow: '0 12px 30px rgba(0,0,0,0.12)' }}>
+              <div style={{ height: 200, background: getGradient(hero), position: 'relative' }}>
+                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(0,0,0,0.7))' }} />
+                <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ background: 'var(--orange)', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 26, padding: '2px 12px', borderRadius: 10 }}>#1</div>
+                  <div style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 999, letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Ic.Flame s={11} /> {hero.checkin_count} BABIS CETTE SEMAINE
+                  </div>
+                </div>
+                {hero.sponsor_tier === 'elite' && (
+                  <div style={{ position: 'absolute', top: 12, right: 12, background: '#E8B23C', color: 'var(--ink)', fontSize: 8, fontWeight: 900, padding: '3px 8px', borderRadius: 8, letterSpacing: 0.4 }}>ÉLITE</div>
+                )}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14, color: '#fff' }}>
+                  <div className="font-display" style={{ fontSize: 22 }}>{hero.name}</div>
+                  <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>{hero.commune || 'Abidjan'} · {hero.category || 'Lieu'}</div>
+                </div>
               </div>
             </div>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14, color: '#fff' }}>
-              <div className="font-display" style={{ fontSize: 22 }}>Maquis du Val</div>
-              <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>Riviera Palmeraie · Coupé · Poisson braisé</div>
-              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 8px', borderRadius: 6 }}>★ 4.8</span>
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 8px', borderRadius: 6 }}>5 000–15 000F</span>
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: '#0EA85B', padding: '3px 8px', borderRadius: 6 }}>OUVERT</span>
+          </Link>
+        </div>
+      ) : (
+        <div style={{ padding: '0 16px', marginBottom: 12 }}>
+          <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', boxShadow: '0 12px 30px rgba(0,0,0,0.12)' }}>
+            <div style={{ height: 200, background: 'linear-gradient(135deg,#E5337A 0%,#F26C1A 50%,#E8B23C 100%)', position: 'relative' }}>
+              <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(0,0,0,0.7))' }} />
+              <div style={{ position: 'absolute', top: 12, left: 12 }}>
+                <div style={{ background: 'var(--orange)', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 26, padding: '2px 12px', borderRadius: 10 }}>#1</div>
+              </div>
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14, color: '#fff' }}>
+                <div className="font-display" style={{ fontSize: 22 }}>Maquis du Val</div>
+                <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>Riviera Palmeraie · Coupé · Poisson braisé</div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {SPOTS.map((s, i) => (
-          <div key={i} style={{ display: 'flex', gap: 12, padding: 10, borderRadius: 14, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-            <div style={{ width: 76, height: 76, borderRadius: 12, background: s.c, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-              <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.2 }} />
-              <div style={{ position: 'absolute', top: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 11, padding: '2px 6px', borderRadius: 5 }}>#{s.rank}</div>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{s.n}</div>
-                {s.isNew && <span style={{ fontSize: 8, fontWeight: 900, color: '#fff', background: 'var(--orange)', padding: '1px 5px', borderRadius: 4, letterSpacing: 0.4 }}>NEW</span>}
+        {(rest.length > 0 ? rest : [
+          { id: '2', name: 'Tata Aya — Adjamé', commune: 'Adjamé', category: 'Attiéké', sponsor_tier: null, checkin_count: 612 },
+          { id: '3', name: 'Bushman Café — Cocody', commune: 'Cocody', category: 'Café', sponsor_tier: null, checkin_count: 481 },
+          { id: '4', name: 'Yop By Night', commune: 'Yopougon', category: 'Boîte', sponsor_tier: null, checkin_count: 392 },
+          { id: '5', name: 'Plage Bassam', commune: 'Bassam', category: 'Plage', sponsor_tier: null, checkin_count: 287 },
+        ] as TopSpot[]).map((s, i) => (
+          <Link key={s.id} href={`/app/place/${s.id}`} style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', gap: 12, padding: 10, borderRadius: 14, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+              <div style={{ width: 76, height: 76, borderRadius: 12, background: getGradient(s), position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.2 }} />
+                <div style={{ position: 'absolute', top: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 11, padding: '2px 6px', borderRadius: 5 }}>#{i + 2}</div>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{s.cat}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <Ic.Flame s={12} /> {s.heat}
-                </span>
-                <span style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <Ic.Users s={12} /> 12 amis
-                </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{s.name}</div>
+                  {s.sponsor_tier === 'elite' && <span style={{ fontSize: 8, fontWeight: 900, background: '#E8B23C', color: 'var(--ink)', padding: '1px 5px', borderRadius: 4, letterSpacing: 0.4 }}>ÉLITE</span>}
+                  {s.sponsor_tier === 'pro' && <span style={{ fontSize: 8, fontWeight: 900, color: '#fff', background: 'var(--orange)', padding: '1px 5px', borderRadius: 4, letterSpacing: 0.4 }}>PRO</span>}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{s.commune || 'Babi'} · {s.category || 'Lieu'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Ic.Flame s={12} /> {s.checkin_count}
+                  </span>
+                </div>
+              </div>
+              <div style={{ alignSelf: 'center', color: 'var(--muted)' }}>
+                <Ic.Arrow s={16} dir="right" />
               </div>
             </div>
-            <button className="press" style={{ alignSelf: 'center', padding: '7px 12px', borderRadius: 10, border: '1.5px solid var(--ink)', background: 'transparent', color: 'var(--ink)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Y aller</button>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -501,8 +776,11 @@ function TabCrews() {
 }
 
 // ── Composant principal ──────────────────────────────────────
-export default function GbairaiClient({ checkins, isLoggedIn }: Props) {
+export default function GbairaiClient({ checkins, stories: initialStories, topSpots, userProfile, isLoggedIn }: Props) {
   const [tab, setTab] = useState<'vibe' | 'spots' | 'quetes' | 'crews'>('vibe');
+  const [stories, setStories] = useState<StoryItem[]>(initialStories);
+  const [viewingStory, setViewingStory] = useState<StoryItem | null>(null);
+  const [showCreator, setShowCreator] = useState(false);
 
   const TABS = [
     { id: 'vibe', l: 'Pour toi' },
@@ -510,6 +788,14 @@ export default function GbairaiClient({ checkins, isLoggedIn }: Props) {
     { id: 'quetes', l: 'Quêtes' },
     { id: 'crews', l: 'Crews' },
   ] as const;
+
+  function handleAddStory() {
+    if (!isLoggedIn) {
+      window.location.href = '/app/auth/signin';
+      return;
+    }
+    setShowCreator(true);
+  }
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -522,7 +808,7 @@ export default function GbairaiClient({ checkins, isLoggedIn }: Props) {
           </Link>
           <div style={{ flex: 1 }}>
             <div className="font-display" style={{ fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-              C'comment ?
+              Gbairai
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#FF3B30', boxShadow: '0 0 0 0 rgba(255,59,48,0.7)', animation: 'shimmer 1.6s ease-in-out infinite' }} />
             </div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
@@ -532,7 +818,7 @@ export default function GbairaiClient({ checkins, isLoggedIn }: Props) {
           <button className="press" style={{ width: 38, height: 38, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--cream-2)', color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Ic.Search s={18} />
           </button>
-          <button className="press" style={{ width: 38, height: 38, borderRadius: 12, border: 'none', background: 'var(--orange)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(242,108,26,0.4)' }}>
+          <button onClick={handleAddStory} className="press" style={{ width: 38, height: 38, borderRadius: 12, border: 'none', background: 'var(--orange)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(242,108,26,0.4)' }}>
             <Ic.Plus s={18} />
           </button>
         </div>
@@ -548,11 +834,33 @@ export default function GbairaiClient({ checkins, isLoggedIn }: Props) {
       </div>
 
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-        {tab === 'vibe' && <TabVibe checkins={checkins} isLoggedIn={isLoggedIn} />}
-        {tab === 'spots' && <TabSpots />}
+        {tab === 'vibe' && (
+          <TabVibe
+            checkins={checkins}
+            isLoggedIn={isLoggedIn}
+            stories={stories}
+            onStoryClick={setViewingStory}
+            onAddStory={handleAddStory}
+          />
+        )}
+        {tab === 'spots' && <TabSpots topSpots={topSpots} />}
         {tab === 'quetes' && <TabQuetes />}
         {tab === 'crews' && <TabCrews />}
       </div>
+
+      {/* Story Viewer */}
+      {viewingStory && (
+        <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />
+      )}
+
+      {/* Story Creator */}
+      {showCreator && (
+        <StoryCreatorModal
+          userProfile={userProfile}
+          onClose={() => setShowCreator(false)}
+          onCreated={(newStory) => setStories((prev) => [newStory, ...prev])}
+        />
+      )}
     </div>
   );
 }

@@ -13,7 +13,8 @@ import TarifsSection from './TarifsSection';
 import CcommentSection from './CcommentSection';
 import StopReviewModal from '@/components/StopReviewModal';
 import StopReviewsListModal from './StopReviewsListModal';
-import CcommentButton from '@/components/CcommentButton';
+import StopReportModal from '@/components/StopReportModal';
+import { haversineM } from '@/lib/geo';
 
 type Props = { 
   stop: any;
@@ -28,6 +29,10 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
   const [showReviewsListModal, setShowReviewsListModal] = useState(false);
   const [reviewsCount, setReviewsCount] = useState(0);
   const [avgRating, setAvgRating] = useState(0);
+  const [validated, setValidated] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [tooFarDist, setTooFarDist] = useState<number | null>(null);
+  const [showCcommentModal, setShowCcommentModal] = useState(false);
   const stopId = stop.stop_id;
   // ... (rest of states)
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
@@ -51,6 +56,42 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
   useEffect(() => {
     loadReviewsData();
   }, [loadReviewsData]);
+
+  async function handleValidatePresence() {
+    if (!user) return;
+    setValidating(true);
+    setTooFarDist(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const dist = haversineM(pos.coords.latitude, pos.coords.longitude, stop.stop_lat, stop.stop_lon);
+        if (dist > 100) {
+          setTooFarDist(Math.round(dist));
+          setValidating(false);
+          return;
+        }
+        // Save validation + award XP
+        await Promise.all([
+          supabase.from('arret_validations').insert({
+            user_id: user.id,
+            stop_id: stopId,
+            stop_name: stop.stop_name,
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            xp_earned: 5,
+          }),
+          supabase.rpc('award_xp', { p_xp: 5 }),
+        ]);
+        setValidated(true);
+        setValidating(false);
+      },
+      () => {
+        setTooFarDist(-1);
+        setValidating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   const renderStars = (rating: number) => {
     return (
@@ -183,22 +224,92 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
         />
       )}
 
-      {/* Fixed Bottom CTA */}
-      <div style={{ position: 'sticky', bottom: 0, padding: '16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)', background: 'linear-gradient(0deg, var(--cream) 80%, transparent)', borderTop: '1px solid var(--line)', zIndex: 100 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <CcommentButton
-            stopId={stopId}
-            stopName={stop.stop_name}
-            userId={user?.id || null}
-            displayName={profile?.display_name ?? null}
-          />
-          
-          <button className="press" style={{ flex: 1.5, height: 54, borderRadius: 16, border: 'none', background: 'var(--ink)', color: 'white', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-            Suivre en direct
-            <Ic.Arrow s={16} />
-          </button>
-        </div>
+      {/* Fixed Bottom CTA — geoloc-gated */}
+      <div style={{ position: 'sticky', bottom: 0, padding: '12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px)', background: 'linear-gradient(0deg, var(--cream) 85%, transparent)', zIndex: 100 }}>
+        {!validated ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tooFarDist !== null && (
+              <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#EF4444' }}>
+                {tooFarDist === -1 ? 'GPS indisponible — active la localisation' : `Tu es à ${tooFarDist}m de l'arrêt (max 100m)`}
+              </div>
+            )}
+            <button
+              onClick={user ? handleValidatePresence : undefined}
+              disabled={validating}
+              className="press"
+              style={{
+                width: '100%', height: 56, borderRadius: 18,
+                background: user ? 'var(--ink)' : 'var(--line)',
+                color: user ? '#fff' : 'var(--muted)',
+                border: 'none', fontSize: 15, fontWeight: 900,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                cursor: (validating || !user) ? 'default' : 'pointer',
+                boxShadow: user ? '0 8px 20px rgba(26,20,16,0.2)' : 'none',
+                position: 'relative', overflow: 'hidden',
+              }}
+            >
+              <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.06, pointerEvents: 'none' }} />
+              {validating ? (
+                <>
+                  <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                  <span style={{ position: 'relative' }}>Vérification GPS…</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 20, position: 'relative' }}>📍</span>
+                  <span style={{ position: 'relative' }}>{user ? 'Je suis à cet arrêt' : 'Connecte-toi pour signaler'}</span>
+                </>
+              )}
+            </button>
+            <div style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--muted)', opacity: 0.6 }}>
+              Valide ta présence (+5 XP) pour laisser un C'comment
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'color-mix(in oklab, var(--green) 12%, transparent)',
+              border: '1px solid color-mix(in oklab, var(--green) 25%, transparent)',
+              borderRadius: 14, padding: '8px 16px',
+            }}>
+              <span style={{ fontSize: 18 }}>✅</span>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--green)' }}>Position validée · +5 XP</div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>Tu peux maintenant donner ton avis</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCcommentModal(true)}
+              className="press"
+              style={{
+                width: '100%', height: 54, borderRadius: 18,
+                background: 'var(--orange)', color: '#fff',
+                border: 'none', fontSize: 15, fontWeight: 900,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                cursor: 'pointer', boxShadow: '0 8px 20px rgba(242,108,26,0.3)',
+              }}
+            >
+              <Ic.Pin s={18} />
+              C'comment ici ?
+            </button>
+          </div>
+        )}
       </div>
+
+      {showCcommentModal && user && (
+        <StopReportModal
+          stopId={stopId}
+          stopName={stop.stop_name}
+          userId={user.id}
+          displayName={profile?.display_name ?? null}
+          onClose={() => setShowCcommentModal(false)}
+          onSuccess={() => {
+            setShowCcommentModal(false);
+            window.dispatchEvent(new CustomEvent('ccomment-refresh'));
+          }}
+        />
+      )}
     </div>
   );
 }
