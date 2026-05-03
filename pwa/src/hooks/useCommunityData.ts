@@ -15,6 +15,7 @@ export type UserProfile = {
   sub_tier: SubTier | null;
   is_admin: boolean;
   is_public_visits: boolean;
+  total_points: number | null;
 };
 
 type BroadcastProfile = {
@@ -82,7 +83,7 @@ export function useCommunityData({ logReach }: Options) {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('id, display_name, avatar_emoji, sub_tier, is_admin, is_public_visits')
+          .select('id, display_name, avatar_emoji, sub_tier, is_admin, is_public_visits, total_points')
           .eq('id', user.id)
           .single();
         if (!cancelled && data) setProfile({ ...(data as Omit<UserProfile, 'sub_tier'> & { sub_tier: string | null }), sub_tier: toSubTier(data.sub_tier) });
