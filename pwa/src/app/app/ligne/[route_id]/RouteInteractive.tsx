@@ -53,9 +53,10 @@ type SenseViewProps = {
   typeKind: 'gbaka' | 'woro' | 'taxi' | 'saloni';
   routeColorRaw: string;
   onSegmentChange: (seg: SegmentState) => void;
+  onChangeDeparture: (stopId: string) => void;
 };
 
-function SenseView({ sense, senseIndex, fromStop, typeKind, routeColorRaw, onSegmentChange }: SenseViewProps) {
+function SenseView({ sense, senseIndex, fromStop, typeKind, routeColorRaw, onSegmentChange, onChangeDeparture }: SenseViewProps) {
   const { stops } = sense;
 
   const [cutAtId, setCutAtId] = useState<string | null>(null);
@@ -289,20 +290,39 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, routeColorRaw, onSeg
                 </div>
               )}
 
-              {/* Je descends ici — future stops only, not in segmented mode */}
-              {isFuture && !isCurrent && !isDestination && !showSeg && (
-                <button
-                  className="press"
-                  onClick={() => handleDescendIci(stop)}
-                  style={{
-                    marginTop: 4, padding: '5px 10px', borderRadius: 8,
-                    background: 'var(--orange)', color: '#fff',
-                    fontSize: 11, fontWeight: 800, border: 'none',
-                    cursor: 'pointer', letterSpacing: 0.3,
-                  }}
-                >
-                  Je descends ici 🎯
-                </button>
+              {/* Actions sur les arrêts non-courants et hors mode segmenté */}
+              {!isCurrent && !isDestination && !showSeg && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button
+                    className="press"
+                    onClick={(e) => { e.preventDefault(); onChangeDeparture(stop.stop_id); }}
+                    style={{
+                      padding: '5px 10px', borderRadius: 8,
+                      background: 'color-mix(in oklab, var(--blue) 8%, transparent)',
+                      color: 'var(--blue)',
+                      fontSize: 11, fontWeight: 800,
+                      border: '1px solid color-mix(in oklab, var(--blue) 20%, transparent)',
+                      cursor: 'pointer', letterSpacing: 0.3,
+                    }}
+                  >
+                    Je pars d'ici 📍
+                  </button>
+
+                  {isFuture && (
+                    <button
+                      className="press"
+                      onClick={(e) => { e.preventDefault(); handleDescendIci(stop); }}
+                      style={{
+                        padding: '5px 10px', borderRadius: 8,
+                        background: 'var(--orange)', color: '#fff',
+                        fontSize: 11, fontWeight: 800, border: 'none',
+                        cursor: 'pointer', letterSpacing: 0.3,
+                      }}
+                    >
+                      Je descends ici 🎯
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -407,6 +427,15 @@ export default function RouteInteractive({
     setActiveSegment(seg);
   }, []);
 
+  const handleDepartureChange = useCallback((stopId: string) => {
+    setActiveDirFromStop(stopId);
+    setActiveSegment({ cutAtId: null, showSeg: false });
+    
+    const url = new URL(window.location.href);
+    url.searchParams.set('from', stopId);
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
   const destStopName = activeSegment.cutAtId
     ? activeSense.stops.find((s) => s.stop_id === activeSegment.cutAtId)?.stop_name
     : undefined;
@@ -474,6 +503,7 @@ export default function RouteInteractive({
         typeKind={typeKind}
         routeColorRaw={routeColorRaw}
         onSegmentChange={handleSegmentChange}
+        onChangeDeparture={handleDepartureChange}
       />
     </>
   );
