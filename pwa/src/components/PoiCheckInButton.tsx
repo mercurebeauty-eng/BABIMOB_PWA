@@ -13,13 +13,11 @@ type Props = {
   commune?: string;
   lat?: number;
   lon?: number;
+  sponsorTier?: 'pro' | 'elite' | null;
 };
 
-/**
- * Composant de check-in premium avec calcul de proximité GPS, 
- * gestion des XP (+10) et design Babi-tech (glassmorphism).
- */
-export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon }: Props) {
+export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon, sponsorTier }: Props) {
+  const xpAmount = sponsorTier === 'elite' ? 50 : sponsorTier === 'pro' ? 30 : 10;
   const supabase = createClient();
   const [status, setStatus] = useState<'checking' | 'idle' | 'loading' | 'done' | 'already' | 'error'>('checking');
   const [recentCount, setRecentCount] = useState<number | null>(null);
@@ -102,10 +100,12 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
          is_public: profile?.is_public_visits ?? false,
          display_name: profile?.display_name ?? 'Explorateur',
          avatar_emoji: profile?.avatar_emoji ?? '🧭',
-         points_earned: 10,
+         points_earned: xpAmount,
        });
 
        if (error) { setStatus('error'); return; }
+
+       await supabase.rpc('award_xp', { p_xp: xpAmount });
 
        setRecentCount((prev) => (prev ?? 0) + 1);
        setStatus('done');
@@ -142,7 +142,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {status === 'done' ? 'Présence validée (+10 XP) !' : 'Déjà visité aujourd\'hui'}
+            {status === 'done' ? `Présence validée (+${xpAmount} XP) !` : 'Déjà visité aujourd\'hui'}
           </div>
           {recentCount !== null && (
             <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.6, marginTop: 2 }}>
@@ -202,7 +202,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
       {/* Subtle hint */}
       {status === 'idle' && (
         <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Gagne +10 XP en validant ta présence
+          Gagne +{xpAmount} XP en validant ta présence
         </div>
       )}
     </div>

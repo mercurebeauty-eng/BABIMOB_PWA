@@ -121,51 +121,55 @@ export default async function PlacePage({ params }: Props) {
 
       <div className="no-scrollbar" style={{ position: 'relative', marginTop: -60, padding: '0 16px 120px 16px', zIndex: 5 }}>
         
-        {/* TITLE CARD */}
-        <div className="slide-up" style={{ 
-          background: '#fff', padding: 24, borderRadius: 32, 
-          boxShadow: '0 20px 60px rgba(26,20,16,0.1)',
-          marginBottom: 20, position: 'relative',
-          border: '1px solid rgba(0,0,0,0.03)'
+        {/* TITLE CARD — dark ink header */}
+        <div className="slide-up" style={{
+          background: 'var(--ink)', padding: 24, borderRadius: 32,
+          boxShadow: '0 20px 60px rgba(26,20,16,0.25)',
+          marginBottom: 20, position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-            <div style={{ 
-              width: 80, height: 80, borderRadius: 22, 
-              background: 'var(--cream-2)', display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', fontSize: 40,
-              border: '2px solid #fff', boxShadow: '0 8px 20px rgba(0,0,0,0.05)'
-            }}>
-              {place.logo_emoji ?? '📍'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, marginBottom: 6, textTransform: 'uppercase' }}>
-                {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
+          <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.07 }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+              <div style={{
+                width: 80, height: 80, borderRadius: 22,
+                background: 'rgba(255,255,255,0.1)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontSize: 40,
+                border: '2px solid rgba(255,255,255,0.15)',
+                flexShrink: 0,
+              }}>
+                {place.logo_emoji ?? '📍'}
               </div>
-              <h1 className="font-display" style={{ fontSize: 28, margin: 0, lineHeight: 1.1, fontWeight: 900 }}>{place.name}</h1>
-              {place.address && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, opacity: 0.6 }}>
-                  <Ic.Pin s={14} />
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>{place.address}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, marginBottom: 6, textTransform: 'uppercase' }}>
+                  {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
                 </div>
-              )}
+                <h1 className="font-display" style={{ fontSize: 26, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>{place.name}</h1>
+                {place.address && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                    <Ic.Pin s={14} color="rgba(255,255,255,0.5)" />
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{place.address}</div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {place.description && (
-            <p style={{ marginTop: 20, fontSize: 15, color: 'var(--muted)', lineHeight: 1.6, margin: '20px 0 0 0', fontWeight: 500 }}>
-              {place.description}
-            </p>
-          )}
+            {place.description && (
+              <p style={{ marginTop: 16, fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, margin: '16px 0 0 0', fontWeight: 500 }}>
+                {place.description}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* CHECK-IN CTA - NOW USING PREMIUM PoiCheckInButton */}
         <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
-          <PoiCheckInButton 
-            placeId={place.id} 
-            placeName={place.name} 
-            commune={place.commune ?? undefined} 
+          <PoiCheckInButton
+            placeId={place.id}
+            placeName={place.name}
+            commune={place.commune ?? undefined}
             lat={place.lat}
             lon={place.lon}
+            sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
           />
         </div>
 
@@ -201,7 +205,7 @@ export default async function PlacePage({ params }: Props) {
             )}
             {place.website && (
               <a href={place.website} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <div className="press" style={{ background: '#fff', color: 'var(--ink)', padding: '16px 12px', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 8px 20px rgba(0,0,0,0.05)', border: '1.5px solid var(--line)' }}>
+                <div className="press" style={{ background: 'var(--cream-2)', color: 'var(--ink)', padding: '16px 12px', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 8px 20px rgba(0,0,0,0.05)', border: '1.5px solid var(--line)' }}>
                   <span style={{ fontSize: 20 }}>🌐</span>
                   <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>SITE WEB</span>
                 </div>
@@ -212,10 +216,10 @@ export default async function PlacePage({ params }: Props) {
 
         {/* OFFRES & PROMOS */}
         {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
-          <div className="slide-up" style={{ 
-            background: '#fff', padding: 24, borderRadius: 32, marginBottom: 28,
+          <div className="slide-up" style={{
+            background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
             boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.3s',
-            border: '1px solid rgba(0,0,0,0.02)'
+            border: '1px solid rgba(26,20,16,0.04)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
               <Ic.Bolt s={22} color="var(--orange)" />
@@ -264,10 +268,10 @@ export default async function PlacePage({ params }: Props) {
 
         {/* ARRÊTS PROCHES - DESIGN REVISITÉ */}
         {nearbyStops && nearbyStops.length > 0 && (
-          <div className="slide-up" style={{ 
-            background: '#fff', padding: 24, borderRadius: 32, marginBottom: 28,
+          <div className="slide-up" style={{
+            background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
             boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.4s',
-            border: '1px solid rgba(0,0,0,0.02)'
+            border: '1px solid rgba(26,20,16,0.04)'
           }}>
              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

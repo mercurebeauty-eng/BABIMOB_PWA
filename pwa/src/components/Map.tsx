@@ -310,44 +310,46 @@ export default function Map({
     pois.forEach((p) => {
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
-      
-      // LOGIQUE DE VISIBILITÉ PAR ZOOM (Premium Apple Maps style)
-      // En dessous de zoom 14, seuls les partenaires (Elite/Pro) ou très chauds s'affichent
+
+      // Progressive zoom visibility — like Apple Maps
+      // < 13: Elite only · 13-14: Elite + Pro · >= 14: all
+      if (currentZoom < 13 && !isElite) return;
       if (currentZoom < 14 && !isElite && !isPro) return;
-      
+
       const emoji = p.logo_emoji ?? '🏢';
-      const bgColor = p.cover_color ?? 'var(--ink)';
+      const bgColor = p.cover_color ?? '#6B7280';
       const isSelected = selectedPoiId === p.id;
       const isLive = livePois.includes(p.id) || livePois.includes(`sp-${p.id}`);
       const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
 
-      // Tailles dynamiques
-      const circleSize = isElite ? 40 : isPro ? 32 : (currentZoom >= 15 ? 24 : 16);
-      const emojiSize = isElite ? 22 : isPro ? 17 : (currentZoom >= 15 ? 14 : 10);
-      
-      // Est-ce qu'on affiche le texte du nom du lieu ?
+      // Size tiers: elite > pro > normal (larger at higher zoom)
+      const circleSize = isElite ? 44 : isPro ? 34 : currentZoom >= 16 ? 28 : currentZoom >= 15 ? 22 : 16;
+      const emojiSize  = isElite ? 24 : isPro ? 18 : currentZoom >= 15 ? 14 : 10;
+
+      // Labels at high zoom or for selected/elite
       const showLabel = isElite || isSelected || currentZoom >= 16;
+      // Show emoji only at zoom >= 14 (except elite/pro always show)
+      const showEmoji = isElite || isPro || currentZoom >= 14;
 
       let extraClass = isElite
         ? 'bm-poi-circle-elite bm-poi-elite-pulse'
         : isPro
         ? 'bm-poi-circle-pro'
         : '';
-
       if (isLive) extraClass += ' bm-poi-live-pulse';
 
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
-      const stateClass = (showLabel || isSelected) ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
+      const stateClass = showLabel ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
       const presenceHtml = checkinCount > 0
         ? `<div class="bm-poi-presence">${SVG_PERSON}${checkinCount > 1 ? `<span class="bm-poi-presence-count">${checkinCount > 9 ? '9+' : checkinCount}</span>` : ''}</div>`
         : '';
 
       const html = `
-        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
+        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}" style="transform:translate(-50%,-50%);">
           ${presenceHtml}
-          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px; background:${bgColor}; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-            ${currentZoom >= 14 || isElite || isPro ? `<span class="bm-poi-emoji" style="font-size:${emojiSize}px; line-height: 1;">${emoji}</span>` : ''}
+          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px;height:${circleSize}px;background:${bgColor};border:2px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;border-radius:50%;">
+            ${showEmoji ? `<span class="bm-poi-emoji" style="font-size:${emojiSize}px;line-height:1;">${emoji}</span>` : ''}
           </div>
           ${showLabel ? `<span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>` : ''}
         </div>

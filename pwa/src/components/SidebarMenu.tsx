@@ -3,12 +3,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
-import BroadcastButton from '@/components/BroadcastButton';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  profile: any | null; // Profil utilisateur courant depuis useCommunityData
+  profile: any | null;
 };
 
 export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
@@ -16,45 +15,35 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay arrière-plan sombre */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             style={{
-              position: 'fixed',
-              inset: 0,
+              position: 'fixed', inset: 0,
               background: 'rgba(26,20,16,0.6)',
               backdropFilter: 'blur(4px)',
               zIndex: 9999,
             }}
           />
 
-          {/* Panneau latéral */}
           <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: '85%',
-              maxWidth: 360,
-              background: 'var(--cream)',
-              zIndex: 10000,
+              position: 'fixed', top: 0, left: 0, bottom: 0,
+              width: '85%', maxWidth: 360,
+              background: 'var(--cream)', zIndex: 10000,
               boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflowY: 'auto',
+              display: 'flex', flexDirection: 'column', overflowY: 'auto',
             }}
           >
             {/* Header / Profil */}
-            <div style={{ padding: 'calc(env(safe-area-inset-top, 20px) + 20px) 24px 24px', background: 'var(--cream-2)', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div style={{ padding: 'calc(env(safe-area-inset-top, 20px) + 20px) 24px 20px', background: 'var(--cream-2)', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 {profile ? (
                   <Link href="/app/compte" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
                     <div style={{ width: 48, height: 48, borderRadius: 16, background: '#fff', border: '2px solid var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
@@ -67,7 +56,7 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                   </Link>
                 ) : (
                   <Link href="/auth" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-                     <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
                       👤
                     </div>
                     <div>
@@ -80,41 +69,24 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                   <Ic.X s={18} color="var(--ink)" />
                 </button>
               </div>
-
-              {/* Broadcast Button */}
-              {profile && (
-                <div onClick={onClose}>
-                  <BroadcastButton userId={profile.id} currentTier={profile.sub_tier ?? 'free'} isAdmin={profile.is_admin} />
-                </div>
-              )}
             </div>
 
             {/* Menu Items */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              
-              <Link href="/app/compte" onClick={onClose} className="press" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ic.Users s={20} color="var(--orange)" />
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+              {/* Stories */}
+              <Link href="/app/gbairai" onClick={onClose} className="press" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: 'linear-gradient(135deg, rgba(242,108,26,0.08), rgba(232,178,60,0.08))', textDecoration: 'none', border: '1.5px solid rgba(242,108,26,0.15)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, var(--orange), #E8B23C)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 20 }}>✨</span>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Mon Profil</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>XP, Badges & Compte</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Stories & Gbairai</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pouls de la ville</div>
                 </div>
-                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
+                <Ic.Arrow s={16} dir="right" color="var(--orange)" />
               </Link>
 
-              <Link href="/app/gbairai" onClick={onClose} className="press" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ic.Chat s={20} color="var(--orange)" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Gbairai</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Le pouls d&apos;Abidjan</div>
-                </div>
-                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
-              </Link>
-
-              <div className="press" onClick={() => alert('Planificateur d\'itinéraire bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
+              <div className="press" onClick={() => alert('Planificateur d\'itinéraire bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: 'var(--cream-2)', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Ic.Route s={20} color="var(--blue)" />
                 </div>
@@ -125,7 +97,7 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                 <div style={{ fontSize: 10, fontWeight: 900, background: 'var(--line)', padding: '4px 8px', borderRadius: 8, color: 'var(--ink)' }}>WIP</div>
               </div>
 
-              <div className="press" onClick={() => alert('Mode Découvrir (Bons Plans) bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
+              <div className="press" onClick={() => alert('Mode Découvrir bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: 'var(--cream-2)', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Ic.Star s={20} color="var(--green)" />
                 </div>
@@ -136,13 +108,13 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                 <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </div>
 
-              <div className="press" onClick={() => alert('Heatmap des zones d\'activité bientôt optimisée !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
+              <div className="press" onClick={() => alert('Heatmap bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: 'var(--cream-2)', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,107,107,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Ic.Bolt s={20} color="#FF6B6B" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Activité & Heatmap</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Voir les zones chaudes</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Heatmap Transport</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Zones d'activité Gbaka</div>
                 </div>
                 <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </div>
