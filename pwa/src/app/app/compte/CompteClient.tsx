@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
+import dynamic from 'next/dynamic';
+
+const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
 type Badge = { badge_key: string; awarded_at: string };
 type CheckinDetail = { id: string; created_at: string; place_name: string; commune: string | null; lat?: number | null; lon?: number | null };
@@ -473,7 +476,17 @@ export default function CompteClient({ displayName, avatarEmoji, totalPoints, ch
           </TabPasseport>
         )}
         {tab === 'territoire' && (
-          <TabTerritoire commune={commune} heatmapNode={null} />
+          <TabTerritoire 
+            commune={commune} 
+            heatmapNode={
+              <Map 
+                center={[5.35, -4.02]} 
+                zoom={11} 
+                hotspots={checkinsDetail.filter(c => c.lat && c.lon).map(c => ({ id: c.id, lat: c.lat!, lon: c.lon!, intensity: 10 }))}
+                className="w-full h-full"
+              />
+            } 
+          />
         )}
         {tab === 'tableau' && (
           <TabClassement displayName={displayName} totalPoints={totalPoints} />
