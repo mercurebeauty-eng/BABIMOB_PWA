@@ -85,6 +85,7 @@ function AppPageContent() {
   const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady } = useMapPois({ logReach });
   const {
     userLoc,
+    userHeading,
     nearbyStops,
     setNearbyStops,
     loading: geoLoading,
