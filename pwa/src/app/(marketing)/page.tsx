@@ -7,6 +7,22 @@ import Link from 'next/link';
 const fT = 'var(--font-syne), system-ui, sans-serif';      // Syne - titres
 const fB = 'var(--font-lexend), system-ui, sans-serif';     // Lexend - corps
 
+// ── LOGO ─────────────────────────────────────────────────────────────
+/** Logo officiel BABIMOB — identique au favicon.svg de l'app */
+function AppLogo({ size = 36 }: { size?: number }) {
+  const r = Math.round(size * 0.22); // border-radius proportionnel
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/favicon.svg"
+      alt="Logo BABIMOB"
+      width={size}
+      height={size}
+      style={{ borderRadius: r, display: 'block', boxShadow: '0 4px 12px rgba(21,101,192,0.25)' }}
+    />
+  );
+}
+
 // ── DATA ─────────────────────────────────────────────────────────────
 
 const STEPS = [
@@ -479,16 +495,7 @@ export default function LandingPage() {
       }}>
         {/* Logo */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10, background: 'var(--orange)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(242,108,26,0.3)',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-          </div>
+          <AppLogo size={36} />
           <span style={{ fontSize: 20, fontWeight: 800, fontFamily: fT, letterSpacing: -0.5, color: 'var(--ink)' }}>
             BABIMOB
           </span>
@@ -923,16 +930,7 @@ export default function LandingPage() {
           {/* Brand */}
           <div style={{ flex: '1 1 260px', maxWidth: 320 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10, background: 'var(--orange)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(242,108,26,0.25)',
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-              </div>
+              <AppLogo size={36} />
               <span style={{ fontSize: 20, fontWeight: 800, fontFamily: fT, letterSpacing: -0.5 }}>BABIMOB</span>
             </div>
             <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
