@@ -66,8 +66,8 @@ function timeAgo(iso: string): string {
 }
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, children }: {
-  badges: Badge[]; checkinsDetail: CheckinDetail[]; totalPoints: number; checkinCount: number; children: React.ReactNode;
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount }: {
+  badges: Badge[]; checkinsDetail: CheckinDetail[]; totalPoints: number; checkinCount: number;
 }) {
   const today = new Date().toISOString().split('T')[0];
   const hasCheckedInToday = checkinsDetail.some(c => c.created_at.startsWith(today));
@@ -80,38 +80,51 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, child
 
   return (
     <>
-      {/* Premium Passport Card */}
-      <div style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 20, position: 'relative', background: 'linear-gradient(135deg,#1A1410 0%,#2A1F18 100%)', color: '#fff', boxShadow: '0 12px 30px rgba(0,0,0,0.2)' }}>
-        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.15 }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: 'linear-gradient(90deg,var(--orange),#E8B23C)' }} />
-        
-        <div style={{ position: 'relative', padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Ic.Flame s={24} color="#E8B23C" />
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5 }}>SÉRIE ACTUELLE</div>
-              <div className="font-display" style={{ fontSize: 28, color: '#fff' }}>{checkinCount}j</div>
-            </div>
-          </div>
-          
-          <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>VOTRE PROGRESSION HEBDO</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => {
-                const isDone = i < (checkinCount % 7) || (i === 6 && checkinCount > 0 && checkinCount % 7 === 0);
-                return (
-                  <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, height: 32, borderRadius: 10, background: isDone ? 'var(--orange)' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDone ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }}>
-                      {isDone ? '✓' : ''}
-                    </div>
-                    <div style={{ fontSize: 9, fontWeight: 800, marginTop: 4, color: isDone ? '#fff' : 'rgba(255,255,255,0.4)' }}>{d}</div>
-                  </div>
-                );
-              })}
+      {/* ──── STREAK · type Duolingo / LINE ──── */}
+      <div style={{
+        borderRadius: 20, overflow: 'hidden', marginBottom: 14, position: 'relative',
+        background: 'linear-gradient(135deg, #FF6B35 0%, #F26C1A 50%, #D9510A 100%)',
+        color: '#fff', padding: 16, boxShadow: '0 8px 24px rgba(242,108,26,0.3)'
+      }}>
+        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.12 }} />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 20,
+            background: 'rgba(0,0,0,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+            boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3)',
+          }}>
+            <span className="font-display" style={{ fontSize: 28, color: '#E8B23C' }}>{checkinCount}</span>
+            <div style={{ position: 'absolute', top: -8, right: -8, fontSize: 24 }}>
+              <Ic.Flame s={28} />
             </div>
           </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>SÉRIE EN COURS</div>
+            <div className="font-display" style={{ fontSize: 22, lineHeight: 1, marginTop: 2 }}>{checkinCount} jours sur Babi</div>
+            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 4 }}>Reviens demain pour <b style={{ color: '#fff' }}>+50 XP</b> bonus</div>
+          </div>
+        </div>
+        {/* 7 jours mini-tracker */}
+        <div style={{ display: 'flex', gap: 5, marginTop: 12, position: 'relative' }}>
+          {['L','M','M','J','V','S','D'].map((d, i) => {
+            const todayIdx = (new Date().getDay() + 6) % 7;
+            const done = i < todayIdx || (i === todayIdx && checkinCount > 0);
+            const isToday = i === todayIdx;
+            return (
+              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 3, fontWeight: 700 }}>{d}</div>
+                <div style={{
+                  height: 28, borderRadius: 8,
+                  background: done ? 'rgba(255,255,255,0.95)' : isToday ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+                  border: isToday ? '1.5px dashed rgba(255,255,255,0.7)' : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#F26C1A', fontSize: 14, fontWeight: 900,
+                }}>{done ? '✓' : ''}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -146,7 +159,7 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, child
         <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Album de badges</h3>
         <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)' }}>VOIR TOUT →</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
+      <div style={{ gridTemplateColumns: 'repeat(4, 1fr)', display: 'grid', gap: 10, marginBottom: 24 }}>
         {Object.entries(BADGE_META).slice(0, 8).map(([key, meta]) => {
           const earned = badges.some(b => b.badge_key === key);
           return (
@@ -223,9 +236,6 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, child
         )}
       </div>
 
-      {/* Paramètres (ProfileEditor + PreferencesEditor) */}
-      <h3 className="font-display" style={{ fontSize: 18, margin: '24px 0 12px' }}>Paramètres</h3>
-      {children}
     </>
   );
 }
@@ -325,43 +335,56 @@ function TabClassement({ displayName, totalPoints }: { displayName: string; tota
     { rank: 5, name: 'Didier A.', xp: '2 290', delta: '+5', c: '#0EA85B' },
     { rank: 6, name: 'Awa K.', xp: '2 105', delta: '-2', c: '#E8B23C' },
     { rank: 7, name: 'Kobi N.', xp: '1 880', delta: '+8', c: '#E5337A' },
+    { rank: 8, name: 'Ismaïl S.', xp: '1 720', delta: '+3', c: '#1E5BFF' },
+    { rank: 9, name: 'Marcel D.', xp: '1 540', delta: '0', c: '#F26C1A' },
   ];
 
   return (
     <>
-      {/* Podium */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 24, padding: '10px 0' }}>
+      {/* Podium top 3 */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 20, padding: '10px 0' }}>
         {PODIUM.map((p, i) => (
           <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ position: 'relative', width: 50, height: 50, margin: '0 auto 8px' }}>
-              <div style={{ width: '100%', height: '100%', borderRadius: 16, background: p.c, color: '#fff', fontSize: 18, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', border: p.rank === 1 ? '3px solid #E8B23C' : 'none', transform: 'rotate(-5deg)' }}>
-                {p.name[0]}
-              </div>
-              {p.rank === 1 && <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: 24 }}>👑</div>}
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: p.c, color: '#fff', fontSize: 16, fontWeight: 900, fontFamily: 'Archivo Black, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px', border: p.rank === 1 ? '3px solid #E8B23C' : 'none', position: 'relative' }}>
+              {p.name[0]}
+              {p.rank === 1 && <div style={{ position: 'absolute', top: -16, left: '50%', transform: 'translateX(-50%)', fontSize: 18 }}>👑</div>}
             </div>
-            <div className="font-display" style={{ fontSize: 13, color: 'var(--ink)' }}>{p.name}</div>
-            <div style={{ height: p.h, borderRadius: '14px 14px 0 0', marginTop: 10, background: `linear-gradient(180deg,${p.c} 0%,color-mix(in oklab,${p.c} 70%,black) 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 28, boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-              {p.rank}
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{p.xp} XP</div>
+            <div style={{
+              height: p.h, borderRadius: '12px 12px 0 0', marginTop: 6,
+              background: `linear-gradient(180deg, ${p.c} 0%, color-mix(in oklab, ${p.c} 70%, black) 100%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontFamily: 'Archivo Black, sans-serif', fontSize: 24,
+            }}>{p.rank}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Liste 4-10 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {LIST.map((p, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+            borderRadius: 12,
+            background: p.me ? 'color-mix(in oklab, var(--orange) 12%, var(--cream-2))' : 'var(--cream-2)',
+            border: p.me ? '1.5px solid var(--orange)' : '1px solid var(--line)',
+          }}>
+            <div className="font-display" style={{ width: 22, fontSize: 14, color: p.me ? 'var(--orange)' : 'var(--muted)', textAlign: 'center' }}>{p.rank}</div>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: p.c, color: '#fff', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.name[0]}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}{p.me && <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', marginLeft: 6, padding: '1px 5px', background: '#fff', borderRadius: 4, letterSpacing: 0.5 }}>TOI</span>}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.xp} XP</div>
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: p.delta.startsWith('+') ? '#0EA85B' : p.delta.startsWith('-') ? '#D9510A' : 'var(--muted)' }}>
+              {p.delta !== '0' ? (p.delta.startsWith('+') ? '↑' : '↓') : '·'} {p.delta}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Liste */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {LIST.map((p, i) => (
-          <div key={i} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, background: p.me ? 'color-mix(in oklab,var(--orange) 10%,var(--cream-2))' : 'var(--cream-2)', border: p.me ? '2px solid var(--orange)' : '1px solid var(--line)' }}>
-            <div className="font-display" style={{ width: 24, fontSize: 16, color: p.me ? 'var(--orange)' : 'var(--muted)', textAlign: 'center' }}>{p.rank}</div>
-            <div style={{ width: 36, height: 36, borderRadius: 12, background: p.c, color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.name[0]}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.xp} XP</div>
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 900, color: p.delta.startsWith('+') ? '#0EA85B' : '#D9510A', background: 'var(--cream)', padding: '4px 8px', borderRadius: 8 }}>
-              {p.delta}
-            </div>
-          </div>
-        ))}
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: 'var(--cream-2)', border: '1px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
+        Saison <b style={{ color: 'var(--ink)' }}>Harmattan</b> · se termine dans <b style={{ color: 'var(--orange)' }}>12 jours</b>
       </div>
     </>
   );
@@ -472,9 +495,7 @@ export default function CompteClient({ displayName, avatarEmoji, totalPoints, ch
       {/* Content */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 100px' }}>
         {tab === 'passeport' && (
-          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={totalPoints} checkinCount={checkinCount}>
-            {children}
-          </TabPasseport>
+          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={totalPoints} checkinCount={checkinCount} />
         )}
         {tab === 'territoire' && (
           <TabTerritoire 
@@ -495,10 +516,16 @@ export default function CompteClient({ displayName, avatarEmoji, totalPoints, ch
         )}
 
         {/* Paramètres toujours visibles en bas */}
-        <div style={{ marginTop: 32 }}>
-          <div style={{ height: 1, background: 'var(--line)', marginBottom: 24 }} />
-          <h3 className="font-display" style={{ fontSize: 20, marginBottom: 16 }}>Paramètres du compte</h3>
-          {children}
+        <div style={{ marginTop: 40, padding: '0 4px' }}>
+          <div style={{ height: 1.5, background: 'var(--line)', marginBottom: 28, position: 'relative' }}>
+            <div style={{ position: 'absolute', top: -1, left: 0, width: 40, height: 3, background: 'var(--orange)' }} />
+          </div>
+          <h3 className="font-display" style={{ fontSize: 20, marginBottom: 20, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Ic.Settings s={20} /> Paramètres du compte
+          </h3>
+          <div style={{ background: 'var(--cream-2)', padding: 20, borderRadius: 24, border: '1.5px solid var(--line)' }}>
+            {children}
+          </div>
         </div>
       </div>
     </div>
