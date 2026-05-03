@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
