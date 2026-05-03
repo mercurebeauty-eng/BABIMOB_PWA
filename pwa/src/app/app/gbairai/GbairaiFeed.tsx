@@ -1,121 +1,186 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
-import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
+import type { GbairaiPost } from './page';
 
-export type FeedCheckin = {
-  id: string;
-  place_name: string;
-  commune: string | null;
-  created_at: string;
-  display_name: string;
-  avatar_emoji: string;
-};
-
-const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#FF3B30'];
+const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#FF3B30', '#C4582E'];
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 1) return "à l'instant";
-  if (mins < 60) return `${mins}m`;
+  if (mins < 60) return `${mins}min`;
   if (mins < 1440) return `${Math.floor(mins / 60)}h`;
   return `${Math.floor(mins / 1440)}j`;
 }
 
-export default function GbairaiFeed({ initialCheckins }: { initialCheckins: FeedCheckin[] }) {
-  const [checkins, setCheckins] = useState<FeedCheckin[]>(initialCheckins);
-  const [newCount, setNewCount] = useState(0);
+type Props = {
+  initialPosts: GbairaiPost[];
+  myLikes: string[];
+  userId: string | null;
+};
+
+export default function GbairaiFeed({ initialPosts, myLikes: initialMyLikes, userId }: Props) {
+  const [posts, setPosts] = useState<GbairaiPost[]>(initialPosts);
+  const [liked, setLiked] = useState<Set<string>>(new Set(initialMyLikes));
   const supabase = createClient();
 
+  // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel('checkins-live-feed')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'checkins' },
-        (payload) => {
-          const c = payload.new as FeedCheckin & { is_public: boolean };
-          if (!c.is_public) return;
-          setCheckins((prev) => [c, ...prev].slice(0, 30));
-          setNewCount((n) => n + 1);
-          setTimeout(() => setNewCount((n) => Math.max(0, n - 1)), 4000);
-        }
-      )
+      .channel('gbairai-feed')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gbairai_posts' }, (payload) => {
+        const p = payload.new as GbairaiPost;
+        setPosts(prev => [p, ...prev].slice(0, 40));
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase]);
 
-  // Mock data for social feel
-  const getSocialMock = (idx: number) => ({
-    likes: 5 + (idx * 3) % 40,
-    replies: (idx * 2) % 12,
-    kind: idx % 4 === 0 ? 'Trafic' : idx % 4 === 1 ? 'Bon plan' : idx % 4 === 2 ? 'Alerte' : 'Check-in',
-    kindC: idx % 4 === 0 ? 'var(--orange)' : idx % 4 === 1 ? 'var(--green)' : idx % 4 === 2 ? 'var(--orange-deep)' : 'var(--blue)'
-  });
+  async function toggleLike(postId: string) {
+    if (!userId) return;
+    const isLiked = liked.has(postId);
+    // Optimistic update
+    setLiked(prev => {
+      const next = new Set(prev);
+      isLiked ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) } : p));
 
-  if (checkins.length === 0) {
+    if (isLiked) {
+      await supabase.from('gbairai_likes').delete().eq('post_id', postId).eq('user_id', userId);
+    } else {
+      await supabase.from('gbairai_likes').insert({ post_id: postId, user_id: userId });
+    }
+  }
+
+  if (posts.length === 0) {
     return (
-      <div style={{ padding: '40px 20px', textAlign: 'center', borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>👋</div>
-        <p style={{ fontSize: 15, color: 'var(--muted)', fontWeight: 600, marginBottom: 20 }}>Sois le premier à marquer ton territoire !</p>
-        <Link href="/app" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--orange)', color: '#fff', padding: '12px 24px', borderRadius: 999, fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>
-          Explorer la carte <Ic.Arrow s={16} />
-        </Link>
+      <div style={{ padding: '40px 20px', textAlign: 'center', margin: '0 16px', borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🗣️</div>
+        <div className="font-display" style={{ fontSize: 20, marginBottom: 8 }}>Gbairai est calme...</div>
+        <p style={{ fontSize: 13, color: 'var(--muted)' }}>Sois le premier à dire c&apos;comment !</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {checkins.map((c, idx) => {
-        const social = getSocialMock(idx);
-        return (
-          <div key={c.id} style={{ padding: 14, borderRadius: 16, background: 'var(--cream-2)', border: '1px solid var(--line)', position: 'relative' }}>
-            <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.02, borderRadius: 16 }} />
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: AVATAR_COLORS[idx % AVATAR_COLORS.length], color: '#fff', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {c.avatar_emoji || c.display_name?.[0]?.toUpperCase() || '?'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {c.display_name}
-                  <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--orange)', color: '#fff', fontSize: 9, fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{c.commune || 'Abidjan'} · {timeAgo(c.created_at)}</div>
-              </div>
-              <Pill color={social.kindC}>{social.kind}</Pill>
-            </div>
+    <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {posts.map((p, idx) => (
+        <PostCard key={p.id} post={p} idx={idx} isLiked={liked.has(p.id)} onLike={() => toggleLike(p.id)} />
+      ))}
+    </div>
+  );
+}
 
-            <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 10, position: 'relative' }}>
-              Est passé par <b>{c.place_name}</b>. {idx % 3 === 0 ? "Le trafic est fluide ici !" : idx % 3 === 1 ? "Attention, petit bouchon à prévoir." : "Prenez le Gbaka 205, il y en a beaucoup aujourd'hui."}
-            </div>
+function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: number; isLiked: boolean; onLike: () => void }) {
+  const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
 
-            {idx % 5 === 1 && (
-              <div style={{ height: 120, borderRadius: 12, background: 'linear-gradient(135deg, var(--ink) 0%, var(--orange) 100%)', marginBottom: 10, position: 'relative', overflow: 'hidden' }}>
-                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.2 }} />
-                <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: 10, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5, background: 'rgba(0,0,0,0.4)', padding: '3px 7px', borderRadius: 6 }}>Photo · {c.place_name}</div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)', fontWeight: 600, position: 'relative' }}>
-              <button className="press" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 600 }}>
-                <Ic.Star s={15} /> {social.likes}
-              </button>
-              <button className="press" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 600 }}>
-                <Ic.Chat s={15} /> {social.replies}
-              </button>
-              <button className="press" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 600, marginLeft: 'auto' }}>
-                <Ic.Route s={15} />
-              </button>
-            </div>
+  // TARIF CARD
+  if (p.post_type === 'tarif') {
+    const meta = p.metadata ?? {};
+    return (
+      <div style={{ borderRadius: 16, padding: 14, background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden', minHeight: 180 }}>
+        <div className="wax-zigzag" style={{ position: 'absolute', inset: 0, color: 'var(--green)', opacity: 0.12 }} />
+        <div style={{ position: 'relative' }}>
+          <Pill color="var(--green)">TARIF CONFIRMÉ</Pill>
+          <div className="font-display" style={{ fontSize: 16, marginTop: 8, color: '#fff', lineHeight: 1.05 }}>
+            {meta.from ?? '?'} → {meta.to ?? '?'}
           </div>
-        );
-      })}
+          <div className="font-display" style={{ fontSize: 28, color: 'var(--gold)', marginTop: 6 }}>{meta.prix ?? '?'}F</div>
+          <div style={{ fontSize: 10, color: 'rgba(247,241,230,0.6)', marginTop: 4 }}>{meta.confirmations ?? p.likes_count} confirment</div>
+          <CardFooter p={p} ac={ac} isLiked={isLiked} onLike={onLike} light />
+        </div>
+      </div>
+    );
+  }
+
+  // ALERTE CARD
+  if (p.post_type === 'alerte') {
+    return (
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+        <div style={{ height: 80, background: 'linear-gradient(135deg, #1A2D6B, #2B4FB7)', position: 'relative', overflow: 'hidden' }}>
+          <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
+          <div style={{ position: 'absolute', top: 6, left: 8, fontSize: 8, fontWeight: 900, color: '#fff', background: '#FF3B30', padding: '2px 6px', borderRadius: 4, letterSpacing: 0.4 }}>ALERTE</div>
+        </div>
+        <div style={{ padding: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.25 }}>{p.content}</div>
+          <CardFooter p={p} ac={ac} isLiked={isLiked} onLike={onLike} />
+        </div>
+      </div>
+    );
+  }
+
+  // EVENEMENT CARD
+  if (p.post_type === 'evenement') {
+    const meta = p.metadata ?? {};
+    return (
+      <div style={{ borderRadius: 16, padding: 14, background: 'linear-gradient(135deg, #1A2D6B, #2B4FB7)', color: '#fff', position: 'relative', overflow: 'hidden', minHeight: 160 }}>
+        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: 'var(--gold)', opacity: 0.18 }} />
+        <div style={{ position: 'relative' }}>
+          <Pill color="var(--gold)">{meta.date ?? 'CE SOIR'} · {meta.heure ?? ''}</Pill>
+          <div className="font-display" style={{ fontSize: 15, marginTop: 8, lineHeight: 1.1 }}>{p.content}</div>
+          <div style={{ fontSize: 10, opacity: 0.8, marginTop: 4 }}>{p.place_name ?? p.commune} · {meta.prix ?? ''}</div>
+          <div style={{ marginTop: 10, fontSize: 10, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Ic.Users s={11} /> {p.likes_count} Babis y vont
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // BOUFFE CARD
+  if (p.post_type === 'bouffe') {
+    return (
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+        <div style={{ height: 140, background: 'linear-gradient(135deg, #E8B23C, #F26C1A, #D9510A)', position: 'relative', overflow: 'hidden' }}>
+          <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
+        </div>
+        <div style={{ padding: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <span style={{ fontSize: 9, fontWeight: 900, color: '#fff', background: 'var(--gold)', padding: '2px 6px', borderRadius: 4 }}>BOUFFE</span>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.25 }}>{p.content}</div>
+          <CardFooter p={p} ac={ac} isLiked={isLiked} onLike={onLike} />
+        </div>
+      </div>
+    );
+  }
+
+  // DEFAULT — VIBE / BON_PLAN
+  return (
+    <div style={{ borderRadius: 16, padding: 14, background: 'var(--cream-2)', border: '1px solid var(--line)', position: 'relative', overflow: 'hidden' }}>
+      {p.post_type === 'bon_plan' && <Pill color="var(--green)">BON PLAN</Pill>}
+      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3, marginTop: p.post_type === 'bon_plan' ? 8 : 0 }}>{p.content}</div>
+      {p.commune && <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>📍 {p.commune}{p.place_name ? ` · ${p.place_name}` : ''}</div>}
+      {p.hashtags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+          {p.hashtags.map((t, i) => (
+            <span key={i} style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>#{t}</span>
+          ))}
+        </div>
+      )}
+      <CardFooter p={p} ac={ac} isLiked={isLiked} onLike={onLike} />
+    </div>
+  );
+}
+
+function CardFooter({ p, ac, isLiked, onLike, light = false }: { p: GbairaiPost; ac: string; isLiked: boolean; onLike: () => void; light?: boolean }) {
+  const mutedC = light ? 'rgba(247,241,230,0.6)' : 'var(--muted)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+      <div style={{ width: 18, height: 18, borderRadius: '50%', background: ac, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {p.avatar_emoji || p.display_name?.[0] || '?'}
+      </div>
+      <span style={{ fontSize: 10, color: mutedC, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {p.display_name} · {timeAgo(p.created_at)}
+      </span>
+      <button onClick={onLike} className="press" style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: isLiked ? 'var(--orange)' : mutedC, fontWeight: 800, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+        <Ic.Heart s={12} fill={isLiked} /> {p.likes_count > 0 ? p.likes_count : ''}
+      </button>
     </div>
   );
 }

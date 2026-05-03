@@ -1,18 +1,153 @@
 import { createClient } from '@/lib/supabase/server';
-import GbairaiClient, { type FeedCheckin } from './GbairaiClient';
+import GbairaiClient from './GbairaiClient';
+
+export type GbairaiPost = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  avatar_emoji: string;
+  post_type: 'vibe' | 'tarif' | 'alerte' | 'bouffe' | 'evenement' | 'bon_plan';
+  content: string;
+  hashtags: string[];
+  commune: string | null;
+  place_name: string | null;
+  lat: number | null;
+  lon: number | null;
+  metadata: Record<string, any>;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+};
+
+export type HotSpot = {
+  place_id: string;
+  place_name: string;
+  commune: string | null;
+  logo_emoji: string;
+  cover_color: string;
+  checkin_count: number;
+};
+
+export type CommunePulse = {
+  commune: string;
+  report_count: number;
+  checkin_count: number;
+  status: 'vert' | 'orange' | 'rouge';
+};
 
 export default async function GbairaiPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: feed } = await supabase
-    .from('checkins')
-    .select('id, place_name, commune, created_at, display_name, avatar_emoji')
-    .eq('is_public', true)
+  // Fetch profile for level gating
+  let profile: any = null;
+  if (user) {
+    const { data } = await supabase
+      .from('profiles').select('*').eq('id', user.id).maybeSingle();
+    profile = data;
+  }
+
+  // 1. Feed posts (derniers 30)
+  const { data: posts } = await supabase
+    .from('gbairai_posts')
+    .select('*')
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(30);
 
-  const checkins = (feed ?? []) as FeedCheckin[];
+  // 2. Posts likés par l'utilisateur courant
+  let myLikes: string[] = [];
+  if (user) {
+    const { data: likes } = await supabase
+      .from('gbairai_likes')
+      .select('post_id')
+      .eq('user_id', user.id);
+    myLikes = (likes ?? []).map(l => l.post_id);
+  }
 
-  return <GbairaiClient checkins={checkins} isLoggedIn={!!user} />;
+  // 3. Spots chauds (lieux avec le plus de checkins ces 7 derniers jours)
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentCheckins } = await supabase
+    .from('checkins')
+    .select('place_id, place_name, commune')
+    .gte('created_at', oneWeekAgo)
+    .eq('is_public', true);
+
+  // Agréger les spots
+  const spotMap = new Map<string, { place_name: string; commune: string | null; count: number }>();
+  (recentCheckins ?? []).forEach(c => {
+    const key = c.place_id;
+    const existing = spotMap.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      spotMap.set(key, { place_name: c.place_name, commune: c.commune, count: 1 });
+    }
+  });
+  const hotSpots: HotSpot[] = Array.from(spotMap.entries())
+    .map(([place_id, v]) => ({
+      place_id,
+      place_name: v.place_name,
+      commune: v.commune,
+      logo_emoji: '📍',
+      cover_color: '#F26C1A',
+      checkin_count: v.count,
+    }))
+    .sort((a, b) => b.checkin_count - a.checkin_count)
+    .slice(0, 5);
+
+  // 4. Pulse de la ville — basé sur stop_reports récents par commune
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: reportsRaw } = await supabase
+    .from('stop_reports')
+    .select('stop_id, category')
+    .gte('created_at', oneDayAgo);
+
+  // Agréger les checkins par commune pour le pulse
+  const communeCheckins = new Map<string, number>();
+  (recentCheckins ?? []).forEach(c => {
+    if (c.commune) communeCheckins.set(c.commune, (communeCheckins.get(c.commune) ?? 0) + 1);
+  });
+
+  const MAIN_COMMUNES = ['Cocody', 'Plateau', 'Yopougon', 'Adjamé', 'Marcory', 'Treichville'];
+  const pulse: CommunePulse[] = MAIN_COMMUNES.map(commune => {
+    const cc = communeCheckins.get(commune) ?? 0;
+    const reportCount = (reportsRaw ?? []).length; // simplified
+    const status: 'vert' | 'orange' | 'rouge' = cc > 5 ? 'rouge' : cc > 2 ? 'orange' : 'vert';
+    return { commune, report_count: reportCount, checkin_count: cc, status };
+  });
+
+  // 5. Stories — derniers broadcasts actifs
+  const { data: broadcasts } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_emoji, broadcast_text, broadcast_lat, broadcast_lon, origin_commune, last_broadcast_at')
+    .not('broadcast_text', 'is', null)
+    .gte('last_broadcast_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+    .order('last_broadcast_at', { ascending: false })
+    .limit(15);
+
+  // 6. Trending hashtags
+  const tagCount = new Map<string, number>();
+  (posts ?? []).forEach(p => {
+    (p.hashtags ?? []).forEach((tag: string) => {
+      tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1);
+    });
+  });
+  const trendingTags = Array.from(tagCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([tag, count]) => ({ tag, count }));
+
+  return (
+    <GbairaiClient
+      initialPosts={(posts ?? []) as GbairaiPost[]}
+      myLikes={myLikes}
+      hotSpots={hotSpots}
+      pulse={pulse}
+      broadcasts={broadcasts ?? []}
+      trendingTags={trendingTags}
+      profile={profile}
+      userId={user?.id ?? null}
+    />
+  );
 }

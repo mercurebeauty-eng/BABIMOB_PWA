@@ -86,13 +86,4 @@ export const Ic = {
   Settings: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></P>
   ),
-  Flame: ({ s = 20, color }: IconProps) => (
-    <P s={s} color={color}><path d="M12 2C9 7 6 10 6 14a6 6 0 0012 0c0-2-1-4-2-5.5C15 10 14 12 12 12c0-2 1-6 0-10z" stroke="currentColor" strokeWidth="2" fill="currentColor" fillOpacity="0.2" strokeLinejoin="round"/></P>
-  ),
-  Trophy: ({ s = 20, color }: IconProps) => (
-    <P s={s} color={color}><path d="M8 3H5v5c0 3 2 5 4 6v2H7v2h10v-2h-2v-2c2-1 4-3 4-6V3h-3M8 3h8" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></P>
-  ),
-  Moon: ({ s = 20, color }: IconProps) => (
-    <P s={s} color={color}><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></P>
-  ),
 };

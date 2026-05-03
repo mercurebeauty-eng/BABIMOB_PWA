@@ -103,6 +103,17 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                 <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </Link>
 
+              <Link href="/app/gbairai" onClick={onClose} className="press" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'color-mix(in oklab, var(--orange) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ic.Chat s={20} color="var(--orange)" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Gbairai</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Le pouls d&apos;Abidjan</div>
+                </div>
+                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
+              </Link>
+
               <div className="press" onClick={() => alert('Planificateur d\'itinéraire bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Ic.Route s={20} color="var(--blue)" />
