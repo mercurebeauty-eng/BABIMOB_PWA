@@ -62,6 +62,8 @@ export default async function ComptePage() {
       badges={badges ?? []}
       checkinsDetail={checkinsDetail ?? []}
       commune={commune}
+      streakCount={profile?.streak_count ?? 0}
+      lastBonusAt={profile?.last_daily_bonus_at || null}
       topExplorers={topExplorers ?? []}
       dailyMissions={dailyMissions}
     >

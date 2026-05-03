@@ -20,6 +20,8 @@ type Props = {
   badges: Badge[];
   checkinsDetail: any[];
   commune: string;
+  streakCount: number;
+  lastBonusAt: string | null;
   topExplorers: { id: string; display_name: string; avatar_emoji: string; total_points: number }[];
   dailyMissions: { id: string; label: string; task: string; current: number; target: number; xp: number }[];
   children?: React.ReactNode;
@@ -65,18 +67,24 @@ function timeAgo(iso: string): string {
 }
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, dailyMissions, setShowAlbum }: {
-  badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum }: {
+  badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; streak: number; showWeekly: boolean; setShowWeekly: (v: boolean) => void; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
 }) {
+  const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  const todayIndex = (new Date().getDay() + 6) % 7; // 0=Mon, 6=Sun
 
   return (
     <>
       {/* ──── STREAK · type Duolingo / LINE ──── */}
-      <div style={{
-        borderRadius: 20, overflow: 'hidden', marginBottom: 14, position: 'relative',
-        background: 'linear-gradient(135deg, #FF6B35 0%, #F26C1A 50%, #D9510A 100%)',
-        color: '#fff', padding: 16, boxShadow: '0 8px 24px rgba(242,108,26,0.3)'
-      }}>
+      <div 
+        onClick={() => setShowWeekly(!showWeekly)}
+        style={{
+          borderRadius: 20, overflow: 'hidden', marginBottom: 14, position: 'relative',
+          background: 'linear-gradient(135deg, #FF6B35 0%, #F26C1A 50%, #D9510A 100%)',
+          color: '#fff', padding: 16, boxShadow: '0 8px 24px rgba(242,108,26,0.3)',
+          cursor: 'pointer'
+        }}
+      >
         <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.12 }} />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
@@ -86,33 +94,85 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, daily
             position: 'relative',
             boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3)',
           }}>
-            <span className="font-display" style={{ fontSize: 28, color: '#E8B23C' }}>{checkinCount}</span>
+            <span className="font-display" style={{ fontSize: 28, color: '#E8B23C' }}>{streak}</span>
             <div style={{ position: 'absolute', top: -8, right: -8, fontSize: 24 }}>
               <Ic.Flame s={28} />
             </div>
           </div>
-          <div style={{ flex: 1, padding: '16px 14px', borderRadius: 20, background: 'var(--ink)', color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Missions du jour</div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'rgba(242,108,26,0.15)', padding: '2px 6px', borderRadius: 6 }}>{dailyMissions.filter(m => m.current >= m.target).length}/{dailyMissions.length}</div>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {dailyMissions.map((m) => {
-                const done = m.current >= m.target;
-                return (
-                  <div key={m.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
-                      <span style={{ opacity: done ? 0.5 : 1 }}>{m.task}</span>
-                      <span style={{ color: done ? '#0EA85B' : 'var(--orange)' }}>{done ? 'V' : `+${m.xp} XP`}</span>
-                    </div>
-                    <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                      <div style={{ height: '100%', width: `${Math.min(100, (m.current / m.target) * 100)}%`, background: done ? '#0EA85B' : 'var(--orange)', borderRadius: 2 }} />
-                    </div>
+
+          <div style={{ flex: 1, minHeight: 110, position: 'relative' }}>
+            <AnimatePresence mode="wait">
+              {!showWeekly ? (
+                <motion.div 
+                  key="missions"
+                  initial={{ rotateX: -90, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  exit={{ rotateX: 90, opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  style={{ padding: '16px 14px', borderRadius: 20, background: 'var(--ink)', color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Missions du jour</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'rgba(242,108,26,0.15)', padding: '2px 6px', borderRadius: 6 }}>{dailyMissions.filter((m: any) => m.current >= m.target).length}/{dailyMissions.length}</div>
                   </div>
-                );
-              })}
-            </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {dailyMissions.map((m: any) => {
+                      const done = m.current >= m.target;
+                      return (
+                        <div key={m.id}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                            <span style={{ opacity: done ? 0.5 : 1 }}>{m.task}</span>
+                            <span style={{ color: done ? '#0EA85B' : 'var(--orange)' }}>{done ? 'V' : `+${m.xp} XP`}</span>
+                          </div>
+                          <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                            <div style={{ height: '100%', width: `${Math.min(100, (m.current / m.target) * 100)}%`, background: done ? '#0EA85B' : 'var(--orange)', borderRadius: 2 }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="weekly"
+                  initial={{ rotateX: 90, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  exit={{ rotateX: -90, opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  style={{ padding: '16px 14px', borderRadius: 20, background: 'var(--ink)', color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Série en cours</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: '#E8B23C' }}>PROG. SEMAINE</div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {weekDays.map((day, i) => {
+                      const isPast = i < todayIndex;
+                      const isToday = i === todayIndex;
+                      // Simple logic: if streak covers the day
+                      const active = i <= todayIndex && (todayIndex - i) < streak;
+                      
+                      return (
+                        <div key={i} style={{ textAlign: 'center' }}>
+                          <div style={{ 
+                            width: 32, height: 32, borderRadius: '50%', 
+                            background: active ? 'var(--orange)' : 'rgba(255,255,255,0.1)', 
+                            border: isToday ? '2px solid #E8B23C' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginBottom: 4, transition: 'all 0.3s ease'
+                          }}>
+                            {active ? <Ic.Star s={14} fill /> : <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{day}</span>}
+                          </div>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: isToday ? '#E8B23C' : 'rgba(255,255,255,0.4)' }}>{day}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -316,10 +376,12 @@ function TabClassement({
 }
 
 export default function CompteClient({ 
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, topExplorers, dailyMissions, children 
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, children 
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
+  const [streak, setStreak] = useState(initialStreak);
+  const [showWeekly, setShowWeekly] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
 
   // Dynamic calculation of conquest
@@ -343,7 +405,7 @@ export default function CompteClient({
       const { data } = await supabase.rpc('claim_daily_bonus');
       if (data?.success) {
         setPoints(p => p + 50);
-        // On pourrait ajouter une petite notif ici
+        if (data.streak_count) setStreak(data.streak_count);
       }
     };
     claimBonus();
@@ -418,7 +480,7 @@ export default function CompteClient({
           {/* Stats 4 colonnes */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 14 }}>
             {[
-              { v: checkinCount.toString(), l: 'Trajets', c: 'var(--orange)' },
+              { v: streak.toString(), l: 'Série', c: 'var(--orange)' },
               { v: badges.length.toString(), l: 'Badges', c: '#0EA85B' },
               { v: `${explorationPct}%`, l: 'Babi', c: '#1E5BFF' },
               { v: points.toLocaleString(), l: 'Points', c: '#E8B23C' },
@@ -447,7 +509,17 @@ export default function CompteClient({
       {/* Content */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 100px' }}>
         {tab === 'passeport' && (
-          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={points} checkinCount={checkinCount} dailyMissions={dailyMissions} setShowAlbum={setShowAlbum} />
+          <TabPasseport 
+            badges={badges} 
+            checkinsDetail={checkinsDetail} 
+            totalPoints={points} 
+            checkinCount={checkinCount} 
+            streak={streak}
+            showWeekly={showWeekly}
+            setShowWeekly={setShowWeekly}
+            dailyMissions={dailyMissions} 
+            setShowAlbum={setShowAlbum} 
+          />
         )}
         {tab === 'territoire' && (
           <TabTerritoire 
