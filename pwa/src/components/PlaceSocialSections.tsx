@@ -149,7 +149,7 @@ export default function PlaceSocialSections({
               <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Ic.Chat s={18} color="var(--blue)" />
               </div>
-              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>C'EST COMMENT ?</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>C'COMMENT</h2>
             </div>
             
             {userId && (

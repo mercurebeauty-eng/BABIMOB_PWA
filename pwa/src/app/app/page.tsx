@@ -111,9 +111,16 @@ function AppPageContent() {
     }))}`);
   }, [router]);
 
+  const [recenterSignal, setRecenterSignal] = useState(0);
+
   // Auto-request geolocation on mount
   const locateMeRef = useRef(locateMe);
   useEffect(() => { locateMeRef.current(); }, []);
+
+  const handleLocateMe = useCallback(() => {
+    setRecenterSignal(s => s + 1);
+    locateMe();
+  }, [locateMe]);
 
   const SNAP = { mini: 60, peek: 120, half: 400, full: 620 } as const;
   type SheetState = keyof typeof SNAP;
@@ -254,6 +261,7 @@ function AppPageContent() {
         selectedStopId={selected?.stop_id ?? null}
         selectedPoiId={selectedPoi?.id ?? null}
         satellite={isSatellite}
+        recenterSignal={recenterSignal}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => {
           if (poi.place_id) {
@@ -307,7 +315,7 @@ function AppPageContent() {
         {(
           [
             { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite, loading: false },
-            { icon: <Ic.Locate s={18} />, action: locateMe, active: !!userLoc, loading: geoLoading },
+            { icon: <Ic.Locate s={18} />, action: handleLocateMe, active: !!userLoc, loading: geoLoading },
             { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole'), active: false, loading: false },
           ] as { icon: React.ReactNode; action: () => void; active: boolean; loading: boolean }[]
         ).map((btn, i) => (
@@ -521,7 +529,7 @@ function AppPageContent() {
                         </div>
                         <div style={{ flex: 1, fontSize: 13 }}>
                           <div style={{ fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginTop: 1 }}>{r.type || 'Transport'} · Ligne {r.id}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginTop: 1 }}>{r.type || 'Transport'}</div>
                         </div>
                         <Ic.Arrow s={16} />
                       </Link>
@@ -576,7 +584,7 @@ function AppPageContent() {
               ))}
               {!query && (
                 <>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>LIGNES RÉCENTES</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>RECHERCHES RÉCENTES</div>
                   {recentLines.map((r, i) => (
                     <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, textDecoration: 'none' }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}` }}>
@@ -584,7 +592,7 @@ function AppPageContent() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
-                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>Ligne {r.id}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>{r.type || 'Transport'}</div>
                       </div>
                     </Link>
                   ))}

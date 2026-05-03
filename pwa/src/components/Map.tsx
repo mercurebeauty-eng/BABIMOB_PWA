@@ -38,6 +38,7 @@ type Props = {
   livePois?: string[];
   broadcasts?: { id: string; display_name: string | null; avatar_emoji: string | null; broadcast_text: string | null; broadcast_lat: number | null; broadcast_lon: number | null }[];
   pois?: POI[];
+  recenterSignal?: number;
 };
 
 function makeMarkerIcon(selected = false) {
@@ -79,6 +80,7 @@ export default function Map({
   livePois = [],
   broadcasts = [],
   pois = [],
+  recenterSignal = 0,
   onPoiClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -170,6 +172,16 @@ export default function Map({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Drag tracking ──────────────────────────────────────────────────────────
+  const userPannedRef = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const onDragStart = () => { userPannedRef.current = true; };
+    map.on('dragstart', onDragStart);
+    return () => { map.off('dragstart', onDragStart); };
+  }, []);
+
   // ── Satellite toggle ───────────────────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
@@ -186,9 +198,38 @@ export default function Map({
   }, [satellite]);
 
   // ── Recentrage ─────────────────────────────────────────────────────────────
+  const prevSelectedStopId = useRef(selectedStopId);
+  const prevSelectedPoiId = useRef(selectedPoiId);
+  const prevRecenterSignal = useRef(recenterSignal);
+  const initialCenterDone = useRef(false);
+
   useEffect(() => {
-    mapRef.current?.setView(center, zoom);
-  }, [center, zoom]);
+    const map = mapRef.current;
+    if (!map) return;
+
+    const stopChanged = selectedStopId !== prevSelectedStopId.current;
+    const poiChanged = selectedPoiId !== prevSelectedPoiId.current;
+    const signalChanged = recenterSignal !== prevRecenterSignal.current;
+
+    // Center if it's the first time and we have a valid center (not [0,0] if that was default)
+    const isFirstTime = !initialCenterDone.current;
+
+    if (stopChanged || poiChanged || signalChanged || isFirstTime) {
+      userPannedRef.current = false;
+      map.setView(center, zoom);
+      
+      prevSelectedStopId.current = selectedStopId;
+      prevSelectedPoiId.current = selectedPoiId;
+      prevRecenterSignal.current = recenterSignal;
+      initialCenterDone.current = true;
+      return;
+    }
+
+    // Si on n'a pas déclenché de re-centrage forcé et que l'utilisateur a manipulé la carte, on ignore.
+    if (userPannedRef.current) return;
+
+    map.setView(center, zoom);
+  }, [center[0], center[1], zoom, selectedStopId, selectedPoiId, recenterSignal]);
 
   // ── Hotspots (Heatmap) ─────────────────────────────────────────────────────
   useEffect(() => {

@@ -46,7 +46,7 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
         place_id: placeId,
         user_id: userId,
         content: fullContent,
-        is_question: true // Mis à true par précaution pour le RLS
+        is_question: false
       })
       .select('id, content, created_at, is_question')
       .single();
