@@ -71,6 +71,7 @@ export default function Map({
   onStopClick,
   onMapReady,
   userLocation = null,
+  userHeading = null,
   route = null,
   routeColor = '',
   legs = null,
@@ -448,11 +449,18 @@ export default function Map({
 
     if (!userLocation) return;
 
+    const hasHeading = userHeading !== null;
+    const rotate = hasHeading ? `rotate(${userHeading}deg)` : 'rotate(0deg)';
+
     const icon = L.divIcon({
-      className: '',
-      html: '<div class="bm-user-marker"></div>',
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
+      className: 'bm-user-marker-parent',
+      html: `
+        <div class="bm-user-marker">
+          ${hasHeading ? `<div class="bm-user-heading" style="transform: ${rotate}"></div>` : ''}
+        </div>
+      `,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
     });
 
     const marker = L.marker(userLocation, { icon, zIndexOffset: 1000 })
@@ -463,7 +471,7 @@ export default function Map({
       .addTo(map);
 
     userMarkerRef.current = marker;
-  }, [userLocation]);
+  }, [userLocation, userHeading]);
 
   // ── Multi-leg itinerary ───────────────────────────────────────────────────
   useEffect(() => {

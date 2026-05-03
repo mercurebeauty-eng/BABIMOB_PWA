@@ -273,6 +273,7 @@ function AppPageContent() {
         }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
+        userHeading={userHeading}
         legs={activeItinerary?.legs?.map((l) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
         hotspots={hotspots}
         explorers={explorers}

@@ -17,6 +17,7 @@ export function useGeoLocation({ onPositionAcquired, onLocate }: Options = {}) {
   const mountedRef = useRef(true);
 
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
+  const [userHeading, setUserHeading] = useState<number | null>(null);
   const [nearbyStops, setNearbyStops] = useState<ArretProche[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export function useGeoLocation({ onPositionAcquired, onLocate }: Options = {}) {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         setUserLoc([lat, lon]);
+        setUserHeading(pos.coords.heading);
         onPositionAcquiredRef.current?.([lat, lon]);
 
         const { data, error: rpcError } = await supabase.rpc('arrets_proches', {
@@ -66,7 +68,10 @@ export function useGeoLocation({ onPositionAcquired, onLocate }: Options = {}) {
 
         watchIdRef.current = navigator.geolocation.watchPosition(
           (p) => {
-            if (mountedRef.current) setUserLoc([p.coords.latitude, p.coords.longitude]);
+            if (mountedRef.current) {
+              setUserLoc([p.coords.latitude, p.coords.longitude]);
+              setUserHeading(p.coords.heading);
+            }
           },
           () => {},
           { enableHighAccuracy: true }
@@ -90,5 +95,5 @@ export function useGeoLocation({ onPositionAcquired, onLocate }: Options = {}) {
     };
   }, []);
 
-  return { userLoc, nearbyStops, setNearbyStops, loading, error, locateMe };
+  return { userLoc, userHeading, nearbyStops, setNearbyStops, loading, error, locateMe };
 }
