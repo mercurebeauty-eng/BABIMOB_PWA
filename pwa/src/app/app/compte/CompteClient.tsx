@@ -163,7 +163,7 @@ function TabTerritoire({
 }: { 
   commune: string; 
   heatmapNode: React.ReactNode;
-  checkinsDetail: CheckinDetail[];
+  checkinsDetail: any[];
 }) {
   const totalVisits = checkinsDetail.length;
   const communeCounts: Record<string, number> = {};
