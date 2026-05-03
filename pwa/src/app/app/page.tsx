@@ -276,7 +276,7 @@ function AppPageContent() {
         userLocation={userLoc}
         userHeading={userHeading}
         legs={activeItinerary?.legs?.map((l) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
-        hotspots={hotspots}
+        hotspots={heatMode ? hotspots : []}
         explorers={explorers}
         pois={pois}
         poiCheckins={poiCheckins}

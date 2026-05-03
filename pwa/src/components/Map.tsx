@@ -245,37 +245,38 @@ export default function Map({
     layer.clearLayers();
 
     hotspots.forEach((h: any) => {
-      const isTransport = h.id?.startsWith('stop-') || h.place_id?.startsWith('stop-');
-      const baseColor = isTransport ? 'var(--blue)' : '#ff3d00';
-      const coreColor = isTransport ? '#5d87ff' : '#ff9100';
+      const isTransport = String(h.id || h.place_id || '').startsWith('stop-');
+      // Vibrant blue for transport, vibrant orange for others
+      const baseColor = isTransport ? '#007AFF' : '#ff3d00';
+      const coreColor = isTransport ? '#5AC8FA' : '#ff9100';
 
       // 1. Large vibrant glow
-      const intensityScale = Math.min(h.intensity / 50, 1);
-      const outerRadius = 100 + intensityScale * 150;
+      const intensityScale = Math.min((h.intensity || 0) / 20, 1); // More sensitive scale (20 instead of 50)
+      const outerRadius = 150 + intensityScale * 250; // Larger radius
       
       L.circle([h.lat, h.lon], {
         radius: outerRadius,
         stroke: false,
         fillColor: baseColor,
-        fillOpacity: 0.15 + intensityScale * 0.1,
+        fillOpacity: 0.2 + intensityScale * 0.2, // More opaque
       }).addTo(layer);
       
       // 2. High intensity core
       L.circle([h.lat, h.lon], {
-        radius: outerRadius * 0.5,
+        radius: outerRadius * 0.4,
         stroke: false,
         fillColor: coreColor,
-        fillOpacity: 0.3 + intensityScale * 0.2,
+        fillOpacity: 0.4 + intensityScale * 0.3,
       }).addTo(layer);
 
       // 3. Ultra-hot center
       L.circle([h.lat, h.lon], {
-        radius: 30,
+        radius: 40,
         stroke: true,
-        weight: 1,
-        color: '#ffffff50',
-        fillColor: '#ffffff',
-        fillOpacity: 0.5,
+        weight: 2,
+        color: '#ffffff',
+        fillColor: isTransport ? '#007AFF' : '#ff3d00',
+        fillOpacity: 0.8,
       }).addTo(layer);
     });
   }, [hotspots]);
