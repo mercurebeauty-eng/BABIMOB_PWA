@@ -95,4 +95,7 @@ export const Ic = {
   Moon: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></P>
   ),
+  Card: ({ s = 20, color }: IconProps) => (
+    <P s={s} color={color}><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M2 10h20M7 15h3" stroke="currentColor" strokeWidth="2"/></P>
+  ),
 };

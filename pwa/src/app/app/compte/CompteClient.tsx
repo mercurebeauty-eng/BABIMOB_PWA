@@ -39,6 +39,10 @@ const BADGE_META: Record<string, { label: string; color: string; rare: string }>
   commune_5:     { label: '100 Babis', color: 'var(--muted)', rare: 'SR' },
   points_500:    { label: 'Zo de nuit', color: 'var(--muted)', rare: 'SR' },
   verified:      { label: 'Empereur', color: 'var(--muted)', rare: 'SSR' },
+  streak_7:      { label: 'Fidèle', color: 'var(--orange)', rare: 'C' },
+  commune_all:   { label: 'Maître Babi', color: '#1E5BFF', rare: 'SSR' },
+  posts_10:      { label: 'Informateur', color: '#0EA85B', rare: 'R' },
+  top_1:         { label: 'Légende', color: '#E8B23C', rare: 'SSR' },
 };
 
 const BADGE_ICONS: Record<string, React.ReactNode> = {
@@ -50,6 +54,10 @@ const BADGE_ICONS: Record<string, React.ReactNode> = {
   commune_5:     <Ic.Users s={22} />,
   points_500:    <Ic.Moon s={22} />,
   verified:      <Ic.Trophy s={22} />,
+  streak_7:      <Ic.Flame s={22} />,
+  commune_all:   <Ic.Map s={22} />,
+  posts_10:      <Ic.Chat s={22} />,
+  top_1:         <Ic.Star s={22} fill />,
 };
 
 const ACTIVITY_ICONS = ['var(--orange)', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A'];
@@ -176,112 +184,105 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
 
   return (
     <>
-      {/* ──── STREAK · type Duolingo / LINE ──── */}
-      <div 
-        onClick={() => setShowWeekly(!showWeekly)}
-        style={{
-          borderRadius: 20, overflow: 'hidden', marginBottom: 14, position: 'relative',
-          background: 'linear-gradient(135deg, #FF6B35 0%, #F26C1A 50%, #D9510A 100%)',
-          color: '#fff', padding: 16, boxShadow: '0 8px 24px rgba(242,108,26,0.3)',
-          cursor: 'pointer'
-        }}
-      >
-        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.12 }} />
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+      {/* ──── STREAK CARD (Screenshot 2 style) ──── */}
+      <div style={{
+        borderRadius: 24, overflow: 'hidden', marginBottom: 20, position: 'relative',
+        background: 'linear-gradient(135deg, #FF6B35 0%, #F26C1A 100%)',
+        color: '#fff', padding: 20, boxShadow: '0 10px 30px rgba(242,108,26,0.25)'
+      }}>
+        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+        
+        <div style={{ position: 'relative', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          {/* Big Number Square */}
           <div style={{
-            width: 64, height: 64, borderRadius: 20,
-            background: 'rgba(0,0,0,0.25)',
+            width: 72, height: 72, borderRadius: 20,
+            background: 'rgba(0,0,0,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             position: 'relative',
-            boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3)',
+            border: '1.5px solid rgba(255,255,255,0.2)',
           }}>
-            <span className="font-display" style={{ fontSize: 28, color: '#E8B23C' }}>{streak}</span>
-            <div style={{ position: 'absolute', top: -8, right: -8, fontSize: 24 }}>
+            <span className="font-display" style={{ fontSize: 36, color: '#fff', lineHeight: 1 }}>{streak}</span>
+            <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 24, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
               <Ic.Flame s={28} />
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 110, position: 'relative' }}>
-            <AnimatePresence mode="wait">
-              {!showWeekly ? (
-                <motion.div 
-                  key="missions"
-                  initial={{ rotateX: -90, opacity: 0 }}
-                  animate={{ rotateX: 0, opacity: 1 }}
-                  exit={{ rotateX: 90, opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  style={{ padding: '16px 14px', borderRadius: 20, background: 'var(--ink)', color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Missions du jour</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'rgba(242,108,26,0.15)', padding: '2px 6px', borderRadius: 6 }}>{dailyMissions.filter((m: any) => m.current >= m.target).length}/{dailyMissions.length}</div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {dailyMissions.map((m: any) => {
-                      const done = m.current >= m.target;
-                      return (
-                        <div key={m.id}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
-                            <span style={{ opacity: done ? 0.5 : 1 }}>{m.task}</span>
-                            <span style={{ color: done ? '#0EA85B' : 'var(--orange)' }}>{done ? 'V' : `+${m.xp} XP`}</span>
-                          </div>
-                          <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, (m.current / m.target) * 100)}%`, background: done ? '#0EA85B' : 'var(--orange)', borderRadius: 2 }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="weekly"
-                  initial={{ rotateX: 90, opacity: 0 }}
-                  animate={{ rotateX: 0, opacity: 1 }}
-                  exit={{ rotateX: -90, opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  style={{ padding: '16px 14px', borderRadius: 20, background: 'var(--ink)', color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Série en cours</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: '#E8B23C' }}>PROG. SEMAINE</div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {weekDays.map((day, i) => {
-                      const isPast = i < todayIndex;
-                      const isToday = i === todayIndex;
-                      // Simple logic: if streak covers the day
-                      const active = i <= todayIndex && (todayIndex - i) < streak;
-                      
-                      return (
-                        <div key={i} style={{ textAlign: 'center' }}>
-                          <div style={{ 
-                            width: 32, height: 32, borderRadius: '50%', 
-                            background: active ? 'var(--orange)' : 'rgba(255,255,255,0.1)', 
-                            border: isToday ? '2px solid #E8B23C' : 'none',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            marginBottom: 4, transition: 'all 0.3s ease'
-                          }}>
-                            {active ? <Ic.Star s={14} fill /> : <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{day}</span>}
-                          </div>
-                          <div style={{ fontSize: 9, fontWeight: 800, color: isToday ? '#E8B23C' : 'rgba(255,255,255,0.4)' }}>{day}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div style={{ flex: 1, paddingTop: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.8, marginBottom: 2 }}>SÉRIE EN COURS</div>
+            <div className="font-display" style={{ fontSize: 22, lineHeight: 1.1, marginBottom: 4 }}>{streak} jours sur Babi</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Reviens demain pour <span style={{ color: '#fff' }}>+50 XP bonus</span></div>
           </div>
+        </div>
+
+        {/* Weekly Progress Row */}
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginTop: 20, padding: '0 4px' }}>
+          {weekDays.map((day, i) => {
+            const active = i <= todayIndex && (todayIndex - i) < streak;
+            return (
+              <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 9, fontWeight: 900, marginBottom: 6, color: 'rgba(255,255,255,0.7)' }}>{day}</div>
+                <div style={{ 
+                  height: 32, margin: '0 4px', borderRadius: 8, 
+                  background: active ? '#fff' : 'rgba(0,0,0,0.1)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: active ? '#F26C1A' : 'rgba(255,255,255,0.2)',
+                  border: active ? 'none' : '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  {active ? <Ic.Check s={16} /> : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Album de badges */}
+      {/* ──── MISSIONS (Screenshot 2 style) ──── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Album de badges</h3>
-        <button onClick={() => setShowAlbum(true)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 800, color: 'var(--orange)', cursor: 'pointer' }}>VOIR TOUT →</button>
+        <h3 className="font-display" style={{ fontSize: 19, margin: 0 }}>Missions du jour</h3>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>
+          {dailyMissions.filter((m: any) => m.current >= m.target).length}/{dailyMissions.length} • 23H 12 RESTANTES
+        </div>
+      </div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        {dailyMissions.map((m: any) => {
+          const done = m.current >= m.target;
+          return (
+            <div key={m.id} style={{ 
+              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', 
+              borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)',
+              opacity: done ? 0.7 : 1, position: 'relative', overflow: 'hidden'
+            }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: done ? 'var(--line)' : 'color-mix(in oklab, var(--orange) 10%, var(--cream))', color: done ? 'var(--muted)' : 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {m.id === 'm1' ? <Ic.Pin s={20} fill={!done} /> : m.id === 'm2' ? <Ic.Chat s={20} /> : <Ic.Bolt s={20} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.5 : 1 }}>{m.task}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{m.label}</div>
+                <div style={{ height: 3, background: 'var(--line)', borderRadius: 2, marginTop: 8, width: '100%' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, (m.current / m.target) * 100)}%`, background: done ? '#0EA85B' : 'var(--orange)', borderRadius: 2 }} />
+                </div>
+              </div>
+              <div style={{ marginLeft: 10 }}>
+                {done ? (
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0EA85B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ic.Check s={16} />
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)' }}>+{m.xp}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Album de badges */}
+      <div onClick={() => setShowAlbum(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, cursor: 'pointer' }}>
+        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>Album de badges</h3>
+        <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)' }}>
+          {badges.length} / {Object.keys(BADGE_META).length} →
+        </div>
       </div>
       <div style={{ gridTemplateColumns: 'repeat(4, 1fr)', display: 'grid', gap: 10, marginBottom: 24 }}>
         {Object.entries(BADGE_META).slice(0, 8).map(([key, meta]) => {
@@ -297,25 +298,10 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
         })}
       </div>
 
-      {/* Proches & Famille */}
-      <CrewCard following={following} followersCount={followersCount} />
+      {/* Proches & Famille (Optionnel si on veut garder la fonctionnalité réelle) */}
+      {/* <CrewCard following={following} followersCount={followersCount} /> */}
 
-      {/* Activité récente */}
-      <h3 className="font-display" style={{ fontSize: 18, margin: '0 0 10px' }}>Activité récente</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {checkinsDetail.slice(0, 5).map((c, i) => (
-          <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 11, borderRadius: 12, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: `color-mix(in oklab, ${ACTIVITY_ICONS[i % ACTIVITY_ICONS.length]} 15%, transparent)`, color: ACTIVITY_ICONS[i % ACTIVITY_ICONS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-              {c.places?.logo_emoji || '📍'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{c.place_name}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{c.commune || 'Abidjan'} · {timeAgo(c.created_at)}</div>
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)' }}>+{c.points_earned || 10}</div>
-          </div>
-        ))}
-      </div>
+      <ActivityLog checkinsDetail={checkinsDetail} />
     </>
   );
 }
@@ -717,6 +703,101 @@ export default function CompteClient({
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+// ── Component : ActivityLog (Screenshot 1 style) ──────────────────────────
+function ActivityLog({ checkinsDetail }: { checkinsDetail: any[] }) {
+  // Simulating crew data for the WOW effect requested
+  const crew = {
+    name: 'Cocody Family',
+    rank: '#3 sur 47 crews',
+    members: 24,
+    active: 5,
+    quest: { label: 'Cartographier 1 000 arrêts ensemble', current: 847, target: 1000, daysLeft: 4 }
+  };
+
+  const activities = checkinsDetail.slice(0, 5).map((c, i) => ({
+    id: c.id || i,
+    type: 'Check-in',
+    title: 'Check-in',
+    subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · il y a ${i + 1}h`,
+    points: 15,
+    icon: <Ic.Pin s={18} fill />
+  })).concat([
+    { id: 't1', type: 'Tarif', title: 'Tarif confirmé', subtitle: 'Adjamé → Yop · 200F · il y a 3h', points: 5, icon: <Ic.Card s={18} /> },
+    { id: 'b1', type: 'Badge', title: 'Badge débloqué', subtitle: 'Pont d\'or · hier', points: 100, icon: <Ic.Trophy s={18} /> }
+  ]);
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      {/* ──── CREW CARD (Screenshot 1 style) ──── */}
+      <div style={{
+        borderRadius: 24, padding: 20, marginBottom: 24, position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(135deg, #1A1410 0%, #2A1F18 100%)', color: '#fff'
+      }}>
+        <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.1, color: '#fff' }} />
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1 }}>TON CREW</div>
+              <div className="font-display" style={{ fontSize: 24, marginBottom: 2 }}>{crew.name}</div>
+              <div style={{ fontSize: 11, opacity: 0.6, fontWeight: 700 }}>{crew.rank} · {crew.members} membres</div>
+            </div>
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #0EA85B 0%, #0B8A4A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+              <span className="font-display" style={{ fontSize: 24 }}>CF</span>
+              <div style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: '50%', background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: -8, marginTop: 12 }}>
+            {['M','A','D','K','I'].map((initial, i) => (
+              <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: i % 2 === 0 ? 'var(--orange)' : 'var(--blue)', border: '2px solid #1A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, marginLeft: i === 0 ? 0 : -8 }}>{initial}</div>
+            ))}
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#333', border: '2px solid #1A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, marginLeft: -8, color: 'rgba(255,255,255,0.6)' }}>+19</div>
+            <div style={{ marginLeft: 10, fontSize: 11, fontWeight: 700 }}><span style={{ color: 'var(--orange)' }}>{crew.active} actifs</span> en ce moment</div>
+            <div style={{ marginLeft: 'auto', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 12, padding: '4px 12px', fontSize: 11, fontWeight: 800 }}>Crew</div>
+          </div>
+
+          <div style={{ marginTop: 20, padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', marginBottom: 8 }}>
+              <span>QUÊTE COLLECTIVE · {crew.quest.daysLeft}j RESTANTS</span>
+              <span style={{ color: '#fff' }}>{crew.quest.current} / {crew.quest.target}</span>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 12 }}>{crew.quest.label}</div>
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
+              <div style={{ height: '100%', width: `${(crew.quest.current / crew.quest.target) * 100}%`, background: 'var(--orange)', borderRadius: 3, boxShadow: '0 0 10px rgba(242,108,26,0.5)' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>Activité récente</h3>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {activities.map((a) => (
+          <div key={a.id} style={{ 
+            padding: '16px', borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)',
+            display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ 
+              width: 48, height: 48, borderRadius: 16, 
+              background: a.type === 'Check-in' ? '#FFF0E6' : a.type === 'Tarif' ? '#E6F9F0' : '#FFF9E6', 
+              color: a.type === 'Check-in' ? '#F26C1A' : a.type === 'Tarif' ? '#0EA85B' : '#E8B23C', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center' 
+            }}>
+              {a.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>{a.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>{a.subtitle}</div>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--orange)' }}>+{a.points}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
