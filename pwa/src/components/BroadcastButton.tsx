@@ -3,31 +3,31 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
-import PremiumWall from './PremiumWall';
-import type { SubTier } from '@/lib/types';
+
+const PRESETS = [
+  { text: 'Je suis là 🎯', emoji: '🎯' },
+  { text: 'En route 🚐', emoji: '🚐' },
+  { text: "J'attends ici ⏳", emoji: '⏳' },
+  { text: 'Qui join ? 🤝', emoji: '🤝' },
+  { text: 'Au maquis 🍺', emoji: '🍺' },
+  { text: 'Besoin de transport 🙋', emoji: '🙋' },
+];
 
 type Props = {
   userId: string;
-  currentTier: SubTier;
+  currentTier?: string;
   isAdmin?: boolean;
 };
 
-export default function BroadcastButton({ userId, currentTier, isAdmin = false }: Props) {
+export default function BroadcastButton({ userId }: Props) {
   const supabase = createClient();
-  const [showWall, setShowWall] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
-  const canBroadcast = isAdmin || currentTier === 'pro' || currentTier === 'elite';
-
   function handleOpen() {
-    if (!canBroadcast) {
-      setShowWall(true);
-      return;
-    }
     setText('');
     setGeoError(null);
     setSuccess(false);
@@ -48,22 +48,21 @@ export default function BroadcastButton({ userId, currentTier, isAdmin = false }
           broadcast_lon: pos.coords.longitude,
         }).eq('id', userId);
 
+        setLoading(false);
         if (error) {
           setGeoError("Erreur lors de l'envoi. Réessaie plus tard.");
-          setLoading(false);
         } else {
-          setLoading(false);
           setSuccess(true);
           setTimeout(() => setShowModal(false), 1800);
         }
       },
       (err) => {
         setLoading(false);
-        if (err.code === 1) {
-          setGeoError('Localisation refusée — active le GPS et réessaie.');
-        } else {
-          setGeoError('Impossible d\'obtenir ta position.');
-        }
+        setGeoError(
+          err.code === 1
+            ? 'Localisation refusée — active le GPS et réessaie.'
+            : "Impossible d'obtenir ta position."
+        );
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -73,99 +72,174 @@ export default function BroadcastButton({ userId, currentTier, isAdmin = false }
     <>
       <button
         onClick={handleOpen}
-        className={`w-16 h-16 rounded-3xl flex items-center justify-center text-2xl shadow-2xl transition-all active:scale-90 ${
-          canBroadcast
-            ? 'bg-abidjan-orange text-white shadow-abidjan-orange/40 ring-4 ring-white'
-            : 'bg-white text-beige-muted border-2 border-beige-100 shadow-xl'
-        }`}
-        style={{ background: canBroadcast ? 'var(--orange)' : 'white' }}
-        title={canBroadcast ? 'Diffuser ma position' : 'Diffuser ma position (Pro)'}
+        className="press"
+        style={{
+          width: '100%',
+          background: 'var(--orange)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 20,
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(242,108,26,0.3)',
+        }}
       >
-        <div className="relative">
-          <Ic.Send s={28} />
-          {!canBroadcast && (
-            <span className="absolute -top-4 -right-4 text-[9px] bg-abidjan-orange text-white px-2 py-1 rounded-full font-black border-2 border-white shadow-sm"
-                  style={{ background: 'var(--orange)' }}>
-              PRO
-            </span>
-          )}
+        <div style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: 'rgba(255,255,255,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Ic.Send s={18} color="#fff" />
         </div>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.5 }}>DIFFUSER MON STATUT</div>
+          <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.75, letterSpacing: 0.5 }}>Visible sur la carte · 4h</div>
+        </div>
+        <Ic.Arrow s={16} dir="right" color="rgba(255,255,255,0.7)" />
       </button>
 
       {showModal && (
-        <div 
-          className="fixed inset-0 z-[1000] flex items-center justify-center p-5 bg-ink/60 backdrop-blur-xl animate-in fade-in duration-300" 
-          style={{ background: 'rgba(26,20,16,0.6)' }}
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10001,
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            background: 'rgba(26,20,16,0.65)', backdropFilter: 'blur(8px)',
+          }}
           onClick={() => !loading && setShowModal(false)}
         >
-          <div 
-            className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] space-y-6 border border-white/20" 
+          <div
+            style={{
+              width: '100%', maxWidth: 480,
+              background: 'var(--cream)',
+              borderRadius: '32px 32px 0 0',
+              padding: '8px 24px 40px',
+              boxShadow: '0 -20px 60px rgba(0,0,0,0.2)',
+            }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner"
-                   style={{ background: 'var(--cream-2)', color: 'var(--orange)' }}>
-                <Ic.Send s={24} />
+            {/* Drag handle */}
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--line)', margin: '12px auto 24px' }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 16,
+                background: 'var(--orange)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Ic.Send s={22} color="#fff" />
               </div>
               <div>
-                <div className="text-lg font-black uppercase tracking-tight text-beige-text" style={{ color: 'var(--ink)', fontFamily: 'var(--font-archivo-black)' }}>Diffuser un statut</div>
-                <div className="text-[11px] text-beige-muted font-bold uppercase tracking-widest opacity-60">Visible sur la carte · 4h</div>
+                <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--ink)' }}>Diffuser un statut</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Visible sur la carte · 4h</div>
               </div>
+            </div>
+
+            {/* Preset quick-picks */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+              {PRESETS.map(preset => (
+                <button
+                  key={preset.text}
+                  onClick={() => setText(preset.text)}
+                  className="press"
+                  style={{
+                    background: text === preset.text ? 'var(--orange)' : 'var(--cream-2)',
+                    color: text === preset.text ? '#fff' : 'var(--ink)',
+                    border: `1.5px solid ${text === preset.text ? 'var(--orange)' : 'var(--line)'}`,
+                    borderRadius: 20,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {preset.text}
+                </button>
+              ))}
             </div>
 
             <textarea
               value={text}
               onChange={e => setText(e.target.value.slice(0, 80))}
-              placeholder="Ex : Venez me rejoindre au maquis !"
+              placeholder="Ou écris ton statut perso…"
               rows={3}
-              className="w-full bg-cream-2 border-2 border-transparent focus:border-abidjan-orange rounded-[1.5rem] px-5 py-4 text-base font-bold outline-none resize-none transition-all placeholder:opacity-30"
-              style={{ background: 'var(--cream-2)', color: 'var(--ink)' }}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                background: 'var(--cream-2)',
+                border: '2px solid var(--line)',
+                borderRadius: 20,
+                padding: '14px 18px',
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--ink)',
+                outline: 'none',
+                resize: 'none',
+                fontFamily: 'inherit',
+              }}
               autoFocus
             />
-            <div className="text-right text-[11px] text-beige-muted font-black -mt-2 opacity-40">
+            <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 900, color: 'var(--muted)', opacity: 0.5, marginTop: 6, marginBottom: 16 }}>
               {text.length}/80
             </div>
 
             {geoError && (
-              <p className="text-[12px] text-red-500 font-bold bg-red-50 p-3 rounded-2xl border border-red-100 flex items-center gap-2">
+              <div style={{
+                background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                borderRadius: 16, padding: '12px 16px', marginBottom: 16,
+                fontSize: 12, fontWeight: 700, color: '#dc2626',
+                display: 'flex', gap: 8, alignItems: 'center',
+              }}>
                 <span>⚠️</span> {geoError}
-              </p>
+              </div>
             )}
 
             {success ? (
-              <div className="py-4 text-center text-base font-black text-abidjan-green uppercase tracking-widest animate-bounce"
-                   style={{ color: 'var(--green)' }}>
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 15, fontWeight: 900, color: 'var(--green)', letterSpacing: 1 }}>
                 ✓ Diffusé avec succès !
               </div>
             ) : (
-              <div className="flex gap-4">
+              <div style={{ display: 'flex', gap: 12 }}>
                 <button
                   onClick={() => setShowModal(false)}
                   disabled={loading}
-                  className="flex-1 py-4 rounded-2xl border-2 border-beige-200 text-[11px] font-black uppercase tracking-widest text-beige-muted hover:bg-beige-50 transition-all active:scale-95"
+                  className="press"
+                  style={{
+                    flex: 1, padding: '16px', borderRadius: 20,
+                    border: '2px solid var(--line)', background: 'transparent',
+                    fontSize: 13, fontWeight: 900, color: 'var(--muted)',
+                    cursor: 'pointer',
+                  }}
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleSend}
                   disabled={!text.trim() || loading}
-                  className="flex-[1.5] py-4 rounded-2xl bg-abidjan-orange text-white text-[11px] font-black uppercase tracking-widest shadow-xl shadow-abidjan-orange/30 disabled:opacity-30 active:scale-95 transition-all"
-                  style={{ background: 'var(--orange)' }}
+                  className="press"
+                  style={{
+                    flex: 2, padding: '16px', borderRadius: 20,
+                    background: 'var(--orange)', border: 'none', color: '#fff',
+                    fontSize: 13, fontWeight: 900, letterSpacing: 0.5,
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 24px rgba(242,108,26,0.3)',
+                    opacity: (!text.trim() || loading) ? 0.4 : 1,
+                  }}
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center gap-3">
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      GPS...
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                      GPS…
                     </span>
-                  ) : 'Diffuser'}
+                  ) : 'DIFFUSER'}
                 </button>
               </div>
             )}
           </div>
         </div>
       )}
-
-      <PremiumWall isOpen={showWall} onClose={() => setShowWall(false)} requiredTier="pro" />
     </>
   );
 }
