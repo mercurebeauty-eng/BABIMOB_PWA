@@ -166,7 +166,7 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount }: {
         <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Album de badges</h3>
         <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)' }}>VOIR TOUT →</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
+      <div style={{ gridTemplateColumns: 'repeat(4, 1fr)', display: 'grid', gap: 10, marginBottom: 24 }}>
         {Object.entries(BADGE_META).slice(0, 8).map(([key, meta]) => {
           const earned = badges.some(b => b.badge_key === key);
           return (
@@ -423,7 +423,6 @@ function TabClassement({
           </div>
         )}
       </div>
-
       <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: 'var(--cream-2)', border: '1px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
         Saison <b style={{ color: 'var(--ink)' }}>Harmattan</b> · se termine dans <b style={{ color: 'var(--orange)' }}>12 jours</b>
       </div>
