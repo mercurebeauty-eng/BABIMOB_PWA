@@ -94,18 +94,18 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
               
               <Link href="/app/compte" onClick={onClose} className="press" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ic.User s={20} color="var(--orange)" />
+                  <Ic.Users s={20} color="var(--orange)" />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Mon Profil</div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>XP, Badges & Compte</div>
                 </div>
-                <Ic.ChevronRight s={16} color="var(--line-strong)" />
+                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </Link>
 
               <div className="press" onClick={() => alert('Planificateur d\'itinéraire bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ic.Directions s={20} color="var(--blue)" />
+                  <Ic.Route s={20} color="var(--blue)" />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Itinéraire</div>
@@ -122,18 +122,18 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                   <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Découvrir</div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Lieux, Promos & Partenaires</div>
                 </div>
-                <Ic.ChevronRight s={16} color="var(--line-strong)" />
+                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </div>
 
               <div className="press" onClick={() => alert('Heatmap des zones d\'activité bientôt optimisée !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: '#fff', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,107,107,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ic.Activity s={20} color="#FF6B6B" />
+                  <Ic.Bolt s={20} color="#FF6B6B" />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Activité & Heatmap</div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Voir les zones chaudes</div>
                 </div>
-                <Ic.ChevronRight s={16} color="var(--line-strong)" />
+                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </div>
 
             </div>
