@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import RouteMapWrapper from './RouteMapWrapper';
 import Vehicle from '@/components/ui/Vehicle';
@@ -20,6 +20,8 @@ type StopRow = {
 };
 
 type ShapePoint = { shape_pt_lat: number; shape_pt_lon: number };
+
+type SegmentState = { cutAtId: string | null; showSeg: boolean };
 
 type Props = {
   senses: Sense[];
@@ -43,49 +45,78 @@ function nearestShapeIdx(shape: ShapePoint[], lat: number, lon: number): number 
   return best;
 }
 
-// ── SenseView : timeline des arrêts pour un sens ─────────────────────
-//   Rendu strictement identique quel que soit le sens passé en prop.
+// ── SenseView ─────────────────────────────────────────────────────────
+//
+// Composant autonome : gère son propre état de segmentation.
+// Keyed par senseIndex dans le parent → remount complet au changement de sens,
+// ce qui réinitialise automatiquement cutAtId et showSeg.
+//
+// fromStop : undefined quand la direction a été changée manuellement, pour
+// éviter l'artefact "tout en rouge" (le stop du sens 0 est en fin de sens 1).
 
 type SenseViewProps = {
   sense: Sense;
-  displayed: StopRow[];   // tranche affichée (segmentée ou complète)
-  senseIndex: number;     // 0 ou 1 — utilisé comme préfixe des clés React
+  senseIndex: number;
   fromStop: string | undefined;
-  cutAtId: string | null;
-  showSegmentedView: boolean;
   typeKind: 'gbaka' | 'woro' | 'taxi' | 'saloni';
-  onDescendIci: (stop: StopRow) => void;
-  onReset: () => void;
+  // Remonte l'état de segmentation au parent pour que la carte se mette à jour
+  onSegmentChange: (seg: SegmentState) => void;
 };
 
-function SenseView({
-  sense, displayed, senseIndex, fromStop, cutAtId,
-  showSegmentedView, typeKind, onDescendIci, onReset,
-}: SenseViewProps) {
+function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: SenseViewProps) {
   const { stops } = sense;
+
+  // État interne : isolation totale entre les deux sens
+  const [cutAtId, setCutAtId] = useState<string | null>(null);
+  const [showSeg, setShowSeg] = useState(false);
 
   // ── Arrêts absents ──
   if (stops.length === 0) {
     return (
-      <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--muted)' }}>
+      <div style={{ padding: '48px 16px', textAlign: 'center' }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>🚧</div>
         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink-2)' }}>
           Aucun arrêt pour cette direction
         </div>
-        <div style={{ fontSize: 12, marginTop: 6 }}>
+        <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>
           Les données GTFS ne sont pas disponibles pour ce sens.
         </div>
       </div>
     );
   }
 
-  // Index dans le tableau COMPLET (pour les logiques passé/futur)
+  // Indices dans la liste COMPLÈTE du sens (pour passé / futur)
   const currentIdx = fromStop ? stops.findIndex((s) => s.stop_id === fromStop) : -1;
   const cutIdx     = cutAtId  ? stops.findIndex((s) => s.stop_id === cutAtId)  : -1;
 
+  const segStart = showSeg && currentIdx >= 0 ? currentIdx : 0;
+  const segEnd   = showSeg && cutIdx >= 0     ? cutIdx     : stops.length - 1;
+
+  // Tranche d'arrêts affichés (segment ou liste complète)
+  const displayed = showSeg ? stops.slice(segStart, segEnd + 1) : stops;
+
+  const handleDescendIci = (stop: StopRow) => {
+    setCutAtId(stop.stop_id);
+    setShowSeg(true);
+    onSegmentChange({ cutAtId: stop.stop_id, showSeg: true });
+    try {
+      localStorage.setItem('babimob_lastDest', JSON.stringify({
+        name: stop.stop_name, commune: stop.commune,
+        lat: stop.stop_lat, lon: stop.stop_lon,
+      }));
+    } catch (_) {}
+  };
+
+  const handleReset = () => {
+    setCutAtId(null);
+    setShowSeg(false);
+    onSegmentChange({ cutAtId: null, showSeg: false });
+  };
+
   return (
     <div style={{ padding: '16px 16px 100px', position: 'relative' }}>
-      {fromStop && (
+      {/* Badge "votre arrêt mis en évidence" — uniquement si fromStop trouvé */}
+      {currentIdx >= 0 && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
           <span style={{
             fontSize: 9, fontWeight: 900, color: 'var(--blue)',
@@ -99,16 +130,14 @@ function SenseView({
       )}
 
       {displayed.map((stop, displayIdx) => {
-        // Indice réel dans le tableau complet pour isPast / isFuture
+        // Indice réel dans la liste complète (pour la logique passé/futur)
         const realIdx = stops.findIndex((s) => s.stop_id === stop.stop_id);
 
         const isDisplayFirst = displayIdx === 0;
         const isDisplayLast  = displayIdx === displayed.length - 1;
 
-        // Terminus = premier / dernier de la ROUTE COMPLÈTE (pas du segment)
-        const isRouteFirst = realIdx === 0;
-        const isRouteLast  = realIdx === stops.length - 1;
-        const isTerminus   = isRouteFirst || isRouteLast;
+        // Terminus = premier ou dernier de la ROUTE COMPLÈTE (pas du segment affiché)
+        const isTerminus = realIdx === 0 || realIdx === stops.length - 1;
 
         const isCurrent     = fromStop === stop.stop_id;
         const isPast        = currentIdx >= 0 && realIdx < currentIdx;
@@ -116,25 +145,28 @@ function SenseView({
         const noCtx         = currentIdx < 0;
         const isDestination = cutAtId === stop.stop_id;
 
-        // Couleurs (alignées avec la carte : Départ = Bleu, Destination = Vert)
         const dotColor = isCurrent
           ? 'var(--blue)'
           : isDestination ? 'var(--green)'
           : isPast ? '#e53935'
           : isTerminus ? 'var(--ink)'
-          : isFuture
-            ? 'color-mix(in oklab, var(--line) 40%, transparent)'
-            : 'var(--line)';
+          : isFuture ? 'color-mix(in oklab, var(--line) 40%, transparent)'
+          : 'var(--line)';
 
-        const lineColor  = isPast ? '#e53935'
-          : (isCurrent || (currentIdx >= 0 && realIdx <= cutIdx && cutIdx >= 0)) ? 'var(--gold)'
+        const lineColor = isPast
+          ? '#e53935'
+          : (isCurrent || (currentIdx >= 0 && cutIdx >= 0 && realIdx <= cutIdx))
+          ? 'var(--gold)'
           : noCtx ? 'var(--line)'
           : 'var(--line)';
-        const lineDashed = !isPast && !isCurrent && !(currentIdx >= 0 && realIdx <= cutIdx && cutIdx >= 0);
+
+        const lineDashed = !isPast
+          && !isCurrent
+          && !(currentIdx >= 0 && cutIdx >= 0 && realIdx <= cutIdx);
 
         const dotSize = isCurrent ? 40 : isDestination ? 30 : isTerminus ? 20 : 14;
 
-        // Clé unique : sens + id de l'arrêt (évite le recyclage d'état entre directions)
+        // Clé unique : senseIndex + stop_id → force des éléments distincts entre sens
         const itemKey = `${senseIndex}-${stop.stop_id}`;
 
         return (
@@ -157,7 +189,6 @@ function SenseView({
           >
             {/* ── Colonne timeline ── */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
-              {/* Ligne au-dessus */}
               <div style={{
                 flex: 1, width: 2, minHeight: 14,
                 background: isDisplayFirst ? 'transparent' : lineColor,
@@ -165,7 +196,6 @@ function SenseView({
                   ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)'
                   : 'none',
               }} />
-              {/* Point */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 {(isCurrent || isDestination) && (
                   <div className="pulse-ring" style={{
@@ -189,7 +219,6 @@ function SenseView({
                   {isDestination && <Ic.Star s={18} fill color="#fff" />}
                 </div>
               </div>
-              {/* Ligne en dessous */}
               <div style={{
                 flex: 1, width: 2, minHeight: 14,
                 background: isDisplayLast ? 'transparent' : lineColor,
@@ -243,7 +272,9 @@ function SenseView({
                       textDecoration: isPast ? 'line-through' : 'none',
                       opacity: isPast ? 0.55 : 1,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>{stop.stop_name}</div>
+                    }}>
+                      {stop.stop_name}
+                    </div>
                     {stop.commune && (
                       <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1 }}>
                         {stop.commune}
@@ -264,17 +295,17 @@ function SenseView({
 
               {isDestination && (
                 <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                  <button className="press" onClick={onReset} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--muted)', color: '#fff', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                  <button className="press" onClick={handleReset} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--muted)', color: '#fff', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
                     Changer destination
                   </button>
                 </div>
               )}
 
-              {/* Bouton "Je descends ici" : visible uniquement sur les arrêts futurs, hors mode segmenté */}
-              {isFuture && !isCurrent && !isDestination && !showSegmentedView && (
+              {/* "Je descends ici" : arrêts futurs uniquement, hors mode segmenté */}
+              {isFuture && !isCurrent && !isDestination && !showSeg && (
                 <button
                   className="press"
-                  onClick={() => onDescendIci(stop)}
+                  onClick={() => handleDescendIci(stop)}
                   style={{ marginTop: 4, padding: '5px 10px', borderRadius: 8, background: 'var(--orange)', color: '#fff', fontSize: 11, fontWeight: 800, border: 'none', cursor: 'pointer', letterSpacing: 0.3 }}
                 >
                   Je descends ici 🎯
@@ -298,150 +329,135 @@ export default function RouteInteractive({
 
   const [activeDir, setActiveDir] = useState(initialActiveDirection);
 
-  // État de segmentation séparé par direction : { 0: stopId | null, 1: stopId | null }
-  const [cutPerDir, setCutPerDir]     = useState<Record<number, string | null>>({ 0: null, 1: null });
-  const [showSegPerDir, setShowSegPerDir] = useState<Record<number, boolean>>({ 0: false, 1: false });
+  // fromStop actif : undefined si l'utilisateur a changé de direction manuellement.
+  // Cela évite l'artefact où le stop du sens 0 (en fin de sens 1) rend tout "passé".
+  const [activeDirFromStop, setActiveDirFromStop] = useState<string | undefined>(fromStop);
+
+  // Données de segmentation du sens actif, remontées par SenseView → carte
+  const [activeSegment, setActiveSegment] = useState<SegmentState>({ cutAtId: null, showSeg: false });
 
   // ── Extraction symétrique des deux sens ──
-  const sense0 = senses[0] ?? { stops: [], shape: [], headsign: null };
-  const sense1 = senses[1] ?? { stops: [], shape: [], headsign: null };
+  const sense0      = senses[0] ?? { stops: [], shape: [], headsign: null };
+  const sense1      = senses[1] ?? { stops: [], shape: [], headsign: null };
   const activeSense = senses[activeDir] ?? { stops: [], shape: [], headsign: null };
 
-  const cutAtId          = cutPerDir[activeDir]   ?? null;
-  const showSegmentedView = showSegPerDir[activeDir] ?? false;
-
-  // ── Log de débogage (à retirer une fois stabilisé) ──
+  // ── Logs de débogage ──
   useEffect(() => {
-    console.log('[RouteInteractive] direction active:', activeDir);
-    console.log('[RouteInteractive] sens 0 — arrêts:', sense0.stops.length, '| headsign:', sense0.headsign);
-    console.log('[RouteInteractive] sens 1 — arrêts:', sense1.stops.length, '| headsign:', sense1.headsign);
-    console.log('[RouteInteractive] sens actif — arrêts:', activeSense.stops.length);
-  }, [activeDir, sense0.stops.length, sense1.stops.length, activeSense.stops.length,
-      sense0.headsign, sense1.headsign]);
+    console.log('[RouteInteractive] dir active:', activeDir, '| fromStop effectif:', activeDirFromStop);
+    console.log('  sens 0:', sense0.stops.length, 'arrêts |', sense0.headsign);
+    console.log('  sens 1:', sense1.stops.length, 'arrêts |', sense1.headsign);
+  }, [activeDir, activeDirFromStop, sense0.stops.length, sense1.stops.length, sense0.headsign, sense1.headsign]);
 
   // ── Sauvegarde dans les récents ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const lineData = {
-        id: routeId,
-        name: activeSense.headsign || `Ligne ${routeId}`,
-        type: typeKind,
-        color: routeColorRaw,
-        timestamp: Date.now(),
-      };
-      const saved   = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
-      const filtered = saved.filter((l: { id: string }) => l.id !== routeId);
-      localStorage.setItem('babimob_recentLines', JSON.stringify([lineData, ...filtered].slice(0, 5)));
-    } catch (e) {
-      console.error('[RouteInteractive] Erreur localStorage recents:', e);
-    }
+      const lineData = { id: routeId, name: activeSense.headsign || `Ligne ${routeId}`, type: typeKind, color: routeColorRaw, timestamp: Date.now() };
+      const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
+      localStorage.setItem('babimob_recentLines', JSON.stringify(
+        [lineData, ...saved.filter((l: { id: string }) => l.id !== routeId)].slice(0, 5)
+      ));
+    } catch (_) {}
   }, [routeId, typeKind, routeColorRaw, activeSense.headsign]);
 
-  // ── Calculs de trajet ──
-  const currentIdx = fromStop ? activeSense.stops.findIndex((s) => s.stop_id === fromStop) : -1;
-  const cutIdx     = cutAtId  ? activeSense.stops.findIndex((s) => s.stop_id === cutAtId)  : -1;
+  // ── Calculs pour la carte et les pills ──
+  const currentIdx = activeDirFromStop
+    ? activeSense.stops.findIndex((s) => s.stop_id === activeDirFromStop)
+    : -1;
+  const cutIdx = activeSegment.cutAtId
+    ? activeSense.stops.findIndex((s) => s.stop_id === activeSegment.cutAtId)
+    : -1;
 
-  const segStart = (showSegmentedView && currentIdx >= 0) ? currentIdx : 0;
-  const segEnd   = (showSegmentedView && cutIdx >= 0)     ? cutIdx     : activeSense.stops.length - 1;
+  const segStart = activeSegment.showSeg && currentIdx >= 0 ? currentIdx : 0;
+  const segEnd   = activeSegment.showSeg && cutIdx >= 0     ? cutIdx     : activeSense.stops.length - 1;
 
+  // Arrêts et shape envoyés à la carte
+  const mapStops: StopRow[] = activeSegment.showSeg
+    ? activeSense.stops.slice(segStart, segEnd + 1)
+    : activeSense.stops;
+
+  const mapShape = (() => {
+    const shape = activeSense.shape;
+    if (!shape.length || !activeSegment.showSeg) return shape;
+    const s0 = activeSense.stops[segStart];
+    const s1 = activeSense.stops[segEnd];
+    const i0 = s0 ? nearestShapeIdx(shape, s0.stop_lat, s0.stop_lon) : 0;
+    const i1 = s1 ? nearestShapeIdx(shape, s1.stop_lat, s1.stop_lon) : shape.length - 1;
+    return shape.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
+  })();
+
+  // Stats trajet pour les pills
   const journeyStart = currentIdx >= 0 ? currentIdx : 0;
-  const journeyEnd   = (showSegmentedView && cutIdx >= 0) ? cutIdx : activeSense.stops.length - 1;
+  const journeyEnd   = activeSegment.showSeg && cutIdx >= 0 ? cutIdx : activeSense.stops.length - 1;
   const journeyStops = Math.max(1, journeyEnd - journeyStart + 1);
   const estimatedMin = Math.max(3, journeyStops * 2);
   const estimatedPrice = journeyStops <= 3 ? '100F' : journeyStops <= 7 ? '200F' : journeyStops <= 12 ? '300F' : '500F';
 
-  // Arrêts affichés (segment ou tout)
-  const displayedStops: StopRow[] = showSegmentedView
-    ? activeSense.stops.slice(segStart, segEnd + 1)
-    : activeSense.stops;
-
-  // Tranche de shape pour la carte
-  const displayedShape = (() => {
-    const shape = activeSense.shape;
-    if (!shape.length || !showSegmentedView) return shape;
-    const startStop = activeSense.stops[segStart];
-    const endStop   = activeSense.stops[segEnd];
-    const i0 = startStop ? nearestShapeIdx(shape, startStop.stop_lat, startStop.stop_lon) : 0;
-    const i1 = endStop   ? nearestShapeIdx(shape, endStop.stop_lat,   endStop.stop_lon)   : shape.length - 1;
-    return shape.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
-  })();
-
-  // ── Actions ──
-
-  const handleDescendIci = useCallback((stop: StopRow) => {
-    setCutPerDir((prev) => ({ ...prev, [activeDir]: stop.stop_id }));
-    setShowSegPerDir((prev) => ({ ...prev, [activeDir]: true }));
-    try {
-      localStorage.setItem('babimob_lastDest', JSON.stringify({
-        name: stop.stop_name, commune: stop.commune,
-        lat: stop.stop_lat, lon: stop.stop_lon,
-      }));
-    } catch (_) {}
-  }, [activeDir]);
-
-  const resetSegmentation = useCallback(() => {
-    setCutPerDir((prev)     => ({ ...prev, [activeDir]: null }));
-    setShowSegPerDir((prev) => ({ ...prev, [activeDir]: false }));
-  }, [activeDir]);
-
-  /** Bascule de direction — réinitialise la segmentation du sens cible */
+  // ── Bascule de direction ──
   const switchDirection = (dir: number) => {
     if (dir === activeDir) return;
-    // On réinitialise le sens cible pour éviter les artefacts visuels
-    setCutPerDir((prev)     => ({ ...prev, [dir]: null }));
-    setShowSegPerDir((prev) => ({ ...prev, [dir]: false }));
     setActiveDir(dir);
+    // Effacer le contexte fromStop : le stop du sens précédent peut être
+    // en fin de liste du nouveau sens et rendre tout "passé" visuellement.
+    setActiveDirFromStop(undefined);
+    // Réinitialiser la segmentation de la carte
+    setActiveSegment({ cutAtId: null, showSeg: false });
     // Sync URL sans rechargement complet
     const url = new URL(window.location.href);
     url.searchParams.set('dir', String(dir));
-    if (fromStop) url.searchParams.set('from', fromStop);
+    url.searchParams.delete('from'); // plus pertinent après changement de sens
     router.replace(url.pathname + url.search);
   };
+
+  const handleSegmentChange = useCallback((seg: SegmentState) => {
+    setActiveSegment(seg);
+  }, []);
+
+  // Nom de la destination segmentée pour la pill headsign
+  const destStopName = activeSegment.cutAtId
+    ? activeSense.stops.find((s) => s.stop_id === activeSegment.cutAtId)?.stop_name
+    : undefined;
 
   return (
     <>
       {/* ── Sélecteur de direction ── */}
       {availableDirs.length > 1 && (
         <div style={{ display: 'flex', gap: 8, margin: '10px 16px 0', padding: 4, background: 'var(--cream-2)', borderRadius: 14, border: '1px solid var(--line)' }}>
-          {availableDirs.map((dir) => {
-            const headsign = senses[dir]?.headsign ?? `Dir. ${dir}`;
-            return (
-              <button
-                key={dir}
-                onClick={() => switchDirection(dir)}
-                style={{
-                  flex: 1, textAlign: 'center', padding: '10px 8px', borderRadius: 10,
-                  background: activeDir === dir ? 'var(--cream)' : 'transparent',
-                  color: activeDir === dir ? 'var(--orange)' : 'var(--muted)',
-                  fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer',
-                  textTransform: 'uppercase', letterSpacing: 0.3,
-                  boxShadow: activeDir === dir ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {dir === 0 ? '→' : '←'} {headsign}
-              </button>
-            );
-          })}
+          {availableDirs.map((dir) => (
+            <button
+              key={dir}
+              onClick={() => switchDirection(dir)}
+              style={{
+                flex: 1, textAlign: 'center', padding: '10px 8px', borderRadius: 10,
+                background: activeDir === dir ? 'var(--cream)' : 'transparent',
+                color: activeDir === dir ? 'var(--orange)' : 'var(--muted)',
+                fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer',
+                textTransform: 'uppercase', letterSpacing: 0.3,
+                boxShadow: activeDir === dir ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {dir === 0 ? '→' : '←'} {senses[dir]?.headsign ?? `Dir. ${dir}`}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* ── Pills d'info dynamiques ── */}
+      {/* ── Pills d'information ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
         {activeSense.headsign && (
           <Pill color="var(--green)">
-            {showSegmentedView
-              ? `→ ${activeSense.stops.find((s) => s.stop_id === cutAtId)?.stop_name ?? activeSense.headsign}`
+            {activeSegment.showSeg && destStopName
+              ? `→ ${destStopName}`
               : `→ ${activeSense.headsign}`}
           </Pill>
         )}
         <Pill color="var(--ink)">{estimatedPrice}</Pill>
         <Pill color="var(--blue)">~{estimatedMin} min</Pill>
         <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
-        {showSegmentedView && (
+        {activeSegment.showSeg && (
           <button
-            onClick={resetSegmentation}
+            onClick={() => { setActiveSegment({ cutAtId: null, showSeg: false }); }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
           >
             <Pill color="var(--muted)">✕ Choisir une autre destination</Pill>
@@ -449,28 +465,27 @@ export default function RouteInteractive({
         )}
       </div>
 
-      {/* ── Carte ── */}
+      {/* ── Carte (singleton — ne se recrée pas au changement de direction) ── */}
       <div style={{ height: 250, overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
         <RouteMapWrapper
-          shape={displayedShape}
-          stops={displayedStops}
+          shape={mapShape}
+          stops={mapStops}
           routeColor={routeColorRaw}
-          activeDirection={activeDir}
-          isSegmented={showSegmentedView}
+          isSegmented={activeSegment.showSeg}
         />
       </div>
 
-      {/* ── Timeline (SenseView) — même composant pour les deux sens ── */}
+      {/* ── Timeline ──
+          key={`sense-${activeDir}`} → remount complet au changement de sens,
+          ce qui réinitialise l'état interne de SenseView (cutAtId, showSeg).
+      ── */}
       <SenseView
+        key={`sense-${activeDir}`}
         sense={activeSense}
-        displayed={displayedStops}
         senseIndex={activeDir}
-        fromStop={fromStop}
-        cutAtId={cutAtId}
-        showSegmentedView={showSegmentedView}
+        fromStop={activeDirFromStop}
         typeKind={typeKind}
-        onDescendIci={handleDescendIci}
-        onReset={resetSegmentation}
+        onSegmentChange={handleSegmentChange}
       />
     </>
   );
