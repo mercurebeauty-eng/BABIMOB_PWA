@@ -121,6 +121,18 @@ body {
   animation: pulse-ring 2s ease-out infinite;
 }
 
+/* ── Leaflet custom ── */
+.custom-leaflet-tooltip {
+  background: var(--cream);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 6px 12px;
+  box-shadow: var(--shadow-card);
+}
+.custom-leaflet-tooltip::before {
+  display: none; /* Hide default triangle */
+}
+
 @keyframes shimmer {
   0%   { opacity: 1; }
   50%  { opacity: 0.35; }

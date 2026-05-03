@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 type ShapePoint = { shape_pt_lat: number; shape_pt_lon: number };
 type RouteStop = {
@@ -44,7 +45,27 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmen
     mapRef.current  = map;
     layersRef.current = layers;
 
+    // ── Localisation de l'utilisateur ──
+    map.locate({ watch: true, enableHighAccuracy: true });
+    
+    let userMarker: L.Marker | null = null;
+    map.on('locationfound', (e) => {
+      if (!userMarker) {
+        userMarker = L.marker(e.latlng, {
+          icon: L.divIcon({
+            className: '',
+            html: `<div style="width:16px;height:16px;border-radius:50%;background:var(--blue, #1E5BFF);border:3px solid #fff;box-shadow:0 0 0 4px rgba(30,91,255,0.3), 0 4px 10px rgba(0,0,0,0.2)"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          })
+        }).addTo(map);
+      } else {
+        userMarker.setLatLng(e.latlng);
+      }
+    });
+
     return () => {
+      map.stopLocate();
       map.remove();
       mapRef.current    = null;
       layersRef.current = null;
@@ -108,7 +129,18 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmen
         iconAnchor: [size / 2, size / 2],
       });
 
-      L.marker([stop.stop_lat, stop.stop_lon], { icon }).addTo(layers);
+      const marker = L.marker([stop.stop_lat, stop.stop_lon], { icon }).addTo(layers);
+      
+      // Infobulle stylisée
+      marker.bindTooltip(`
+        <div style="font-family: var(--font-display, sans-serif); font-weight: 800; font-size: 13px; color: var(--ink, #1a1a1a);">
+          ${stop.stop_name}
+        </div>
+      `, {
+        direction: 'top',
+        offset: [0, -size / 2],
+        className: 'custom-leaflet-tooltip',
+      });
     });
   }, [shape, stops, routeColor, isSegmented]);
 

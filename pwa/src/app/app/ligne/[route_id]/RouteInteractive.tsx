@@ -381,13 +381,25 @@ export default function RouteInteractive({
   // ── Bascule de direction ──
   const switchDirection = (dir: number) => {
     if (dir === activeDir) return;
+
+    // Tenter de conserver l'arrêt de départ s'il existe dans l'autre sens
+    const currentStopName = activeDirFromStop ? activeSense.stops.find(s => s.stop_id === activeDirFromStop)?.stop_name : undefined;
+    const newSenseStops = senses[dir]?.stops || [];
+    const matchingStop = currentStopName ? newSenseStops.find(s => s.stop_name === currentStopName) : undefined;
+    const newFromStopId = matchingStop?.stop_id;
+
     setActiveDir(dir);
-    setActiveDirFromStop(undefined);
+    setActiveDirFromStop(newFromStopId);
     setActiveSegment({ cutAtId: null, showSeg: false });
+    
     // Sync URL sans déclencher de navigation Next.js (pas de re-render serveur)
     const url = new URL(window.location.href);
     url.searchParams.set('dir', String(dir));
-    url.searchParams.delete('from');
+    if (newFromStopId) {
+      url.searchParams.set('from', newFromStopId);
+    } else {
+      url.searchParams.delete('from');
+    }
     window.history.replaceState(null, '', url.pathname + url.search);
   };
 
