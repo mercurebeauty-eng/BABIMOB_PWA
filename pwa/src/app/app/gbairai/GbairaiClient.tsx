@@ -101,7 +101,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
             {/* Stories row */}
             <div className="no-scrollbar" style={{ display: 'flex', gap: 10, padding: '12px 16px 14px', overflowX: 'auto' }}>
               {/* Post story CTA */}
-              {level?.canStory && (
+              {level?.canStory && userId && (
                 <BroadcastButton 
                   userId={userId} 
                   currentTier={profile?.sub_tier ?? 'free'} 
