@@ -140,8 +140,30 @@ export default function ItinerairePage() {
             </div>
 
             {error && (
-              <div className="p-4 bg-red-50 border-2 border-red-100 rounded-2xl text-xs font-bold text-red-600 uppercase tracking-widest text-center animate-in shake duration-300">
-                {error}
+              <div
+                key={error}
+                className="bm-shake"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px', borderRadius: 16,
+                  background: 'var(--danger-pale)',
+                  border: '1.5px solid color-mix(in oklab, var(--danger) 35%, transparent)',
+                  color: 'var(--danger)',
+                }}
+                role="alert"
+              >
+                <div
+                  aria-hidden
+                  style={{
+                    width: 28, height: 28, borderRadius: 999,
+                    background: 'var(--danger)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 16, fontWeight: 900, flexShrink: 0,
+                  }}
+                >!</div>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, lineHeight: 1.4 }}>
+                  {error}
+                </div>
               </div>
             )}
 

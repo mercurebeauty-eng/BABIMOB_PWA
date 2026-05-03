@@ -17,6 +17,16 @@
   --muted:        #8B7E6E;
   --gold:         #E8B23C;
   --blue:         #1E5BFF;
+  --terracotta:   #C4582E;
+
+  /* Tinted surfaces — used for icon halos / soft backgrounds */
+  --orange-pale:  rgba(242, 108, 26, 0.10);
+  --green-pale:   rgba(14, 168, 91, 0.10);
+  --blue-pale:    rgba(30, 91, 255, 0.10);
+  --gold-pale:    rgba(232, 178, 60, 0.14);
+  --danger:       #C4382A;
+  --danger-pale:  rgba(196, 56, 42, 0.10);
+
   --line:         rgba(26,20,16,0.10);
   --line-strong:  rgba(26,20,16,0.18);
   --shadow-card:  0 4px 20px rgba(26,20,16,0.08);
@@ -31,6 +41,12 @@
   --line:         rgba(247,241,230,0.10);
   --line-strong:  rgba(247,241,230,0.18);
   --shadow-card:  0 4px 20px rgba(0,0,0,0.30);
+
+  --orange-pale:  rgba(242, 108, 26, 0.18);
+  --green-pale:   rgba(14, 168, 91, 0.18);
+  --blue-pale:    rgba(30, 91, 255, 0.20);
+  --gold-pale:    rgba(232, 178, 60, 0.20);
+  --danger-pale:  rgba(196, 56, 42, 0.18);
 }
 
 /* ── Base ────────────────────────────────────────────────────── */
@@ -46,8 +62,20 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* ── Press feedback ──────────────────────────────────────────── */
-.press { -webkit-tap-highlight-color: transparent; }
+.press {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1),
+              box-shadow 0.18s ease;
+}
 .press:active { transform: scale(0.96); transition: transform 0.08s; }
+
+/* ── Accessible keyboard focus ──────────────────────────────── */
+:where(button, a, [role="button"], input, textarea, select):focus { outline: none; }
+:where(button, a, [role="button"], input, textarea, select):focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
 
 /* ── Font display (Archivo Black) ────────────────────────────── */
 .font-display {
@@ -145,6 +173,13 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .slide-up { animation: slide-up 0.35s ease-out both; }
+
+@keyframes bm-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60%  { transform: translateX(-4px); }
+  40%, 80%  { transform: translateX(4px); }
+}
+.bm-shake { animation: bm-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
 
 @keyframes compass-needle {
   0%   { transform: rotate(-15deg); }
