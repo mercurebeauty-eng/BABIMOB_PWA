@@ -113,7 +113,7 @@ export default function StoryViewer({ stories, initialIndex, onClose, userId }: 
             {currentStory.display_name || 'Mobeur'}
           </div>
           <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 700 }}>
-            {new Date(currentStory.created_at).toLocaleTimeString([], { hour: '2h-digit', minute: '2h-digit' })}
+            {new Date(currentStory.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.8 }}>
