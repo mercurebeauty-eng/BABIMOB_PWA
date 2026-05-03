@@ -40,6 +40,14 @@ export default function StopReportModal({ stopId, stopName, userId, displayName,
 
     const expiresAt = new Date(Date.now() + selectedCat.expireH * 3600 * 1000).toISOString();
 
+    // Reward XP logic: 10 XP per report, limit 5 per month
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const { count: monthlyCount } = await supabase
+      .from('stop_reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', startOfMonth);
+
     const { error: err } = await supabase.from('stop_reports').insert({
       stop_id: stopId,
       user_id: userId,
@@ -47,7 +55,12 @@ export default function StopReportModal({ stopId, stopName, userId, displayName,
       category,
       content: content.trim(),
       expires_at: expiresAt,
+      xp_earned: (monthlyCount ?? 0) < 5 ? 10 : 0
     });
+
+    if (!err && (monthlyCount ?? 0) < 5) {
+      await supabase.rpc('award_xp', { p_xp: 10 });
+    }
 
     setLoading(false);
 

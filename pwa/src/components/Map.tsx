@@ -311,9 +311,9 @@ export default function Map({
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
 
-      // Progressive zoom visibility — like Apple Maps
-      // < 13: Elite only · 13-14: Elite + Pro · >= 14: all
-      if (currentZoom < 13 && !isElite) return;
+      // Progressive zoom visibility — Apple Maps Style
+      // < 12: Elite only · 12-14: Elite + Pro · >= 14: all
+      if (currentZoom < 12 && !isElite) return;
       if (currentZoom < 14 && !isElite && !isPro) return;
 
       const emoji = p.logo_emoji ?? '🏢';
@@ -322,14 +322,16 @@ export default function Map({
       const isLive = livePois.includes(p.id) || livePois.includes(`sp-${p.id}`);
       const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
 
-      // Size tiers: elite > pro > normal (larger at higher zoom)
-      const circleSize = isElite ? 44 : isPro ? 34 : currentZoom >= 16 ? 28 : currentZoom >= 15 ? 22 : 16;
-      const emojiSize  = isElite ? 24 : isPro ? 18 : currentZoom >= 15 ? 14 : 10;
+      // Dynamic scaling based on zoom
+      const baseSize = isElite ? 42 : isPro ? 32 : 24;
+      const zoomFactor = Math.max(1, (currentZoom - 14) * 0.4 + 1);
+      const circleSize = Math.round(baseSize * (isSelected ? 1.2 : zoomFactor));
+      const emojiSize  = Math.round(circleSize * 0.55);
 
       // Labels at high zoom or for selected/elite
       const showLabel = isElite || isSelected || currentZoom >= 16;
-      // Show emoji only at zoom >= 14 (except elite/pro always show)
-      const showEmoji = isElite || isPro || currentZoom >= 14;
+      // Show emoji always if zoom is high enough, or if it's a partner
+      const showEmoji = isElite || isPro || currentZoom >= 14.5;
 
       let extraClass = isElite
         ? 'bm-poi-circle-elite bm-poi-elite-pulse'
@@ -337,6 +339,7 @@ export default function Map({
         ? 'bm-poi-circle-pro'
         : '';
       if (isLive) extraClass += ' bm-poi-live-pulse';
+      if (isSelected) extraClass += ' bm-poi-selected-glow';
 
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
       const stateClass = showLabel ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';

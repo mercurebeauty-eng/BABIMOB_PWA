@@ -40,16 +40,29 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
     // On préfixe le contenu avec le tag d'ambiance choisi
     const fullContent = `[${currentTag.label}] ${content.trim()}`;
 
+    // Reward XP logic: 10 XP per report, limit 5 per month
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const { count: monthlyCount } = await supabase
+      .from('place_advice')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', startOfMonth);
+
     const { data, error } = await supabase
       .from('place_advice')
       .insert({
         place_id: placeId,
         user_id: userId,
         content: fullContent,
-        is_question: false
+        is_question: false,
+        xp_earned: (monthlyCount ?? 0) < 5 ? 10 : 0
       })
       .select('id, content, created_at, is_question')
       .single();
+
+    if (!error && (monthlyCount ?? 0) < 5) {
+      await supabase.rpc('award_xp', { p_xp: 10 });
+    }
 
     setLoading(false);
 

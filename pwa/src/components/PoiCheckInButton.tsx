@@ -70,7 +70,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
 
        if (lat && lon) {
           const dist = haversineM(userLat, userLon, lat, lon);
-          if (dist > 250) { // Slightly increased margin for better UX
+          if (dist > 100) { // Stricter geofencing as requested
              alert(`Tu es trop loin (${Math.round(dist)}m). Rapproche-toi du lieu !`);
              setStatus('idle');
              return;

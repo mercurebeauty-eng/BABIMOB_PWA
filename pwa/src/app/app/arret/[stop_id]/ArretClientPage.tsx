@@ -257,13 +257,13 @@ export default function ArretClientPage({ stop, lignes, user, profile, isFavorit
               ) : (
                 <>
                   <span style={{ fontSize: 20, position: 'relative' }}>📍</span>
-                  <span style={{ position: 'relative' }}>{user ? 'Je suis à cet arrêt' : 'Connecte-toi pour signaler'}</span>
+                  <span style={{ position: 'relative' }}>{user ? 'Signaler ma présence' : 'Connecte-toi pour signaler'}</span>
                 </>
               )}
             </button>
-            <div style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--muted)', opacity: 0.6 }}>
-              Valide ta présence (+5 XP) pour laisser un C'comment
-            </div>
+              <div style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--muted)', opacity: 0.6 }}>
+                Valide ta présence (+5 XP) pour pouvoir signaler
+              </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

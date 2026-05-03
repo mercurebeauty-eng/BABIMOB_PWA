@@ -38,6 +38,8 @@ export type HotSpot = {
   logo_emoji: string;
   cover_color: string;
   checkin_count: number;
+  lat: number;
+  lon: number;
 };
 
 export type CommunePulse = {
@@ -77,36 +79,56 @@ export default async function GbairaiPage() {
     myLikes = (likes ?? []).map(l => l.post_id);
   }
 
-  // 3. Spots chauds (lieux avec le plus de checkins ces 7 derniers jours)
+  // 3. Spots chauds (lieux + arrêts avec le plus d'activité ces 7 derniers jours)
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  // Fetch POI checkins
   const { data: recentCheckins } = await supabase
     .from('checkins')
-    .select('place_id, place_name, commune')
+    .select('place_id, place_name, commune, lat, lon')
     .gte('created_at', oneWeekAgo)
     .eq('is_public', true);
 
-  // Agréger les spots
-  const spotMap = new Map<string, { place_name: string; commune: string | null; count: number }>();
+  // Fetch Arret validations (Transport Heatmap base)
+  const { data: recentArretValidations } = await supabase
+    .from('arret_validations')
+    .select('stop_id, stop_name, lat, lon')
+    .gte('created_at', oneWeekAgo);
+
+  // Aggregator
+  const spotMap = new Map<string, { name: string; commune?: string | null; count: number; lat: number; lon: number; type: 'place' | 'arret' }>();
+
   (recentCheckins ?? []).forEach(c => {
-    const key = c.place_id;
-    const existing = spotMap.get(key);
+    const existing = spotMap.get(c.place_id);
     if (existing) {
       existing.count++;
-    } else {
-      spotMap.set(key, { place_name: c.place_name, commune: c.commune, count: 1 });
+    } else if (c.lat && c.lon) {
+      spotMap.set(c.place_id, { name: c.place_name, commune: c.commune, count: 1, lat: c.lat, lon: c.lon, type: 'place' });
     }
   });
+
+  (recentArretValidations ?? []).forEach(v => {
+    const existing = spotMap.get(v.stop_id);
+    if (existing) {
+      existing.count++;
+    } else if (v.lat && v.lon) {
+      spotMap.set(v.stop_id, { name: v.stop_name, count: 1, lat: v.lat, lon: v.lon, type: 'arret' });
+    }
+  });
+
   const hotSpots: HotSpot[] = Array.from(spotMap.entries())
-    .map(([place_id, v]) => ({
-      place_id,
-      place_name: v.place_name,
-      commune: v.commune,
-      logo_emoji: '📍',
-      cover_color: '#F26C1A',
+    .map(([id, v]) => ({
+      place_id: id,
+      place_name: v.name,
+      commune: v.commune ?? null,
+      logo_emoji: v.type === 'arret' ? '🚌' : '📍',
+      cover_color: v.type === 'arret' ? 'var(--blue)' : '#F26C1A',
       checkin_count: v.count,
+      lat: v.lat,
+      lon: v.lon
     }))
     .sort((a, b) => b.checkin_count - a.checkin_count)
-    .slice(0, 5);
+    .slice(0, 10);
 
   // 4. Pulse de la ville — basé sur stop_reports récents par commune
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
