@@ -244,15 +244,19 @@ export default function Map({
 
     layer.clearLayers();
 
-    hotspots.forEach((h) => {
-      // 1. Large vibrant glow (Orange/Red)
-      const intensityScale = Math.min(h.intensity / 50, 1); // Scale based on checkins
+    hotspots.forEach((h: any) => {
+      const isTransport = h.id?.startsWith('stop-') || h.place_id?.startsWith('stop-');
+      const baseColor = isTransport ? 'var(--blue)' : '#ff3d00';
+      const coreColor = isTransport ? '#5d87ff' : '#ff9100';
+
+      // 1. Large vibrant glow
+      const intensityScale = Math.min(h.intensity / 50, 1);
       const outerRadius = 100 + intensityScale * 150;
       
       L.circle([h.lat, h.lon], {
         radius: outerRadius,
         stroke: false,
-        fillColor: '#ff3d00',
+        fillColor: baseColor,
         fillOpacity: 0.15 + intensityScale * 0.1,
       }).addTo(layer);
       
@@ -260,7 +264,7 @@ export default function Map({
       L.circle([h.lat, h.lon], {
         radius: outerRadius * 0.5,
         stroke: false,
-        fillColor: '#ff9100',
+        fillColor: coreColor,
         fillOpacity: 0.3 + intensityScale * 0.2,
       }).addTo(layer);
 

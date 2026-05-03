@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-type Hotspot = { lat: number; lon: number; intensity: number };
+type Hotspot = { id: string; lat: number; lon: number; intensity: number };
 
 export function useHotspots() {
   const [heatMode, setHeatMode] = useState(false);
@@ -13,7 +13,12 @@ export function useHotspots() {
       import('@/lib/activity')
         .then((mod) => mod.fetchActivityHotspots())
         .then((data) => {
-          setHotspots(data.map((h) => ({ lat: h.lat, lon: h.lon, intensity: h.count })));
+          setHotspots(data.map((h) => ({ 
+            id: h.place_id, 
+            lat: h.lat, 
+            lon: h.lon, 
+            intensity: h.count 
+          })));
         });
     }
   }, [heatMode, hotspots.length]);
