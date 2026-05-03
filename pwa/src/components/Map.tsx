@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { escapeHtml } from '@/lib/html';
@@ -102,6 +102,8 @@ export default function Map({
   useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
   useEffect(() => { poiCheckinsRef.current = poiCheckins; }, [poiCheckins]);
 
+  const [currentZoom, setCurrentZoom] = useState(zoom);
+
   // ── Init (once) ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
@@ -153,6 +155,8 @@ export default function Map({
     legsLayerRef.current = legsLayer;
     poisLayerRef.current = poisLayer;
     broadcastsLayerRef.current = broadcastsLayer;
+
+    map.on('zoomend', () => setCurrentZoom(map.getZoom()));
 
     onMapReady?.(map);
 
@@ -304,15 +308,25 @@ export default function Map({
     layer.clearLayers();
 
     pois.forEach((p) => {
-      const emoji = p.logo_emoji ?? '🏢';
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
+      
+      // LOGIQUE DE VISIBILITÉ PAR ZOOM (Premium Apple Maps style)
+      // En dessous de zoom 14, seuls les partenaires (Elite/Pro) ou très chauds s'affichent
+      if (currentZoom < 14 && !isElite && !isPro) return;
+      
+      const emoji = p.logo_emoji ?? '🏢';
+      const bgColor = p.cover_color ?? 'var(--ink)';
       const isSelected = selectedPoiId === p.id;
       const isLive = livePois.includes(p.id) || livePois.includes(`sp-${p.id}`);
       const checkinCount = poiCheckinsRef.current[p.id] ?? 0;
 
-      const circleSize = isElite ? 40 : isPro ? 32 : 24;
-      const emojiSize = isElite ? 22 : isPro ? 17 : 14;
+      // Tailles dynamiques
+      const circleSize = isElite ? 40 : isPro ? 32 : (currentZoom >= 15 ? 24 : 16);
+      const emojiSize = isElite ? 22 : isPro ? 17 : (currentZoom >= 15 ? 14 : 10);
+      
+      // Est-ce qu'on affiche le texte du nom du lieu ?
+      const showLabel = isElite || isSelected || currentZoom >= 16;
 
       let extraClass = isElite
         ? 'bm-poi-circle-elite bm-poi-elite-pulse'
@@ -323,7 +337,7 @@ export default function Map({
       if (isLive) extraClass += ' bm-poi-live-pulse';
 
       const labelClass = isElite ? 'bm-poi-label-under-elite' : '';
-      const stateClass = isSelected ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
+      const stateClass = (showLabel || isSelected) ? 'bm-poi-label-expanded' : 'bm-poi-label-collapsed';
 
       const presenceHtml = checkinCount > 0
         ? `<div class="bm-poi-presence">${SVG_PERSON}${checkinCount > 1 ? `<span class="bm-poi-presence-count">${checkinCount > 9 ? '9+' : checkinCount}</span>` : ''}</div>`
@@ -332,10 +346,10 @@ export default function Map({
       const html = `
         <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
           ${presenceHtml}
-          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px;">
-            <span class="bm-poi-emoji" style="font-size:${emojiSize}px;">${emoji}</span>
+          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px; height:${circleSize}px; background:${bgColor}; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+            ${currentZoom >= 14 || isElite || isPro ? `<span class="bm-poi-emoji" style="font-size:${emojiSize}px; line-height: 1;">${emoji}</span>` : ''}
           </div>
-          <span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>
+          ${showLabel ? `<span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>` : ''}
         </div>
       `;
 
@@ -354,7 +368,7 @@ export default function Map({
       marker.on('click', () => onPoiClickRef.current?.(p));
       marker.addTo(layer);
     });
-  }, [pois, livePois]);
+  }, [pois, livePois, currentZoom, selectedPoiId]);
 
   // ── Broadcasts (Pro Social Status) ────────────────────────────────────────
   useEffect(() => {

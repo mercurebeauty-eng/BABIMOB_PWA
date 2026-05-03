@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
-import BroadcastButton from '@/components/BroadcastButton';
+import SidebarMenu from '@/components/SidebarMenu';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
@@ -54,6 +54,7 @@ function AppPageContent() {
 
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
@@ -284,7 +285,7 @@ function AppPageContent() {
       {/* ── Top Floating Bar ── */}
       <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 10 }}>
         <button
-          onClick={() => {}}
+          onClick={() => setIsMenuOpen(true)}
           className="press"
           style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
@@ -346,12 +347,8 @@ function AppPageContent() {
         </div>
       </div>
 
-      {/* ── Broadcast FAB ── */}
-      {profile && sheet === 'peek' && (
-        <div style={{ position: 'absolute', bottom: 264, right: 20, zIndex: 450 }}>
-          <BroadcastButton userId={profile.id} currentTier={profile.sub_tier ?? 'free'} isAdmin={profile.is_admin} />
-        </div>
-      )}
+      {/* ── Sidebar Menu ── */}
+      <SidebarMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} profile={profile} />
 
       {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
       <motion.div
