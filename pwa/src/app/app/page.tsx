@@ -350,7 +350,12 @@ function AppPageContent() {
       </div>
 
       {/* ── Sidebar Menu ── */}
-      <SidebarMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} profile={profile} />
+      <SidebarMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        onToggleHeatmap={() => setHeatMode(!heatMode)}
+        profile={profile} 
+      />
 
       {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
       <motion.div

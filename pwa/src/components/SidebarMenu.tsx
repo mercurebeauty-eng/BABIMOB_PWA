@@ -7,10 +7,11 @@ import { Ic } from '@/components/ui/Ic';
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  onToggleHeatmap?: () => void;
   profile: any | null;
 };
 
-export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
+export default function SidebarMenu({ isOpen, onClose, onToggleHeatmap, profile }: Props) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -108,15 +109,19 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                 <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
               </div>
 
-              <div className="press" onClick={() => alert('Heatmap bientôt disponible !')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: 'var(--cream-2)', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
+              <div 
+                className="press" 
+                onClick={() => { onToggleHeatmap?.(); onClose(); }} 
+                style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', borderRadius: 20, background: 'var(--cream-2)', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', cursor: 'pointer' }}
+              >
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,107,107,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Ic.Bolt s={20} color="#FF6B6B" />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>Heatmap Transport</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Zones d'activité Gbaka</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Voir l'activité live</div>
                 </div>
-                <Ic.Arrow s={16} dir="right" color="var(--line-strong)" />
+                <Ic.Arrow s={16} dir="right" color="var(--orange)" />
               </div>
 
             </div>
