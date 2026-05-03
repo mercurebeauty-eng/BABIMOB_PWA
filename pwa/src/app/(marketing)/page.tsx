@@ -935,7 +935,7 @@ export default function LandingPage() {
             </div>
             <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
               La mobilité urbaine d'Abidjan, réinventée par et pour les Mobeurs.
-              Fait avec ❤️ à Yopougon.
+              Fait avec ❤️ à Abobo.
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               {['🚌', '🚕', '🛵'].map((e, i) => (
