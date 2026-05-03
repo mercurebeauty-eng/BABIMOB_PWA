@@ -71,7 +71,10 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, routeColorRaw, onSeg
     );
   }
 
-  const currentIdx = fromStop ? stops.findIndex((s) => s.stop_id === fromStop) : -1;
+  // Si fromStop est défini, trouver l'arrêt correspondant. Sinon, le premier arrêt est le départ implicite.
+  const currentIdx = fromStop
+    ? stops.findIndex((s) => s.stop_id === fromStop)
+    : 0;
   const cutIdx     = cutAtId  ? stops.findIndex((s) => s.stop_id === cutAtId)  : -1;
 
   const segStart = showSeg && currentIdx >= 0 ? currentIdx : 0;
@@ -121,9 +124,9 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, routeColorRaw, onSeg
         const isDisplayLast  = displayIdx === displayed.length - 1;
         const isTerminus = realIdx === 0 || realIdx === stops.length - 1;
 
-        const isCurrent     = fromStop === stop.stop_id;
+        const isCurrent     = currentIdx >= 0 && realIdx === currentIdx;
         const isPast        = currentIdx >= 0 && realIdx < currentIdx;
-        const isFuture      = currentIdx >= 0 ? realIdx > currentIdx : !isDisplayFirst;
+        const isFuture      = currentIdx >= 0 ? realIdx > currentIdx : false;
         const isDestination = cutAtId === stop.stop_id;
 
         // ── Couleurs fidèles au design original ──
@@ -346,7 +349,7 @@ export default function RouteInteractive({
   // ── Calculs pour la carte ──
   const currentIdx = activeDirFromStop
     ? activeSense.stops.findIndex((s) => s.stop_id === activeDirFromStop)
-    : -1;
+    : 0; // Premier arrêt = départ implicite
   const cutIdx = activeSegment.cutAtId
     ? activeSense.stops.findIndex((s) => s.stop_id === activeSegment.cutAtId)
     : -1;
