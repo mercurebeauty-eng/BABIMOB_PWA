@@ -1,6 +1,6 @@
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="scope-dark flex-1 flex flex-col bg-bm-bg text-bm-text font-sans">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--cream)', color: 'var(--ink)' }}>
       {children}
     </div>
   );
