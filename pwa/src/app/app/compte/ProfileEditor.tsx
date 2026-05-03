@@ -43,7 +43,7 @@ export default function ProfileEditor({
   function handlePhoneChange(val: string) {
     setPhone(val);
     if (val && !validateCIPhone(val)) {
-      setPhoneError('Format invalide — ex: 07 12 34 56 78 ou +225 07 12 34 56 78');
+      setPhoneError('Format invalide (ex: 07 01 02 03 04)');
     } else {
       setPhoneError('');
     }
@@ -53,7 +53,7 @@ export default function ProfileEditor({
     const trimmed = name.trim();
     if (!trimmed) return;
     if (phone && !validateCIPhone(phone)) {
-      setPhoneError('Numéro invalide — corrige avant de sauvegarder.');
+      setPhoneError('Numéro invalide.');
       return;
     }
     setStatus('saving');
@@ -82,20 +82,54 @@ export default function ProfileEditor({
     setTimeout(() => setStatus('idle'), 2500);
   }
 
+  const labelStyle: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: 'var(--muted)',
+    marginBottom: 8,
+    display: 'block'
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: 'var(--cream-2)',
+    border: '2px solid var(--line)',
+    borderRadius: 16,
+    padding: '12px 16px',
+    fontSize: 14,
+    fontWeight: 700,
+    color: 'var(--ink)',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+  };
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Avatar Selection */}
       <div>
-        <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-3">Avatar</div>
-        <div className="flex flex-wrap gap-2">
+        <label style={labelStyle}>Choisir ton Avatar</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {EMOJIS.map((e) => (
             <button
               key={e}
               onClick={() => setEmoji(e)}
-              className={`w-11 h-11 rounded-xl text-2xl transition-all active:scale-95 ${
-                emoji === e
-                  ? 'bg-abidjan-orange/15 border-2 border-abidjan-orange scale-110 shadow-md'
-                  : 'bg-beige-50 border-2 border-beige-100 hover:border-abidjan-orange/40'
-              }`}
+              className="press"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                fontSize: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: emoji === e ? 'var(--orange)' : 'var(--cream-2)',
+                border: `2px solid ${emoji === e ? 'var(--orange)' : 'var(--line)'}`,
+                boxShadow: emoji === e ? '0 4px 12px rgba(242,108,26,0.3)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
             >
               {e}
             </button>
@@ -103,25 +137,30 @@ export default function ProfileEditor({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-2">Pseudo</div>
+          <label style={labelStyle}>Pseudo</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={30}
-            className="w-full bg-beige-50 border-2 border-beige-100 focus:border-abidjan-orange rounded-2xl px-5 py-3 text-sm font-black text-beige-text outline-none transition-colors"
+            placeholder="Ton nom d'explorateur"
+            style={inputStyle}
+            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--orange)'}
+            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
           />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-2">Commune d&apos;origine</div>
+          <label style={labelStyle}>Commune</label>
           <select
             value={commune}
             onChange={(e) => setCommune(e.target.value)}
-            className="w-full bg-beige-50 border-2 border-beige-100 focus:border-abidjan-orange rounded-2xl px-5 py-3 text-sm font-black text-beige-text outline-none transition-colors appearance-none"
+            style={{ ...inputStyle, appearance: 'none' }}
+            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--orange)'}
+            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
           >
-            <option value="">— Sélectionner —</option>
+            <option value="">Abidjan</option>
             {ABIDJAN_COMMUNES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -130,77 +169,87 @@ export default function ProfileEditor({
       </div>
 
       <div>
-        <div className="text-[10px] uppercase tracking-widest text-beige-muted font-bold mb-2">Téléphone</div>
+        <label style={labelStyle}>Téléphone</label>
         <input
           type="tel"
           value={phone}
           onChange={(e) => handlePhoneChange(e.target.value)}
-          placeholder="07 12 34 56 78"
-          className={`w-full bg-beige-50 border-2 rounded-2xl px-5 py-3 text-sm font-black text-beige-text outline-none transition-colors ${
-            phoneError ? 'border-red-400 focus:border-red-500' : 'border-beige-100 focus:border-abidjan-orange'
-          }`}
+          placeholder="07 01 02 03 04"
+          style={{ ...inputStyle, borderColor: phoneError ? '#ff4444' : 'var(--line)' }}
+          onFocus={(e) => !phoneError && (e.currentTarget.style.borderColor = 'var(--orange)')}
+          onBlur={(e) => !phoneError && (e.currentTarget.style.borderColor = 'var(--line)')}
         />
-        {phoneError && <p className="text-[10px] text-red-500 font-bold mt-1.5">{phoneError}</p>}
+        {phoneError && <div style={{ fontSize: 10, color: '#ff4444', marginTop: 4, fontWeight: 700 }}>{phoneError}</div>}
       </div>
 
-      <div className="space-y-3 pt-2">
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <input
-            type="checkbox"
-            checked={visibility}
-            onChange={e => setVisibility(e.target.checked)}
-            className="sr-only"
-          />
-          <div
-            role="switch"
-            aria-checked={visibility}
-            aria-hidden="true"
-            className={`w-10 h-6 rounded-full flex items-center px-1 transition-all ${visibility ? 'bg-abidjan-orange' : 'bg-beige-200'}`}
+      {/* Switches Style Wax */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+          <div 
+            onClick={() => setVisibility(!visibility)}
+            style={{
+              width: 44,
+              height: 24,
+              borderRadius: 20,
+              background: visibility ? 'var(--green)' : 'var(--line)',
+              position: 'relative',
+              transition: 'background 0.3s'
+            }}
           >
-            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${visibility ? 'translate-x-4' : ''}`} />
+            <div style={{
+              position: 'absolute',
+              top: 3,
+              left: visibility ? 23 : 3,
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: '#fff',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              transition: 'left 0.3s'
+            }} />
           </div>
-          <span className="text-xs font-bold text-beige-muted">Rendre mes visites publiques</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Rendre mes visites publiques</span>
         </label>
 
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={e => setConsent(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded border-beige-200 text-abidjan-orange focus:ring-abidjan-orange"
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+          <input 
+            type="checkbox" 
+            checked={consent} 
+            onChange={(e) => setConsent(e.target.checked)}
+            style={{ marginTop: 3 }}
           />
-          <span className="text-[10px] font-bold text-beige-muted leading-tight">
-            J&apos;accepte de recevoir des offres promotionnelles des partenaires Babimob par téléphone.
+          <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 500, lineHeight: 1.4 }}>
+            J'accepte de recevoir des actus et bons plans Babimob par téléphone.
           </span>
         </label>
       </div>
-
-      {status === 'error' && (
-        <p className="text-xs text-red-500 font-bold text-center">
-          Une erreur est survenue. Réessaie.
-        </p>
-      )}
 
       <button
         onClick={handleSave}
         disabled={status === 'saving' || !name.trim() || !!phoneError}
-        className={`w-full text-white font-black py-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 uppercase tracking-tight ${
-          status === 'saved'
-            ? 'bg-abidjan-green shadow-abidjan-green/20'
-            : 'bg-abidjan-orange shadow-abidjan-orange/20 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5'
-        }`}
+        className="press font-display"
+        style={{
+          width: '100%',
+          padding: '16px',
+          borderRadius: 20,
+          border: 'none',
+          background: status === 'saved' ? 'var(--green)' : 'var(--orange)',
+          color: '#fff',
+          fontSize: 16,
+          letterSpacing: 0.5,
+          cursor: 'pointer',
+          boxShadow: status === 'saved' ? '0 8px 20px rgba(14,168,91,0.3)' : '0 8px 20px rgba(242,108,26,0.3)',
+          transition: 'all 0.3s'
+        }}
       >
-        {status === 'saving' ? (
-          <span className="flex items-center justify-center gap-3">
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Sauvegarde…
-          </span>
-        ) : status === 'saved' ? (
-          '✓ Profil mis à jour !'
-        ) : (
-          'Enregistrer les modifications'
-        )}
+        {status === 'saving' ? 'SAUVEGARDE...' : status === 'saved' ? '✓ PROFIL MIS À JOUR' : 'ENREGISTRER'}
       </button>
+
+      {status === 'error' && (
+        <div style={{ textAlign: 'center', color: '#ff4444', fontSize: 12, fontWeight: 700 }}>
+          Oups, une erreur est survenue.
+        </div>
+      )}
     </div>
   );
 }
