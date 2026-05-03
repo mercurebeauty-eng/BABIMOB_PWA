@@ -46,53 +46,41 @@ function nearestShapeIdx(shape: ShapePoint[], lat: number, lon: number): number 
 }
 
 // ── SenseView ────────────────────────────────────────────────────────
-//
-// Composant autonome : gère son propre état de segmentation.
-// Keyed par senseIndex dans le parent → remount complet au changement de sens,
-// ce qui réinitialise automatiquement cutAtId et showSeg.
-//
-// fromStop : undefined quand la direction a été changée manuellement, pour
-// éviter l'artefact "tout en rouge".
 
 type SenseViewProps = {
   sense: Sense;
   senseIndex: number;
   fromStop: string | undefined;
   typeKind: 'gbaka' | 'woro' | 'taxi' | 'saloni';
+  routeColorRaw: string;
   onSegmentChange: (seg: SegmentState) => void;
 };
 
-function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: SenseViewProps) {
+function SenseView({ sense, senseIndex, fromStop, typeKind, routeColorRaw, onSegmentChange }: SenseViewProps) {
   const { stops } = sense;
 
-  // État interne : isolation totale entre les deux sens
   const [cutAtId, setCutAtId] = useState<string | null>(null);
   const [showSeg, setShowSeg] = useState(false);
 
-  // ── Arrêts absents ──
   if (stops.length === 0) {
     return (
       <div style={{ padding: '48px 16px', textAlign: 'center' }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>🚌</div>
-        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink-2)' }}>
-          Aucun arrêt pour cette direction
-        </div>
-        <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>
-          Les données GTFS ne sont pas disponibles pour ce sens.
-        </div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink-2)' }}>Aucun arrêt pour cette direction</div>
+        <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>Les données GTFS ne sont pas disponibles pour ce sens.</div>
       </div>
     );
   }
 
-  // Indices dans la liste COMPLÈTE du sens
   const currentIdx = fromStop ? stops.findIndex((s) => s.stop_id === fromStop) : -1;
   const cutIdx     = cutAtId  ? stops.findIndex((s) => s.stop_id === cutAtId)  : -1;
 
   const segStart = showSeg && currentIdx >= 0 ? currentIdx : 0;
   const segEnd   = showSeg && cutIdx >= 0     ? cutIdx     : stops.length - 1;
 
-  // Tranche d'arrêts affichés
   const displayed = showSeg ? stops.slice(segStart, segEnd + 1) : stops;
+
+  const routeColor = `#${routeColorRaw}`;
 
   const handleDescendIci = (stop: StopRow) => {
     setCutAtId(stop.stop_id);
@@ -114,7 +102,6 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: S
 
   return (
     <div style={{ padding: '16px 16px 100px', position: 'relative' }}>
-      {/* Badge "votre arrêt mis en évidence" — uniquement si fromStop trouvé */}
       {currentIdx >= 0 && !showSeg && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
           <span style={{
@@ -129,43 +116,35 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: S
       )}
 
       {displayed.map((stop, displayIdx) => {
-        // Indice réel dans la liste complète
         const realIdx = stops.findIndex((s) => s.stop_id === stop.stop_id);
 
         const isDisplayFirst = displayIdx === 0;
         const isDisplayLast  = displayIdx === displayed.length - 1;
-
-        // Terminus = premier ou dernier de la ROUTE COMPLÈTE
         const isTerminus = realIdx === 0 || realIdx === stops.length - 1;
 
         const isCurrent     = fromStop === stop.stop_id;
         const isPast        = currentIdx >= 0 && realIdx < currentIdx;
         const isFuture      = currentIdx >= 0 ? realIdx > currentIdx : !isDisplayFirst;
         const isDestination = cutAtId === stop.stop_id;
-        const isOnJourney   = showSeg && currentIdx >= 0 && cutIdx >= 0 && realIdx > currentIdx && realIdx < cutIdx;
 
-        // ── Couleurs premium ──
+        // ── Couleurs fidèles au design original ──
+        // Points : passé = rouge, courant = bleu, destination = vert, terminus = ink, futur = ligne pâle
         const dotColor = isCurrent
           ? 'var(--blue)'
           : isDestination ? 'var(--green)'
           : isPast ? '#e53935'
-          : isTerminus ? 'var(--ink)'
-          : isOnJourney ? 'var(--gold)'
-          : isFuture ? 'color-mix(in oklab, var(--line) 40%, transparent)'
+          : isTerminus ? routeColor
           : 'var(--line)';
 
-        const lineColor = isPast
-          ? '#e53935'
-          : (isCurrent || isOnJourney || (currentIdx >= 0 && cutIdx >= 0 && realIdx <= cutIdx))
-          ? 'var(--gold)'
-          : 'var(--line)';
+        // Ligne : passé = rouge solide, courant→destination = orange/gold solide, reste = tirets orange
+        const lineColor = isPast ? '#e53935'
+          : isCurrent ? routeColor
+          : (showSeg && currentIdx >= 0 && cutIdx >= 0 && realIdx >= currentIdx && realIdx <= cutIdx) ? routeColor
+          : routeColor;
 
-        const lineDashed = !isPast
-          && !isCurrent
-          && !isOnJourney
-          && !(currentIdx >= 0 && cutIdx >= 0 && realIdx <= cutIdx);
+        const lineSolid = isPast || isCurrent || (showSeg && currentIdx >= 0 && cutIdx >= 0 && realIdx >= currentIdx && realIdx <= cutIdx);
 
-        const dotSize = isCurrent ? 44 : isDestination ? 34 : isTerminus ? 22 : isOnJourney ? 16 : 12;
+        const dotSize = isCurrent ? 40 : isDestination ? 30 : isTerminus ? 18 : 12;
 
         const itemKey = `${senseIndex}-${stop.stop_id}`;
 
@@ -173,92 +152,87 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: S
           <div
             key={itemKey}
             style={{
-              display: 'flex', gap: 14, alignItems: 'stretch',
+              display: 'flex', gap: 12, alignItems: 'stretch',
               background: isCurrent
                 ? 'color-mix(in oklab, var(--blue) 6%, transparent)'
                 : isDestination
                 ? 'color-mix(in oklab, var(--green) 6%, transparent)'
                 : 'transparent',
-              borderRadius: (isCurrent || isDestination) ? 18 : 0,
-              margin:  (isCurrent || isDestination) ? '4px -10px' : 0,
-              padding: (isCurrent || isDestination) ? '4px 10px' : 0,
+              borderRadius: (isCurrent || isDestination) ? 14 : 0,
+              margin:  (isCurrent || isDestination) ? '2px -8px' : 0,
+              padding: (isCurrent || isDestination) ? '0 8px' : 0,
               border: (isCurrent || isDestination)
-                ? `1.5px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 20%, transparent)`
+                ? `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 18%, transparent)`
                 : 'none',
-              transition: 'all 0.3s ease',
             }}
           >
             {/* ── Timeline column ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 28, flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
               <div style={{
-                flex: 1, width: isPast || isCurrent || isOnJourney ? 3 : 2, minHeight: 16,
+                flex: 1, width: lineSolid ? 3 : 2, minHeight: 14,
                 background: isDisplayFirst ? 'transparent' : lineColor,
-                backgroundImage: lineDashed
+                backgroundImage: !lineSolid && !isDisplayFirst
                   ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)'
                   : 'none',
-                transition: 'background 0.3s',
               }} />
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 {(isCurrent || isDestination) && (
                   <div className="pulse-ring" style={{
                     position: 'absolute', top: '50%', left: '50%',
                     transform: 'translate(-50%,-50%)',
-                    width: dotSize + 16, height: dotSize + 16, borderRadius: '50%',
-                    background: isCurrent ? 'var(--blue)' : 'var(--green)',
-                    opacity: 0.15, pointerEvents: 'none',
+                    width: 52, height: 52, borderRadius: '50%',
+                    background: isCurrent ? 'var(--blue)' : 'var(--green)', opacity: 0.2, pointerEvents: 'none',
                   }} />
                 )}
                 <div style={{
                   width: dotSize, height: dotSize, borderRadius: '50%', flexShrink: 0,
                   background: dotColor,
-                  border: (isCurrent || isDestination) ? '3px solid var(--cream)' : isOnJourney ? '2px solid var(--cream)' : 'none',
+                  border: (isCurrent || isDestination) ? '3px solid var(--cream)' : 'none',
                   boxShadow: (isCurrent || isDestination)
-                    ? `0 0 0 2px ${isCurrent ? 'var(--blue)' : 'var(--green)'}, 0 4px 14px rgba(0,0,0,0.18)`
-                    : isTerminus ? '0 0 0 3px color-mix(in oklab, var(--ink) 12%, transparent)' : 'none',
+                    ? `0 0 0 2px ${isCurrent ? 'var(--blue)' : 'var(--green)'}, 0 4px 12px rgba(0,0,0,0.15)`
+                    : isTerminus ? `0 0 0 3px color-mix(in oklab, ${routeColor} 15%, transparent)` : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.3s ease',
                 }}>
-                  {isCurrent     && <Vehicle kind={typeKind} size={24} color="#fff" />}
-                  {isDestination && <Ic.Pin s={18} fill color="#fff" />}
+                  {isCurrent     && <Vehicle kind={typeKind} size={22} color="#fff" />}
+                  {isDestination && <Ic.Star s={16} fill color="#fff" />}
                 </div>
               </div>
               <div style={{
-                flex: 1, width: isPast || isCurrent || isOnJourney ? 3 : 2, minHeight: 16,
+                flex: 1, width: lineSolid ? 3 : 2, minHeight: 14,
                 background: isDisplayLast ? 'transparent' : lineColor,
-                backgroundImage: lineDashed
+                backgroundImage: !lineSolid && !isDisplayLast
                   ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)'
                   : 'none',
-                transition: 'background 0.3s',
               }} />
             </div>
 
             {/* ── Content column ── */}
             <div style={{
               flex: 1, minWidth: 0,
-              paddingTop:    (isCurrent || isDestination) ? 16 : 12,
-              paddingBottom: (isCurrent || isDestination) ? 16 : 12,
+              paddingTop:    (isCurrent || isDestination) ? 14 : 10,
+              paddingBottom: (isCurrent || isDestination) ? 14 : 10,
               borderBottom: !isDisplayLast && !isCurrent && !isDestination
-                ? '1px solid color-mix(in oklab, var(--line) 50%, transparent)'
+                ? '1px solid color-mix(in oklab, var(--line) 55%, transparent)'
                 : 'none',
             }}>
               {isCurrent || isDestination ? (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span className="font-display" style={{ fontSize: 18, fontWeight: 900, color: isCurrent ? 'var(--blue)' : 'var(--green)' }}>
                       {stop.stop_name}
                     </span>
                     <span style={{
-                      fontSize: 9, fontWeight: 900,
-                      color: '#fff',
-                      background: isCurrent ? 'var(--blue)' : 'var(--green)',
-                      borderRadius: 6, padding: '3px 8px',
-                      textTransform: 'uppercase', letterSpacing: 0.6,
+                      fontSize: 8, fontWeight: 900,
+                      color: isCurrent ? 'var(--blue)' : 'var(--green)',
+                      background: `color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 12%, transparent)`,
+                      border: `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 25%, transparent)`,
+                      borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4,
                     }}>
-                      {isCurrent ? 'DÉPART' : 'ARRIVÉE'}
+                      {isCurrent ? 'DÉPART' : 'DESTINATION'}
                     </span>
                   </div>
                   {stop.commune && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 3 }}>
+                    <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>
                       {stop.commune}
                     </div>
                   )}
@@ -271,14 +245,12 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: S
                   <div style={{ minWidth: 0 }}>
                     <div style={{
                       fontSize: isTerminus ? 15 : 13,
-                      fontWeight: isTerminus ? 800 : isPast ? 500 : isOnJourney ? 700 : 600,
-                      color: isPast ? 'var(--muted)' : isOnJourney ? 'var(--ink)' : isTerminus ? 'var(--ink)' : 'var(--ink-2)',
+                      fontWeight: isTerminus ? 800 : isPast ? 500 : 600,
+                      color: isPast ? 'var(--muted)' : isTerminus ? 'var(--ink)' : 'var(--ink-2)',
                       textDecoration: isPast ? 'line-through' : 'none',
-                      opacity: isPast ? 0.5 : 1,
+                      opacity: isPast ? 0.55 : 1,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>
-                      {stop.stop_name}
-                    </div>
+                    }}>{stop.stop_name}</div>
                     {stop.commune && (
                       <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1 }}>
                         {stop.commune}
@@ -289,49 +261,42 @@ function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: S
                 </a>
               )}
 
-              {/* Departure actions */}
+              {/* Suivi en direct button */}
               {isCurrent && (
-                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
                   <button className="press" style={{
-                    padding: '8px 16px', borderRadius: 10,
+                    padding: '6px 12px', borderRadius: 8,
                     background: 'var(--orange)', color: '#fff',
-                    fontSize: 11, fontWeight: 800, border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    boxShadow: '0 3px 10px rgba(242,108,26,0.3)',
-                    letterSpacing: 0.3,
+                    fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer',
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'pulse 1.5s infinite' }} />
                     Suivi en direct
                   </button>
                 </div>
               )}
 
-              {/* Destination actions */}
+              {/* Changer destination */}
               {isDestination && (
-                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
                   <button className="press" onClick={handleReset} style={{
-                    padding: '8px 16px', borderRadius: 10,
-                    background: 'var(--cream)', color: 'var(--ink)',
-                    fontSize: 11, fontWeight: 800, border: '1.5px solid var(--line)', cursor: 'pointer',
-                    letterSpacing: 0.3,
+                    padding: '6px 12px', borderRadius: 8,
+                    background: 'var(--muted)', color: '#fff',
+                    fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer',
                   }}>
                     Changer destination
                   </button>
                 </div>
               )}
 
-              {/* "Je descends ici" : arrêts futurs uniquement, hors mode segmenté */}
+              {/* Je descends ici — future stops only, not in segmented mode */}
               {isFuture && !isCurrent && !isDestination && !showSeg && (
                 <button
                   className="press"
                   onClick={() => handleDescendIci(stop)}
                   style={{
-                    marginTop: 6, padding: '7px 14px', borderRadius: 10,
-                    background: 'color-mix(in oklab, var(--orange) 10%, transparent)',
-                    color: 'var(--orange)', fontSize: 11, fontWeight: 800,
-                    border: '1.5px solid color-mix(in oklab, var(--orange) 25%, transparent)',
+                    marginTop: 4, padding: '5px 10px', borderRadius: 8,
+                    background: 'var(--orange)', color: '#fff',
+                    fontSize: 11, fontWeight: 800, border: 'none',
                     cursor: 'pointer', letterSpacing: 0.3,
-                    transition: 'all 0.2s',
                   }}
                 >
                   Je descends ici 🎯
@@ -354,15 +319,19 @@ export default function RouteInteractive({
   const router = useRouter();
 
   const [activeDir, setActiveDir] = useState(initialActiveDirection);
-
-  // fromStop actif : undefined si l'utilisateur a changé de direction manuellement.
   const [activeDirFromStop, setActiveDirFromStop] = useState<string | undefined>(fromStop);
-
-  // Données de segmentation du sens actif, remontées par SenseView → carte
   const [activeSegment, setActiveSegment] = useState<SegmentState>({ cutAtId: null, showSeg: false });
 
-  // ── Extraction symétrique des deux sens ──
   const activeSense = senses[activeDir] ?? { stops: [], shape: [], headsign: null };
+
+  // ── FIX URL : garantir ?dir= dans l'URL dès le montage ──
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('dir')) {
+      url.searchParams.set('dir', String(initialActiveDirection));
+      router.replace(url.pathname + url.search, { scroll: false });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sauvegarde dans les récents ──
   useEffect(() => {
@@ -376,7 +345,7 @@ export default function RouteInteractive({
     } catch (_) {}
   }, [routeId, typeKind, routeColorRaw, activeSense.headsign]);
 
-  // ── Calculs pour la carte et les pills ──
+  // ── Calculs pour la carte ──
   const currentIdx = activeDirFromStop
     ? activeSense.stops.findIndex((s) => s.stop_id === activeDirFromStop)
     : -1;
@@ -387,7 +356,6 @@ export default function RouteInteractive({
   const segStart = activeSegment.showSeg && currentIdx >= 0 ? currentIdx : 0;
   const segEnd   = activeSegment.showSeg && cutIdx >= 0     ? cutIdx     : activeSense.stops.length - 1;
 
-  // Arrêts et shape envoyés à la carte
   const mapStops: StopRow[] = activeSegment.showSeg
     ? activeSense.stops.slice(segStart, segEnd + 1)
     : activeSense.stops;
@@ -402,7 +370,7 @@ export default function RouteInteractive({
     return shape.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
   })();
 
-  // Stats trajet pour les pills
+  // Stats
   const journeyStart = currentIdx >= 0 ? currentIdx : 0;
   const journeyEnd   = activeSegment.showSeg && cutIdx >= 0 ? cutIdx : activeSense.stops.length - 1;
   const journeyStops = Math.max(1, journeyEnd - journeyStart + 1);
@@ -425,14 +393,13 @@ export default function RouteInteractive({
     setActiveSegment(seg);
   }, []);
 
-  // Nom de la destination segmentée pour la pill
   const destStopName = activeSegment.cutAtId
     ? activeSense.stops.find((s) => s.stop_id === activeSegment.cutAtId)?.stop_name
     : undefined;
 
   return (
     <>
-      {/* ── Sélecteur de direction ── */}
+      {/* ── Direction switch ── */}
       {availableDirs.length > 1 && (
         <div style={{ display: 'flex', gap: 8, margin: '10px 16px 0', padding: 4, background: 'var(--cream-2)', borderRadius: 14, border: '1px solid var(--line)' }}>
           {availableDirs.map((dir) => (
@@ -446,7 +413,6 @@ export default function RouteInteractive({
                 fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer',
                 textTransform: 'uppercase', letterSpacing: 0.3,
                 boxShadow: activeDir === dir ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                transition: 'all 0.2s ease',
               }}
             >
               {dir === 0 ? '→' : '←'} {senses[dir]?.headsign ?? `Dir. ${dir}`}
@@ -455,48 +421,27 @@ export default function RouteInteractive({
         </div>
       )}
 
-      {/* ── Journey summary card (when segmented) ── */}
-      {activeSegment.showSeg && currentIdx >= 0 && cutIdx >= 0 && (
-        <div style={{
-          margin: '12px 16px 0', padding: 16, borderRadius: 18,
-          background: 'linear-gradient(135deg, var(--blue) 0%, #1a4fd4 100%)',
-          color: '#fff', position: 'relative', overflow: 'hidden'
-        }}>
-          <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, opacity: 0.7, marginBottom: 10, textTransform: 'uppercase' }}>Ton trajet</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', border: '3px solid rgba(255,255,255,0.4)' }} />
-                <div style={{ width: 2, height: 24, background: 'rgba(255,255,255,0.3)' }} />
-                <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--green)', border: '3px solid rgba(255,255,255,0.4)' }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>{activeSense.stops[currentIdx]?.stop_name}</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#a5f3c4' }}>{activeSense.stops[cutIdx]?.stop_name}</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 800 }}>~{estimatedMin} min</div>
-              <div style={{ padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 800 }}>{estimatedPrice}</div>
-              <div style={{ padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 800 }}>{journeyStops} arrêts</div>
-              <button onClick={() => setActiveSegment({ cutAtId: null, showSeg: false })} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>✕</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Info pills ── */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
+        {activeSense.headsign && (
+          <Pill color="var(--green)">
+            {activeSegment.showSeg && destStopName ? `→ ${destStopName}` : `→ ${activeSense.headsign}`}
+          </Pill>
+        )}
+        <Pill color="var(--ink)">{estimatedPrice}</Pill>
+        <Pill color="var(--blue)">~{estimatedMin} min</Pill>
+        <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
+        {activeSegment.showSeg && (
+          <button
+            onClick={() => setActiveSegment({ cutAtId: null, showSeg: false })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+          >
+            <Pill color="var(--muted)">✕ Autre destination</Pill>
+          </button>
+        )}
+      </div>
 
-      {/* ── Info pills (when NOT segmented) ── */}
-      {!activeSegment.showSeg && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
-          {activeSense.headsign && <Pill color="var(--green)">→ {activeSense.headsign}</Pill>}
-          <Pill color="var(--ink)">{estimatedPrice}</Pill>
-          <Pill color="var(--blue)">~{estimatedMin} min</Pill>
-          <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
-        </div>
-      )}
-
-      {/* ── Carte (singleton — ne se recrée pas au changement de direction) ── */}
+      {/* ── Map ── */}
       <div style={{ height: 250, overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
         <RouteMapWrapper
           shape={mapShape}
@@ -506,16 +451,14 @@ export default function RouteInteractive({
         />
       </div>
 
-      {/* ── Timeline ──
-          key={`sense-${activeDir}`} → remount complet au changement de sens,
-          ce qui réinitialise l'état interne de SenseView (cutAtId, showSeg).
-      ── */}
+      {/* ── Timeline ── */}
       <SenseView
         key={`sense-${activeDir}`}
         sense={activeSense}
         senseIndex={activeDir}
         fromStop={activeDirFromStop}
         typeKind={typeKind}
+        routeColorRaw={routeColorRaw}
         onSegmentChange={handleSegmentChange}
       />
     </>
