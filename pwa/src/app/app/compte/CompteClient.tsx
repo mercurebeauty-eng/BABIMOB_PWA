@@ -508,14 +508,12 @@ export default function CompteClient({ displayName, avatarEmoji, totalPoints, ch
           <TabClassement displayName={displayName} totalPoints={totalPoints} />
         )}
 
-        {/* Global Settings always visible at bottom of Passport */}
-        {tab === 'passeport' && (
-          <div style={{ marginTop: 32 }}>
-            <div style={{ height: 1, background: 'var(--line)', marginBottom: 24 }} />
-            <h3 className="font-display" style={{ fontSize: 20, marginBottom: 16 }}>Paramètres du compte</h3>
-            {children}
-          </div>
-        )}
+        {/* Paramètres toujours visibles en bas */}
+        <div style={{ marginTop: 32 }}>
+          <div style={{ height: 1, background: 'var(--line)', marginBottom: 24 }} />
+          <h3 className="font-display" style={{ fontSize: 20, marginBottom: 16 }}>Paramètres du compte</h3>
+          {children}
+        </div>
       </div>
     </div>
   );
