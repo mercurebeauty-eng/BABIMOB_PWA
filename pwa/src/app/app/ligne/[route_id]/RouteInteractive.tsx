@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import RouteMapWrapper from './RouteMapWrapper';
 import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
 import { Ic } from '@/components/ui/Ic';
+import type { Sense } from './page';
+
+// ── Types ─────────────────────────────────────────────────────────────
 
 type StopRow = {
   stop_id: string;
@@ -18,18 +21,20 @@ type StopRow = {
 
 type ShapePoint = { shape_pt_lat: number; shape_pt_lon: number };
 
+type SegmentState = { cutAtId: string | null; showSeg: boolean };
+
 type Props = {
-  orderedStops: StopRow[];
-  shapePoints: ShapePoint[];
+  senses: Sense[];
+  availableDirs: number[];
   routeColor: string;
   routeColorRaw: string;
   fromStop: string | undefined;
   typeKind: 'gbaka' | 'woro' | 'taxi' | 'saloni';
-  tripHeadsign: string | null;
-  activeDirection: number;
-  tripPerDir: {id: number, headsign: string | null}[];
+  initialActiveDirection: number;
   routeId: string;
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────
 
 function nearestShapeIdx(shape: ShapePoint[], lat: number, lon: number): number {
   let best = 0, bestD = Infinity;
@@ -40,71 +45,378 @@ function nearestShapeIdx(shape: ShapePoint[], lat: number, lon: number): number 
   return best;
 }
 
-export default function RouteInteractive({
-  orderedStops, shapePoints, routeColor, routeColorRaw,
-  fromStop, typeKind, tripHeadsign, activeDirection, tripPerDir, routeId
-}: Props) {
+// ── SenseView ─────────────────────────────────────────────────────────
+//
+// Composant autonome : gère son propre état de segmentation.
+// Keyed par senseIndex dans le parent → remount complet au changement de sens,
+// ce qui réinitialise automatiquement cutAtId et showSeg.
+//
+// fromStop : undefined quand la direction a été changée manuellement, pour
+// éviter l'artefact "tout en rouge" (le stop du sens 0 est en fin de sens 1).
+
+type SenseViewProps = {
+  sense: Sense;
+  senseIndex: number;
+  fromStop: string | undefined;
+  typeKind: 'gbaka' | 'woro' | 'taxi' | 'saloni';
+  // Remonte l'état de segmentation au parent pour que la carte se mette à jour
+  onSegmentChange: (seg: SegmentState) => void;
+};
+
+function SenseView({ sense, senseIndex, fromStop, typeKind, onSegmentChange }: SenseViewProps) {
+  const { stops } = sense;
+
+  // État interne : isolation totale entre les deux sens
   const [cutAtId, setCutAtId] = useState<string | null>(null);
-  const [showSegmentedView, setShowSegmentedView] = useState(false);
+  const [showSeg, setShowSeg] = useState(false);
 
-  // Sauvegarder dans les récents
+  // ── Arrêts absents ──
+  if (stops.length === 0) {
+    return (
+      <div style={{ padding: '48px 16px', textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>🚧</div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink-2)' }}>
+          Aucun arrêt pour cette direction
+        </div>
+        <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>
+          Les données GTFS ne sont pas disponibles pour ce sens.
+        </div>
+      </div>
+    );
+  }
+
+  // Indices dans la liste COMPLÈTE du sens (pour passé / futur)
+  const currentIdx = fromStop ? stops.findIndex((s) => s.stop_id === fromStop) : -1;
+  const cutIdx     = cutAtId  ? stops.findIndex((s) => s.stop_id === cutAtId)  : -1;
+
+  const segStart = showSeg && currentIdx >= 0 ? currentIdx : 0;
+  const segEnd   = showSeg && cutIdx >= 0     ? cutIdx     : stops.length - 1;
+
+  // Tranche d'arrêts affichés (segment ou liste complète)
+  const displayed = showSeg ? stops.slice(segStart, segEnd + 1) : stops;
+
+  const handleDescendIci = (stop: StopRow) => {
+    setCutAtId(stop.stop_id);
+    setShowSeg(true);
+    onSegmentChange({ cutAtId: stop.stop_id, showSeg: true });
+    try {
+      localStorage.setItem('babimob_lastDest', JSON.stringify({
+        name: stop.stop_name, commune: stop.commune,
+        lat: stop.stop_lat, lon: stop.stop_lon,
+      }));
+    } catch (_) {}
+  };
+
+  const handleReset = () => {
+    setCutAtId(null);
+    setShowSeg(false);
+    onSegmentChange({ cutAtId: null, showSeg: false });
+  };
+
+  return (
+    <div style={{ padding: '16px 16px 100px', position: 'relative' }}>
+      {/* Badge "votre arrêt mis en évidence" — uniquement si fromStop trouvé */}
+      {currentIdx >= 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+          <span style={{
+            fontSize: 9, fontWeight: 900, color: 'var(--blue)',
+            background: 'color-mix(in oklab, var(--blue) 12%, transparent)',
+            border: '1px solid color-mix(in oklab, var(--blue) 25%, transparent)',
+            borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4,
+          }}>
+            Votre arrêt mis en évidence
+          </span>
+        </div>
+      )}
+
+      {displayed.map((stop, displayIdx) => {
+        // Indice réel dans la liste complète (pour la logique passé/futur)
+        const realIdx = stops.findIndex((s) => s.stop_id === stop.stop_id);
+
+        const isDisplayFirst = displayIdx === 0;
+        const isDisplayLast  = displayIdx === displayed.length - 1;
+
+        // Terminus = premier ou dernier de la ROUTE COMPLÈTE (pas du segment affiché)
+        const isTerminus = realIdx === 0 || realIdx === stops.length - 1;
+
+        const isCurrent     = fromStop === stop.stop_id;
+        const isPast        = currentIdx >= 0 && realIdx < currentIdx;
+        const isFuture      = currentIdx >= 0 ? realIdx > currentIdx : !isDisplayFirst;
+        const noCtx         = currentIdx < 0;
+        const isDestination = cutAtId === stop.stop_id;
+
+        const dotColor = isCurrent
+          ? 'var(--blue)'
+          : isDestination ? 'var(--green)'
+          : isPast ? '#e53935'
+          : isTerminus ? 'var(--ink)'
+          : isFuture ? 'color-mix(in oklab, var(--line) 40%, transparent)'
+          : 'var(--line)';
+
+        const lineColor = isPast
+          ? '#e53935'
+          : (isCurrent || (currentIdx >= 0 && cutIdx >= 0 && realIdx <= cutIdx))
+          ? 'var(--gold)'
+          : noCtx ? 'var(--line)'
+          : 'var(--line)';
+
+        const lineDashed = !isPast
+          && !isCurrent
+          && !(currentIdx >= 0 && cutIdx >= 0 && realIdx <= cutIdx);
+
+        const dotSize = isCurrent ? 40 : isDestination ? 30 : isTerminus ? 20 : 14;
+
+        // Clé unique : senseIndex + stop_id → force des éléments distincts entre sens
+        const itemKey = `${senseIndex}-${stop.stop_id}`;
+
+        return (
+          <div
+            key={itemKey}
+            style={{
+              display: 'flex', gap: 12, alignItems: 'stretch',
+              background: isCurrent
+                ? 'color-mix(in oklab, var(--blue) 6%, transparent)'
+                : isDestination
+                  ? 'color-mix(in oklab, var(--green) 6%, transparent)'
+                  : 'transparent',
+              borderRadius: (isCurrent || isDestination) ? 14 : 0,
+              margin:  (isCurrent || isDestination) ? '2px -8px' : 0,
+              padding: (isCurrent || isDestination) ? '0 8px' : 0,
+              border: (isCurrent || isDestination)
+                ? `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 18%, transparent)`
+                : 'none',
+            }}
+          >
+            {/* ── Colonne timeline ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
+              <div style={{
+                flex: 1, width: 2, minHeight: 14,
+                background: isDisplayFirst ? 'transparent' : lineColor,
+                backgroundImage: lineDashed
+                  ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)'
+                  : 'none',
+              }} />
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                {(isCurrent || isDestination) && (
+                  <div className="pulse-ring" style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%,-50%)',
+                    width: 52, height: 52, borderRadius: '50%',
+                    background: isCurrent ? 'var(--blue)' : 'var(--green)',
+                    opacity: 0.2, pointerEvents: 'none',
+                  }} />
+                )}
+                <div style={{
+                  width: dotSize, height: dotSize, borderRadius: '50%', flexShrink: 0,
+                  background: dotColor,
+                  border: (isCurrent || isDestination) ? '3px solid var(--cream)' : 'none',
+                  boxShadow: (isCurrent || isDestination)
+                    ? `0 0 0 2px ${isCurrent ? 'var(--blue)' : 'var(--green)'}, 0 4px 12px rgba(0,0,0,0.15)`
+                    : isTerminus ? '0 0 0 3px color-mix(in oklab, var(--ink) 10%, transparent)' : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {isCurrent     && <Vehicle kind={typeKind} size={22} color="#fff" />}
+                  {isDestination && <Ic.Star s={18} fill color="#fff" />}
+                </div>
+              </div>
+              <div style={{
+                flex: 1, width: 2, minHeight: 14,
+                background: isDisplayLast ? 'transparent' : lineColor,
+                backgroundImage: lineDashed
+                  ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)'
+                  : 'none',
+              }} />
+            </div>
+
+            {/* ── Colonne contenu ── */}
+            <div style={{
+              flex: 1, minWidth: 0,
+              paddingTop:    (isCurrent || isDestination) ? 14 : 10,
+              paddingBottom: (isCurrent || isDestination) ? 14 : 10,
+              borderBottom: !isDisplayLast && !isCurrent && !isDestination
+                ? '1px solid color-mix(in oklab, var(--line) 55%, transparent)'
+                : 'none',
+            }}>
+              {isCurrent || isDestination ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span className="font-display" style={{ fontSize: 18, fontWeight: 900, color: isCurrent ? 'var(--blue)' : 'var(--green)' }}>
+                      {stop.stop_name}
+                    </span>
+                    <span style={{
+                      fontSize: 8, fontWeight: 900,
+                      color: isCurrent ? 'var(--blue)' : 'var(--green)',
+                      background: `color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 12%, transparent)`,
+                      border: `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 25%, transparent)`,
+                      borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4,
+                    }}>
+                      {isCurrent ? 'DÉPART' : 'DESTINATION'}
+                    </span>
+                  </div>
+                  {stop.commune && (
+                    <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>
+                      {stop.commune}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <a
+                  href={`/app/arret/${encodeURIComponent(stop.stop_id)}`}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, textDecoration: 'none' }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: isTerminus ? 15 : 13,
+                      fontWeight: isTerminus ? 800 : isPast ? 500 : 600,
+                      color: isPast ? 'var(--muted)' : isTerminus ? 'var(--ink)' : 'var(--ink-2)',
+                      textDecoration: isPast ? 'line-through' : 'none',
+                      opacity: isPast ? 0.55 : 1,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {stop.stop_name}
+                    </div>
+                    {stop.commune && (
+                      <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1 }}>
+                        {stop.commune}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ color: 'var(--line)', flexShrink: 0 }}><Ic.Arrow s={14} /></div>
+                </a>
+              )}
+
+              {isCurrent && (
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  <button className="press" style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                    Suivi en direct
+                  </button>
+                </div>
+              )}
+
+              {isDestination && (
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  <button className="press" onClick={handleReset} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--muted)', color: '#fff', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                    Changer destination
+                  </button>
+                </div>
+              )}
+
+              {/* "Je descends ici" : arrêts futurs uniquement, hors mode segmenté */}
+              {isFuture && !isCurrent && !isDestination && !showSeg && (
+                <button
+                  className="press"
+                  onClick={() => handleDescendIci(stop)}
+                  style={{ marginTop: 4, padding: '5px 10px', borderRadius: 8, background: 'var(--orange)', color: '#fff', fontSize: 11, fontWeight: 800, border: 'none', cursor: 'pointer', letterSpacing: 0.3 }}
+                >
+                  Je descends ici 🎯
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Composant principal ───────────────────────────────────────────────
+
+export default function RouteInteractive({
+  senses, availableDirs, routeColor, routeColorRaw,
+  fromStop, typeKind, initialActiveDirection, routeId,
+}: Props) {
+  const router = useRouter();
+
+  const [activeDir, setActiveDir] = useState(initialActiveDirection);
+
+  // fromStop actif : undefined si l'utilisateur a changé de direction manuellement.
+  // Cela évite l'artefact où le stop du sens 0 (en fin de sens 1) rend tout "passé".
+  const [activeDirFromStop, setActiveDirFromStop] = useState<string | undefined>(fromStop);
+
+  // Données de segmentation du sens actif, remontées par SenseView → carte
+  const [activeSegment, setActiveSegment] = useState<SegmentState>({ cutAtId: null, showSeg: false });
+
+  // ── Extraction symétrique des deux sens ──
+  const sense0      = senses[0] ?? { stops: [], shape: [], headsign: null };
+  const sense1      = senses[1] ?? { stops: [], shape: [], headsign: null };
+  const activeSense = senses[activeDir] ?? { stops: [], shape: [], headsign: null };
+
+  // ── Logs de débogage ──
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const lineData = {
-        id: routeId,
-        name: tripHeadsign || `Ligne ${routeId}`,
-        type: typeKind,
-        color: routeColorRaw,
-        timestamp: Date.now()
-      };
-      
-      try {
-        const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
-        const filtered = saved.filter((l: any) => l.id !== routeId);
-        const updated = [lineData, ...filtered].slice(0, 5);
-        localStorage.setItem('babimob_recentLines', JSON.stringify(updated));
-      } catch (e) {
-        console.error("Erreur localStorage recents:", e);
-      }
-    }
-  }, [routeId, tripHeadsign, typeKind, routeColorRaw]);
+    console.log('[RouteInteractive] dir active:', activeDir, '| fromStop effectif:', activeDirFromStop);
+    console.log('  sens 0:', sense0.stops.length, 'arrêts |', sense0.headsign);
+    console.log('  sens 1:', sense1.stops.length, 'arrêts |', sense1.headsign);
+  }, [activeDir, activeDirFromStop, sense0.stops.length, sense1.stops.length, sense0.headsign, sense1.headsign]);
 
-  const currentIdx = fromStop ? orderedStops.findIndex(s => s.stop_id === fromStop) : -1;
-  const cutIdx     = cutAtId  ? orderedStops.findIndex(s => s.stop_id === cutAtId)  : -1;
+  // ── Sauvegarde dans les récents ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const lineData = { id: routeId, name: activeSense.headsign || `Ligne ${routeId}`, type: typeKind, color: routeColorRaw, timestamp: Date.now() };
+      const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
+      localStorage.setItem('babimob_recentLines', JSON.stringify(
+        [lineData, ...saved.filter((l: { id: string }) => l.id !== routeId)].slice(0, 5)
+      ));
+    } catch (_) {}
+  }, [routeId, typeKind, routeColorRaw, activeSense.headsign]);
 
-  const segStart = (showSegmentedView && currentIdx >= 0) ? currentIdx : 0;
-  const segEnd   = (showSegmentedView && cutIdx >= 0) ? cutIdx : orderedStops.length - 1;
+  // ── Calculs pour la carte et les pills ──
+  const currentIdx = activeDirFromStop
+    ? activeSense.stops.findIndex((s) => s.stop_id === activeDirFromStop)
+    : -1;
+  const cutIdx = activeSegment.cutAtId
+    ? activeSense.stops.findIndex((s) => s.stop_id === activeSegment.cutAtId)
+    : -1;
 
-  const displayedStops = showSegmentedView
-    ? orderedStops.slice(segStart, segEnd + 1)
-    : orderedStops;
+  const segStart = activeSegment.showSeg && currentIdx >= 0 ? currentIdx : 0;
+  const segEnd   = activeSegment.showSeg && cutIdx >= 0     ? cutIdx     : activeSense.stops.length - 1;
 
-  const displayedShape = (() => {
-    if (!shapePoints.length || !showSegmentedView) return shapePoints;
-    const startStop = orderedStops[segStart];
-    const endStop   = orderedStops[segEnd];
-    const i0 = startStop ? nearestShapeIdx(shapePoints, startStop.stop_lat, startStop.stop_lon) : 0;
-    const i1 = endStop   ? nearestShapeIdx(shapePoints, endStop.stop_lat,   endStop.stop_lon)   : shapePoints.length - 1;
-    return shapePoints.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
+  // Arrêts et shape envoyés à la carte
+  const mapStops: StopRow[] = activeSegment.showSeg
+    ? activeSense.stops.slice(segStart, segEnd + 1)
+    : activeSense.stops;
+
+  const mapShape = (() => {
+    const shape = activeSense.shape;
+    if (!shape.length || !activeSegment.showSeg) return shape;
+    const s0 = activeSense.stops[segStart];
+    const s1 = activeSense.stops[segEnd];
+    const i0 = s0 ? nearestShapeIdx(shape, s0.stop_lat, s0.stop_lon) : 0;
+    const i1 = s1 ? nearestShapeIdx(shape, s1.stop_lat, s1.stop_lon) : shape.length - 1;
+    return shape.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
   })();
 
+  // Stats trajet pour les pills
   const journeyStart = currentIdx >= 0 ? currentIdx : 0;
-  const journeyEnd   = (showSegmentedView && cutIdx >= 0) ? cutIdx : orderedStops.length - 1;
+  const journeyEnd   = activeSegment.showSeg && cutIdx >= 0 ? cutIdx : activeSense.stops.length - 1;
   const journeyStops = Math.max(1, journeyEnd - journeyStart + 1);
   const estimatedMin = Math.max(3, journeyStops * 2);
   const estimatedPrice = journeyStops <= 3 ? '100F' : journeyStops <= 7 ? '200F' : journeyStops <= 12 ? '300F' : '500F';
 
-  const handleDescendIci = useCallback((stop: StopRow) => {
-    setCutAtId(stop.stop_id);
-    setShowSegmentedView(true);
-    const dest = { name: stop.stop_name, commune: stop.commune, lat: stop.stop_lat, lon: stop.stop_lon };
-    localStorage.setItem('babimob_lastDest', JSON.stringify(dest));
+  // ── Bascule de direction ──
+  const switchDirection = (dir: number) => {
+    if (dir === activeDir) return;
+    setActiveDir(dir);
+    // Effacer le contexte fromStop : le stop du sens précédent peut être
+    // en fin de liste du nouveau sens et rendre tout "passé" visuellement.
+    setActiveDirFromStop(undefined);
+    // Réinitialiser la segmentation de la carte
+    setActiveSegment({ cutAtId: null, showSeg: false });
+    // Sync URL sans rechargement complet
+    const url = new URL(window.location.href);
+    url.searchParams.set('dir', String(dir));
+    url.searchParams.delete('from'); // plus pertinent après changement de sens
+    router.replace(url.pathname + url.search);
+  };
+
+  const handleSegmentChange = useCallback((seg: SegmentState) => {
+    setActiveSegment(seg);
   }, []);
 
-  const resetSegmentation = () => {
-    setCutAtId(null);
-    setShowSegmentedView(false);
-  };
+  // Nom de la destination segmentée pour la pill headsign
+  const destStopName = activeSegment.cutAtId
+    ? activeSense.stops.find((s) => s.stop_id === activeSegment.cutAtId)?.stop_name
+    : undefined;
 
   return (
     <>
@@ -169,14 +481,13 @@ export default function RouteInteractive({
         </div>
       )}
 
-      {/* ── Map ── */}
+      {/* ── Carte (singleton — ne se recrée pas au changement de direction) ── */}
       <div style={{ height: 250, overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
         <RouteMapWrapper
-          shape={displayedShape}
-          stops={displayedStops}
+          shape={mapShape}
+          stops={mapStops}
           routeColor={routeColorRaw}
-          activeDirection={activeDirection}
-          isSegmented={showSegmentedView}
+          isSegmented={activeSegment.showSeg}
         />
       </div>
 
