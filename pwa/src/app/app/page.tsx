@@ -572,41 +572,183 @@ function AppPageContent() {
       <AnimatePresence>
         {searchOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 100 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--cream-2)', display: 'flex', flexDirection: 'column' }}
           >
-            <div style={{ background: 'var(--cream)', padding: '48px 20px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <button onClick={closeSearch} style={{ padding: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)' }}><Ic.Back s={24} /></button>
-              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un lieu…" style={{ flex: 1, fontSize: 18, fontWeight: 800, border: 'none', outline: 'none', background: 'transparent', color: 'var(--ink)' }} />
-              {isSearching && <div style={{ width: 20, height: 20, border: '2px solid var(--orange)', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />}
+            <div
+              style={{
+                background: 'var(--cream)',
+                padding: 'calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px',
+                borderBottom: '1px solid var(--line)',
+                display: 'flex', alignItems: 'center', gap: 10,
+                boxShadow: '0 6px 20px rgba(26,20,16,0.05)',
+              }}
+            >
+              <button
+                onClick={closeSearch}
+                aria-label="Fermer la recherche"
+                className="press"
+                style={{
+                  width: 40, height: 40, borderRadius: 12, border: 'none',
+                  background: 'var(--cream-2)',
+                  color: 'var(--ink)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <Ic.Back s={20} />
+              </button>
+              <div
+                style={{
+                  flex: 1, height: 44, borderRadius: 14,
+                  background: 'var(--cream-2)',
+                  border: '1px solid var(--line)',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '0 14px',
+                }}
+              >
+                <Ic.Search s={18} />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Chercher un arrêt, un lieu…"
+                  style={{
+                    flex: 1, fontSize: 15, fontWeight: 600,
+                    border: 'none', outline: 'none', background: 'transparent',
+                    color: 'var(--ink)',
+                  }}
+                />
+                {isSearching ? (
+                  <div
+                    className="animate-spin"
+                    style={{
+                      width: 16, height: 16,
+                      border: '2px solid var(--orange)',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      fontSize: 10, fontWeight: 800, color: 'var(--orange)',
+                      background: 'var(--orange-pale)',
+                      padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5,
+                    }}
+                  >IA</span>
+                )}
+              </div>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+
+            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 32px' }}>
+              {results.length > 0 && (
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
+                  Résultats
+                </div>
+              )}
               {results.map((r, i) => (
-                <button key={i} onClick={() => handleSelectStop(r)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: 'var(--cream)', borderRadius: 16, border: '1px solid var(--line)', marginBottom: 8, textAlign: 'left', cursor: 'pointer' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'color-mix(in oklab, var(--orange) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}><Ic.Pin s={18} /></div>
+                <button
+                  key={i}
+                  onClick={() => handleSelectStop(r)}
+                  className="press"
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: 12, background: 'var(--cream)',
+                    borderRadius: 14, border: '1px solid var(--line)',
+                    marginBottom: 8, textAlign: 'left', cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
+                    <Ic.Pin s={18} />
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{r.commune}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{r.commune}</div>
                   </div>
+                  <Ic.Arrow s={16} />
                 </button>
               ))}
+
               {!query && (
                 <>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>RECHERCHES RÉCENTES</div>
-                  {recentLines.map((r, i) => (
-                    <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, textDecoration: 'none' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}` }}>
-                        <Vehicle kind={r.type || 'gbaka'} size={20} />
+                  {recentLines.length > 0 ? (
+                    <>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
+                        Lignes récentes
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
-                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>{r.type || 'Transport'}</div>
+                      {recentLines.map((r, i) => (
+                        <Link
+                          key={i}
+                          href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`}
+                          className="press"
+                          style={{
+                            background: 'var(--cream)', padding: 12, borderRadius: 14,
+                            border: '1px solid var(--line)',
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            marginBottom: 8, textDecoration: 'none',
+                          }}
+                        >
+                          <div style={{ width: 40, height: 40, borderRadius: 12, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}`, flexShrink: 0 }}>
+                            <Vehicle kind={r.type || 'gbaka'} size={22} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{r.type || 'Transport'}</div>
+                          </div>
+                          <Ic.Arrow s={16} />
+                        </Link>
+                      ))}
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        marginTop: 24, padding: '32px 20px',
+                        borderRadius: 18,
+                        background: 'var(--cream)',
+                        border: '1.5px dashed var(--line-strong)',
+                        textAlign: 'center',
+                        color: 'var(--muted)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 56, height: 56, margin: '0 auto 12px',
+                          borderRadius: 18, background: 'var(--orange-pale)',
+                          color: 'var(--orange)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <Ic.Search s={26} />
                       </div>
-                    </Link>
-                  ))}
+                      <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)' }}>
+                        Cherche ton chemin
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
+                        Tape un arrêt, un quartier ou une ligne pour démarrer.
+                      </div>
+                    </div>
+                  )}
                 </>
+              )}
+
+              {query && !isSearching && results.length === 0 && (
+                <div
+                  style={{
+                    marginTop: 16, padding: '24px 20px',
+                    borderRadius: 16, background: 'var(--cream)',
+                    border: '1px solid var(--line)', textAlign: 'center',
+                  }}
+                >
+                  <div className="font-display" style={{ fontSize: 16, color: 'var(--ink)' }}>
+                    Rien trouvé pour « {query} »
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginTop: 6 }}>
+                    Essaie un autre nom ou un quartier voisin.
+                  </div>
+                </div>
               )}
             </div>
           </motion.div>

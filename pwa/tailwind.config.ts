@@ -24,11 +24,23 @@ const config: Config = {
         // Aliases used in many components
         'abidjan-orange': '#F26C1A',
         'abidjan-green':  '#0EA85B',
+        'abidjan-blue':   '#1E5BFF',
+        'abidjan-gold':   '#E8B23C',
+        'abidjan-ink':    '#1A1410',
+
+        // Legacy babimob-* aliases (kept for back-compat with older components)
+        'babimob-blue':       '#1A1410',
+        'babimob-orange':     '#F26C1A',
+        'babimob-orange-br':  '#D9510A',
+
         'beige-50':       '#FBF6EC',
         'beige-100':      '#F7F1E6',
         'beige-200':      '#E8E0D0',
         'beige-muted':    '#8B7E6E',
         'beige-text':     '#1A1410',
+      },
+      borderWidth: {
+        '3': '3px',
       },
       fontFamily: {
         sans:    ['var(--font-dm-sans)', 'system-ui', '-apple-system', 'sans-serif'],
