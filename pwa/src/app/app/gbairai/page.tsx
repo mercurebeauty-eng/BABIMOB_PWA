@@ -79,40 +79,26 @@ export default async function GbairaiPage() {
     myLikes = (likes ?? []).map(l => l.post_id);
   }
 
-  // 3. Spots chauds (lieux + arrêts avec le plus d'activité ces 7 derniers jours)
+  // 3. Spots chauds — UNIQUEMENT lieux & établissements (places),
+  //    7 derniers jours, classés par nombre de check-ins.
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  
-  // Fetch POI checkins
+
   const { data: recentCheckins } = await supabase
     .from('checkins')
     .select('place_id, place_name, commune, lat, lon')
     .gte('created_at', oneWeekAgo)
-    .eq('is_public', true);
+    .eq('is_public', true)
+    .not('place_id', 'is', null);
 
-  // Fetch Arret validations (Transport Heatmap base)
-  const { data: recentArretValidations } = await supabase
-    .from('arret_validations')
-    .select('stop_id, stop_name, lat, lon')
-    .gte('created_at', oneWeekAgo);
-
-  // Aggregator
-  const spotMap = new Map<string, { name: string; commune?: string | null; count: number; lat: number; lon: number; type: 'place' | 'arret' }>();
+  const spotMap = new Map<string, { name: string; commune?: string | null; count: number; lat: number; lon: number }>();
 
   (recentCheckins ?? []).forEach(c => {
+    if (!c.place_id) return;
     const existing = spotMap.get(c.place_id);
     if (existing) {
       existing.count++;
     } else if (c.lat && c.lon) {
-      spotMap.set(c.place_id, { name: c.place_name, commune: c.commune, count: 1, lat: c.lat, lon: c.lon, type: 'place' });
-    }
-  });
-
-  (recentArretValidations ?? []).forEach(v => {
-    const existing = spotMap.get(v.stop_id);
-    if (existing) {
-      existing.count++;
-    } else if (v.lat && v.lon) {
-      spotMap.set(v.stop_id, { name: v.stop_name, count: 1, lat: v.lat, lon: v.lon, type: 'arret' });
+      spotMap.set(c.place_id, { name: c.place_name, commune: c.commune, count: 1, lat: c.lat, lon: c.lon });
     }
   });
 
@@ -121,8 +107,8 @@ export default async function GbairaiPage() {
       place_id: id,
       place_name: v.name,
       commune: v.commune ?? null,
-      logo_emoji: v.type === 'arret' ? '🚌' : '📍',
-      cover_color: v.type === 'arret' ? 'var(--blue)' : '#F26C1A',
+      logo_emoji: '📍',
+      cover_color: '#F26C1A',
       checkin_count: v.count,
       lat: v.lat,
       lon: v.lon
@@ -130,14 +116,20 @@ export default async function GbairaiPage() {
     .sort((a, b) => b.checkin_count - a.checkin_count)
     .slice(0, 10);
 
-  // 4. Pulse de la ville — basé sur stop_reports récents par commune
+  // 4. Pulse de la ville — basé sur alertes Gbairai + check-ins par commune (24h)
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: reportsRaw } = await supabase
-    .from('stop_reports')
-    .select('stop_id, category')
+  const { data: alertsRaw } = await supabase
+    .from('gbairai_posts')
+    .select('commune')
+    .eq('post_type', 'alerte')
+    .eq('is_active', true)
     .gte('created_at', oneDayAgo);
 
-  // Agréger les checkins par commune pour le pulse
+  const communeAlerts = new Map<string, number>();
+  (alertsRaw ?? []).forEach(a => {
+    if (a.commune) communeAlerts.set(a.commune, (communeAlerts.get(a.commune) ?? 0) + 1);
+  });
+
   const communeCheckins = new Map<string, number>();
   (recentCheckins ?? []).forEach(c => {
     if (c.commune) communeCheckins.set(c.commune, (communeCheckins.get(c.commune) ?? 0) + 1);
@@ -146,8 +138,11 @@ export default async function GbairaiPage() {
   const MAIN_COMMUNES = ['Cocody', 'Plateau', 'Yopougon', 'Adjamé', 'Marcory', 'Treichville'];
   const pulse: CommunePulse[] = MAIN_COMMUNES.map(commune => {
     const cc = communeCheckins.get(commune) ?? 0;
-    const reportCount = (reportsRaw ?? []).length; // simplified
-    const status: 'vert' | 'orange' | 'rouge' = cc > 5 ? 'rouge' : cc > 2 ? 'orange' : 'vert';
+    const reportCount = communeAlerts.get(commune) ?? 0;
+    const status: 'vert' | 'orange' | 'rouge' =
+      reportCount >= 2 ? 'rouge'
+      : reportCount >= 1 || cc > 5 ? 'orange'
+      : 'vert';
     return { commune, report_count: reportCount, checkin_count: cc, status };
   });
 
@@ -169,6 +164,24 @@ export default async function GbairaiPage() {
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(40);
+
+  // 6b. Réactions agrégées par story (et par emoji), + ce que l'utilisateur a déjà mis
+  const storyIds = (storiesRaw ?? []).map(s => s.id);
+  let reactionsByStory: Record<string, Record<string, number>> = {};
+  let myReactions: Record<string, string[]> = {};
+  if (storyIds.length > 0) {
+    const { data: rxRaw } = await supabase
+      .from('gbairai_story_reactions')
+      .select('story_id, reaction_emoji, user_id')
+      .in('story_id', storyIds);
+    (rxRaw ?? []).forEach(r => {
+      const m = (reactionsByStory[r.story_id] ??= {});
+      m[r.reaction_emoji] = (m[r.reaction_emoji] ?? 0) + 1;
+      if (user && r.user_id === user.id) {
+        (myReactions[r.story_id] ??= []).push(r.reaction_emoji);
+      }
+    });
+  }
 
   // Filtrage des stories selon les règles :
   // - Celles des gens qu'on suit
@@ -212,6 +225,8 @@ export default async function GbairaiPage() {
       trendingTags={trendingTags}
       profile={profile}
       userId={user?.id ?? null}
+      reactionsByStory={reactionsByStory}
+      myReactions={myReactions}
     />
   );
 }

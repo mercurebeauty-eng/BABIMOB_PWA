@@ -32,6 +32,28 @@ export default async function ComptePage() {
     .order('total_points', { ascending: false })
     .limit(10);
 
+  // Proches & famille — utilisateurs suivis
+  const { data: followsRaw } = await supabase
+    .from('user_follows')
+    .select('following_id, created_at')
+    .eq('follower_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(12);
+
+  const followingIds = (followsRaw ?? []).map(f => f.following_id);
+  let following: { id: string; display_name: string; avatar_emoji: string; total_points: number }[] = [];
+  if (followingIds.length > 0) {
+    const { data: followProfiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_emoji, total_points')
+      .in('id', followingIds);
+    following = (followProfiles ?? []) as typeof following;
+  }
+  const { count: followersCount } = await supabase
+    .from('user_follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('following_id', user.id);
+
   const startOfToday = new Date();
   startOfToday.setHours(0,0,0,0);
   const todayStr = startOfToday.toISOString();
@@ -66,6 +88,8 @@ export default async function ComptePage() {
       lastBonusAt={profile?.last_daily_bonus_at || null}
       topExplorers={topExplorers ?? []}
       dailyMissions={dailyMissions}
+      following={following}
+      followersCount={followersCount ?? 0}
     >
       <ProfileEditor
         userId={user.id}

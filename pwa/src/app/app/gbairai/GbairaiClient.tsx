@@ -20,6 +20,8 @@ type Props = {
   trendingTags: { tag: string; count: number }[];
   profile: any | null;
   userId: string | null;
+  reactionsByStory?: Record<string, Record<string, number>>;
+  myReactions?: Record<string, string[]>;
 };
 
 const TABS = [
@@ -33,7 +35,7 @@ const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--
 const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'var(--orange)'];
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId }: Props) {
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {} }: Props) {
   const [tab, setTab] = useState<string>('vibe');
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
@@ -218,10 +220,12 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
       {/* Story Viewer Modal */}
       {viewingStoryIndex !== null && (
-        <StoryViewer 
+        <StoryViewer
           stories={stories}
           initialIndex={viewingStoryIndex}
           userId={userId}
+          reactionsByStory={reactionsByStory}
+          myReactions={myReactions}
           onClose={() => setViewingStoryIndex(null)}
         />
       )}
