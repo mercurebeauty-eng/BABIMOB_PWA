@@ -168,6 +168,31 @@ body {
 }
 .shimmer { animation: shimmer 1.8s ease-in-out infinite; }
 
+/* ── XP / progress bar : vague lumineuse qui se déplace ────── */
+@keyframes xp-shine {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+.xp-shine {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 35%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.2) 65%,
+    transparent 100%
+  );
+  animation: xp-shine 2.6s ease-in-out infinite;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+@keyframes xp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,178,60,0.0), 0 0 14px rgba(242,108,26,0.55); }
+  50%      { box-shadow: 0 0 0 0 rgba(232,178,60,0.0), 0 0 22px rgba(232,178,60,0.85); }
+}
+.xp-glow { animation: xp-pulse 2.6s ease-in-out infinite; }
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }

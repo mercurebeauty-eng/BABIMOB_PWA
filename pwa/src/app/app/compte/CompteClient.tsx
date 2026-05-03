@@ -12,6 +12,7 @@ import { getLevel } from '@/lib/levels';
 const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
 type Badge = { badge_key: string; awarded_at: string };
+type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
 type Props = {
   displayName: string;
   avatarEmoji: string;
@@ -24,6 +25,8 @@ type Props = {
   lastBonusAt: string | null;
   topExplorers: { id: string; display_name: string; avatar_emoji: string; total_points: number }[];
   dailyMissions: { id: string; label: string; task: string; current: number; target: number; xp: number }[];
+  following?: FollowProfile[];
+  followersCount?: number;
   children?: React.ReactNode;
 };
 
@@ -66,9 +69,107 @@ function timeAgo(iso: string): string {
   return `il y a ${Math.floor(mins / 1440)}j`;
 }
 
+// ── Crew / Proches & Famille — Babi network ──────────────────
+function CrewCard({ following, followersCount }: { following: FollowProfile[]; followersCount: number }) {
+  const empty = following.length === 0;
+  return (
+    <div
+      style={{
+        borderRadius: 20, overflow: 'hidden', marginBottom: 18, position: 'relative',
+        background: 'var(--ink)', color: 'var(--cream)', padding: 16,
+        boxShadow: '0 10px 28px rgba(0,0,0,0.18)',
+      }}
+    >
+      <div className="wax-zigzag" style={{ position: 'absolute', inset: 0, color: 'var(--green)', opacity: 0.10 }} />
+      <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,178,60,0.25), transparent 70%)' }} />
+
+      <div style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--gold)', letterSpacing: 0.6 }}>PROCHES &amp; FAMILLE</div>
+            <div className="font-display" style={{ fontSize: 22, color: '#fff', marginTop: 2, lineHeight: 1.05 }}>
+              {empty ? 'Lance ton crew' : `${following.length} dans ton crew`}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(247,241,230,0.6)', marginTop: 2 }}>
+              {empty
+                ? 'Suis tes proches pour voir leurs explorations en direct.'
+                : `${followersCount} Babi${followersCount > 1 ? 's' : ''} te suivent en retour`}
+            </div>
+          </div>
+          <Link
+            href="/app/compte/favoris"
+            className="press"
+            style={{
+              flexShrink: 0,
+              padding: '8px 14px', borderRadius: 999,
+              border: '1.5px solid var(--gold)', background: 'transparent',
+              color: 'var(--gold)', fontSize: 11, fontWeight: 800, letterSpacing: 0.4,
+              textDecoration: 'none',
+            }}
+          >
+            {empty ? 'Inviter' : 'Gérer'}
+          </Link>
+        </div>
+
+        {!empty && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+            <div style={{ display: 'flex' }}>
+              {following.slice(0, 6).map((f, i) => (
+                <Link
+                  key={f.id}
+                  href={`/app/chat/${f.id}`}
+                  title={f.display_name}
+                  style={{
+                    width: 34, height: 34, borderRadius: '50%',
+                    background: PALETTE[i % PALETTE.length], color: '#fff',
+                    border: '2.5px solid var(--ink)',
+                    marginLeft: i === 0 ? 0 : -10,
+                    fontSize: 16, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {f.avatar_emoji || f.display_name?.[0] || '?'}
+                </Link>
+              ))}
+              {following.length > 6 && (
+                <div
+                  style={{
+                    width: 34, height: 34, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)', border: '2.5px solid var(--ink)',
+                    marginLeft: -10, fontSize: 11, fontWeight: 800,
+                    color: 'rgba(255,255,255,0.85)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >+{following.length - 6}</div>
+              )}
+            </div>
+            <div style={{ flex: 1, fontSize: 11, color: 'rgba(247,241,230,0.7)' }}>
+              <b style={{ color: 'var(--gold)' }}>{Math.min(following.length, 5)} Babis</b> sont actifs cette semaine
+            </div>
+          </div>
+        )}
+
+        {empty && (
+          <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: 'rgba(232,178,60,0.10)', border: '1px dashed rgba(232,178,60,0.35)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 26 }}>👥</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(247,241,230,0.8)', lineHeight: 1.45 }}>
+              Ajoute ton premier proche : tu verras ses check-ins, stories et tarifs en priorité.
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const PALETTE = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
+
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum }: {
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount }: {
   badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; streak: number; showWeekly: boolean; setShowWeekly: (v: boolean) => void; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
+  following: FollowProfile[]; followersCount: number;
 }) {
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   const todayIndex = (new Date().getDay() + 6) % 7; // 0=Mon, 6=Sun
@@ -195,6 +296,9 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
           );
         })}
       </div>
+
+      {/* Proches & Famille */}
+      <CrewCard following={following} followersCount={followersCount} />
 
       {/* Activité récente */}
       <h3 className="font-display" style={{ fontSize: 18, margin: '0 0 10px' }}>Activité récente</h3>
@@ -375,8 +479,8 @@ function TabClassement({
   );
 }
 
-export default function CompteClient({ 
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, children 
+export default function CompteClient({
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, children
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
@@ -470,9 +574,21 @@ export default function CompteClient({
               <span>NIV. {level} · {title.toUpperCase()}</span>
               <span>{xp.toLocaleString()} / {xpNext.toLocaleString()} XP</span>
             </div>
-            <div style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', position: 'relative' }}>
-              <div style={{ width: `${xpPct}%`, height: '100%', background: 'linear-gradient(90deg,var(--orange),#E8B23C)', borderRadius: 999, position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent)', backgroundSize: '40px 100%', animation: 'shimmer 2s linear infinite' }} />
+            <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', position: 'relative', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.4)' }}>
+              <div
+                className="xp-glow"
+                style={{
+                  width: `${xpPct}%`, height: '100%',
+                  background: 'linear-gradient(90deg, #F26C1A 0%, #FF8E3C 35%, #E8B23C 70%, #FFE08A 100%)',
+                  borderRadius: 999,
+                  position: 'relative', overflow: 'hidden',
+                  transition: 'width 0.6s cubic-bezier(0.32, 0.72, 0, 1)',
+                }}
+              >
+                {/* Vague lumineuse qui se déplace */}
+                <div className="xp-shine" />
+                {/* Reflet supérieur */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(180deg, rgba(255,255,255,0.45), transparent)', borderRadius: 999 }} />
               </div>
             </div>
           </div>
@@ -509,16 +625,18 @@ export default function CompteClient({
       {/* Content */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 100px' }}>
         {tab === 'passeport' && (
-          <TabPasseport 
-            badges={badges} 
-            checkinsDetail={checkinsDetail} 
-            totalPoints={points} 
-            checkinCount={checkinCount} 
+          <TabPasseport
+            badges={badges}
+            checkinsDetail={checkinsDetail}
+            totalPoints={points}
+            checkinCount={checkinCount}
             streak={streak}
             showWeekly={showWeekly}
             setShowWeekly={setShowWeekly}
-            dailyMissions={dailyMissions} 
-            setShowAlbum={setShowAlbum} 
+            dailyMissions={dailyMissions}
+            setShowAlbum={setShowAlbum}
+            following={following}
+            followersCount={followersCount}
           />
         )}
         {tab === 'territoire' && (
