@@ -251,14 +251,16 @@ export default function Map({
       const coreColor = isTransport ? '#5AC8FA' : '#ff9100';
 
       // 1. Large vibrant glow
-      const intensityScale = Math.min((h.intensity || 0) / 20, 1); // More sensitive scale (20 instead of 50)
-      const outerRadius = 150 + intensityScale * 250; // Larger radius
+      // Min intensity to avoid invisible points
+      const count = h.intensity || 1;
+      const intensityScale = Math.min(count / 10, 1); // Maxed out at 10 validations instead of 20
+      const outerRadius = 300 + intensityScale * 400; // MUCH LARGER (300m to 700m)
       
       L.circle([h.lat, h.lon], {
         radius: outerRadius,
         stroke: false,
         fillColor: baseColor,
-        fillOpacity: 0.2 + intensityScale * 0.2, // More opaque
+        fillOpacity: 0.3 + intensityScale * 0.3, // 0.3 to 0.6
       }).addTo(layer);
       
       // 2. High intensity core
@@ -266,17 +268,17 @@ export default function Map({
         radius: outerRadius * 0.4,
         stroke: false,
         fillColor: coreColor,
-        fillOpacity: 0.4 + intensityScale * 0.3,
+        fillOpacity: 0.5 + intensityScale * 0.4, // 0.5 to 0.9
       }).addTo(layer);
 
-      // 3. Ultra-hot center
+      // 3. Ultra-hot center (White pulse effect simulation)
       L.circle([h.lat, h.lon], {
-        radius: 40,
+        radius: 60,
         stroke: true,
-        weight: 2,
+        weight: 3,
         color: '#ffffff',
         fillColor: isTransport ? '#007AFF' : '#ff3d00',
-        fillOpacity: 0.8,
+        fillOpacity: 0.9,
       }).addTo(layer);
     });
   }, [hotspots]);
