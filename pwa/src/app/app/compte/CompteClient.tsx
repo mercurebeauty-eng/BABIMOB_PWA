@@ -6,21 +6,22 @@ import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 import { WaxStrip } from '@/components/ui/WaxStrip';
 import dynamic from 'next/dynamic';
+import { getLevel } from '@/lib/levels';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
 type Badge = { badge_key: string; awarded_at: string };
-type CheckinDetail = { id: string; created_at: string; place_name: string; commune: string | null; lat?: number | null; lon?: number | null };
 type Props = {
   displayName: string;
   avatarEmoji: string;
   totalPoints: number;
   checkinCount: number;
   badges: Badge[];
-  checkinsDetail: CheckinDetail[];
+  checkinsDetail: any[];
   commune: string;
   topExplorers: { id: string; display_name: string; avatar_emoji: string; total_points: number }[];
-  children: React.ReactNode; // ProfileEditor + PreferencesEditor + SignOutButton + PersonalHeatmap
+  dailyMissions: { id: string; label: string; task: string; current: number; target: number; xp: number }[];
+  children?: React.ReactNode;
 };
 
 const BADGE_META: Record<string, { label: string; color: string; rare: string }> = {
@@ -53,16 +54,6 @@ const ABIDJAN_COMMUNES = [
   'Songon', 'Treichville', 'Yopougon'
 ];
 
-function computeLevel(points: number, checkins: number): { level: number; xp: number; xpNext: number; title: string } {
-  const xp = points + checkins * 15;
-  const thresholds = [0, 200, 500, 1000, 2000, 3500, 5000, 7500, 10000, 15000];
-  const titles = ['Débutant', 'Explorateur', 'Voyageur', 'Babi Confirmé', 'Connaisseur', 'Habitué', 'Garocheur', 'Ambassadeur', 'Légende', 'Empereur d\'Abidjan'];
-  let level = 0;
-  for (let i = 0; i < thresholds.length; i++) {
-    if (xp >= thresholds[i]) level = i;
-  }
-  return { level: level + 1, xp, xpNext: thresholds[Math.min(level + 1, thresholds.length - 1)], title: titles[level] };
-}
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -73,17 +64,9 @@ function timeAgo(iso: string): string {
 }
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount }: {
-  badges: Badge[]; checkinsDetail: CheckinDetail[]; totalPoints: number; checkinCount: number;
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, dailyMissions, setShowAlbum }: {
+  badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
 }) {
-  const today = new Date().toISOString().split('T')[0];
-  const hasCheckedInToday = checkinsDetail.some(c => c.created_at.startsWith(today));
-  
-  const MISSIONS = [
-    { ic: <Ic.Pin s={18} fill />, c: 'var(--orange)', t: 'Check-in aujourd\'hui', sub: 'Visite 1 arrêt', xp: 30, done: hasCheckedInToday },
-    { ic: <Ic.Star s={18} fill />, c: '#0EA85B', t: 'Collectionneur', sub: 'Gagne 5 badges', xp: 100, done: badges.length >= 5 },
-    { ic: <Ic.Map s={18} />, c: '#1E5BFF', t: 'Explorateur local', sub: "Visite 3 communes", xp: 150, done: new Set(checkinsDetail.map(c => c.commune)).size >= 3 },
-  ];
 
   return (
     <>
@@ -107,64 +90,36 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount }: {
               <Ic.Flame s={28} />
             </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>SÉRIE EN COURS</div>
-            <div className="font-display" style={{ fontSize: 22, lineHeight: 1, marginTop: 2 }}>{checkinCount} jours sur Babi</div>
-            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 4 }}>Reviens demain pour <b style={{ color: '#fff' }}>+50 XP</b> bonus</div>
+          <div style={{ flex: 1, padding: '16px 14px', borderRadius: 20, background: 'var(--ink)', color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Missions du jour</div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'rgba(242,108,26,0.15)', padding: '2px 6px', borderRadius: 6 }}>{dailyMissions.filter(m => m.current >= m.target).length}/{dailyMissions.length}</div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {dailyMissions.map((m) => {
+                const done = m.current >= m.target;
+                return (
+                  <div key={m.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                      <span style={{ opacity: done ? 0.5 : 1 }}>{m.task}</span>
+                      <span style={{ color: done ? '#0EA85B' : 'var(--orange)' }}>{done ? 'V' : `+${m.xp} XP`}</span>
+                    </div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, (m.current / m.target) * 100)}%`, background: done ? '#0EA85B' : 'var(--orange)', borderRadius: 2 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-        {/* 7 jours mini-tracker */}
-        <div style={{ display: 'flex', gap: 5, marginTop: 12, position: 'relative' }}>
-          {['L','M','M','J','V','S','D'].map((d, i) => {
-            const todayIdx = (new Date().getDay() + 6) % 7;
-            const done = i < todayIdx || (i === todayIdx && checkinCount > 0);
-            const isToday = i === todayIdx;
-            return (
-              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 3, fontWeight: 700 }}>{d}</div>
-                <div style={{
-                  height: 28, borderRadius: 8,
-                  background: done ? 'rgba(255,255,255,0.95)' : isToday ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
-                  border: isToday ? '1.5px dashed rgba(255,255,255,0.7)' : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#F26C1A', fontSize: 14, fontWeight: 900,
-                }}>{done ? '✓' : ''}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Missions du jour */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Missions du jour</h3>
-        <Pill color="var(--orange)">{MISSIONS.filter(m => m.done).length}/{MISSIONS.length}</Pill>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-        {MISSIONS.map((m, i) => (
-          <div key={i} className="press" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: `1px solid ${m.done ? 'color-mix(in oklab,#0EA85B 30%,transparent)' : 'var(--line)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: `color-mix(in oklab,${m.c} 12%,transparent)`, color: m.c, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {m.ic}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', textDecoration: m.done ? 'line-through' : 'none', opacity: m.done ? 0.6 : 1 }}>{m.t}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{m.sub}</div>
-            </div>
-            {m.done ? (
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0EA85B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Ic.Check s={16} />
-              </div>
-            ) : (
-              <div className="font-display" style={{ fontSize: 16, color: 'var(--orange)' }}>+{m.xp} XP</div>
-            )}
-          </div>
-        ))}
       </div>
 
       {/* Album de badges */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Album de badges</h3>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)' }}>VOIR TOUT →</span>
+        <button onClick={() => setShowAlbum(true)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 800, color: 'var(--orange)', cursor: 'pointer' }}>VOIR TOUT →</button>
       </div>
       <div style={{ gridTemplateColumns: 'repeat(4, 1fr)', display: 'grid', gap: 10, marginBottom: 24 }}>
         {Object.entries(BADGE_META).slice(0, 8).map(([key, meta]) => {
@@ -180,69 +135,22 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount }: {
         })}
       </div>
 
-      {/* Crew card */}
-      <div style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 18, position: 'relative', background: 'var(--ink)', color: 'var(--cream)', padding: 16 }}>
-        <div className="wax-zigzag" style={{ position: 'absolute', inset: 0, color: '#0EA85B', opacity: 0.1 }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#E8B23C', letterSpacing: 0.6 }}>TON CREW</div>
-              <div className="font-display" style={{ fontSize: 22, color: '#fff', marginTop: 2 }}>Cocody Family</div>
-              <div style={{ fontSize: 11, color: 'rgba(247,241,230,0.6)', marginTop: 2 }}>#3 sur 47 crews · 24 membres</div>
-            </div>
-            <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg,#0EA85B,#1E5BFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Archivo Black,sans-serif', fontSize: 22, color: '#fff', position: 'relative' }}>
-              CF
-              <div style={{ position: 'absolute', top: -6, right: -6, background: '#E8B23C', color: 'var(--ink)', fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999 }}>3</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
-            <div style={{ display: 'flex' }}>
-              {['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A'].map((c, i) => (
-                <div key={i} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: '2px solid var(--ink)', marginLeft: i === 0 ? 0 : -7, fontSize: 11, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {['M', 'A', 'D', 'K', 'I'][i]}
-                </div>
-              ))}
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '2px solid var(--ink)', marginLeft: -7, fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+19</div>
-            </div>
-            <div style={{ flex: 1, fontSize: 11, color: 'rgba(247,241,230,0.65)' }}>
-              <b style={{ color: '#E8B23C' }}>5 actifs</b> en ce moment
-            </div>
-          </div>
-          <div style={{ marginTop: 14, padding: 10, borderRadius: 12, background: 'rgba(232,178,60,0.1)', border: '1px solid rgba(232,178,60,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#E8B23C', letterSpacing: 0.5 }}>QUÊTE COLLECTIVE · 4j RESTANTS</div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>847 / 1000</div>
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Cartographier 1 000 arrêts ensemble</div>
-            <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', marginTop: 8, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: '84.7%', background: 'linear-gradient(90deg,#E8B23C,#F26C1A)', borderRadius: 2 }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Activité récente */}
       <h3 className="font-display" style={{ fontSize: 18, margin: '0 0 10px' }}>Activité récente</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {checkinsDetail.slice(0, 5).map((a, i) => (
-          <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 11, borderRadius: 12, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: `color-mix(in oklab,${ACTIVITY_ICONS[i % ACTIVITY_ICONS.length]} 15%,transparent)`, color: ACTIVITY_ICONS[i % ACTIVITY_ICONS.length], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Ic.Pin s={16} fill />
+        {checkinsDetail.slice(0, 5).map((c, i) => (
+          <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 11, borderRadius: 12, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `color-mix(in oklab, ${ACTIVITY_ICONS[i % ACTIVITY_ICONS.length]} 15%, transparent)`, color: ACTIVITY_ICONS[i % ACTIVITY_ICONS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+              {c.places?.logo_emoji || '📍'}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.place_name}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.commune || 'Abidjan'} · {timeAgo(a.created_at)}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{c.place_name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{c.commune || 'Abidjan'} · {timeAgo(c.created_at)}</div>
             </div>
-            <div className="font-display" style={{ fontSize: 14, color: 'var(--orange)' }}>+15</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)' }}>+{c.points_earned || 10}</div>
           </div>
         ))}
-        {checkinsDetail.length === 0 && (
-          <div style={{ padding: '24px 20px', textAlign: 'center', borderRadius: 14, background: 'var(--cream-2)', border: '1px dashed var(--line)', fontSize: 13, color: 'var(--muted)' }}>
-            Aucune activité pour l'instant — explore Abidjan !
-          </div>
-        )}
       </div>
-
     </>
   );
 }
@@ -258,12 +166,9 @@ function TabTerritoire({
   checkinsDetail: CheckinDetail[];
 }) {
   const totalVisits = checkinsDetail.length;
-  
-  // Dynamic calculation of conquest by commune
   const communeCounts: Record<string, number> = {};
   checkinsDetail.forEach(c => {
     const com = c.commune || 'Abidjan';
-    // Ignorer "Abidjan" si c'est le nom générique
     if (com === 'Abidjan') return;
     communeCounts[com] = (communeCounts[com] || 0) + 1;
   });
@@ -281,14 +186,12 @@ function TabTerritoire({
     }))
     .sort((a, b) => b.count - a.count);
 
-  // Fallback if no checkins
   const displayCommunes = COMMUNES.length > 0 ? COMMUNES : (commune && commune !== 'Abidjan' ? [
     { n: commune, count: 0, pct: 0, c: 'var(--orange)', mayor: false }
   ] : []);
 
   return (
     <>
-      {/* Heatmap */}
       <div style={{ borderRadius: 24, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)', marginBottom: 18, boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }}>
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div>
@@ -302,7 +205,6 @@ function TabTerritoire({
         </div>
       </div>
 
-      {/* Conquête par commune */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Conquête du territoire</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -331,11 +233,6 @@ function TabTerritoire({
             </div>
           </div>
         ))}
-        {displayCommunes.length === 0 && (
-          <div style={{ padding: '24px 20px', textAlign: 'center', borderRadius: 14, background: 'var(--cream-2)', border: '1px dashed var(--line)', fontSize: 13, color: 'var(--muted)' }}>
-            Commence ton exploration pour conquérir Abidjan !
-          </div>
-        )}
       </div>
     </>
   );
@@ -349,12 +246,10 @@ function TabClassement({
   displayName: string; 
   topExplorers: { id: string; display_name: string; avatar_emoji: string; total_points: number }[]
 }) {
-  // Map real data to podium format
-  // Boris K. logic (if exists) or top 1
   const podiumData = [
-    topExplorers[1] || null, // Rank 2
-    topExplorers[0] || null, // Rank 1
-    topExplorers[2] || null, // Rank 3
+    topExplorers[1] || null, 
+    topExplorers[0] || null, 
+    topExplorers[2] || null, 
   ];
 
   const PODIUM_CONFIG = [
@@ -368,13 +263,11 @@ function TabClassement({
     name: p.display_name,
     me: p.display_name === displayName,
     xp: p.total_points.toLocaleString(),
-    delta: '+0', // No real delta yet
     c: ACTIVITY_ICONS[i % ACTIVITY_ICONS.length]
   }));
 
   return (
     <>
-      {/* Podium top 3 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 20, padding: '10px 0' }}>
         {PODIUM_CONFIG.map((conf, i) => {
           const user = podiumData[i];
@@ -397,7 +290,6 @@ function TabClassement({
         })}
       </div>
 
-      {/* Liste 4-10 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {LIST.map((p, i) => (
           <div key={i} style={{
@@ -412,16 +304,8 @@ function TabClassement({
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}{p.me && <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', marginLeft: 6, padding: '1px 5px', background: '#fff', borderRadius: 4, letterSpacing: 0.5 }}>TOI</span>}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.xp} XP</div>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: p.delta.startsWith('+') ? '#0EA85B' : p.delta.startsWith('-') ? '#D9510A' : 'var(--muted)' }}>
-              {p.delta !== '0' ? (p.delta.startsWith('+') ? '↑' : '↓') : '·'} {p.delta}
-            </div>
           </div>
         ))}
-        {topExplorers.length === 0 && (
-          <div style={{ padding: '24px 20px', textAlign: 'center', borderRadius: 14, background: 'var(--cream-2)', border: '1px dashed var(--line)', fontSize: 13, color: 'var(--muted)' }}>
-            Le classement est encore vide. Sois le premier !
-          </div>
-        )}
       </div>
       <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: 'var(--cream-2)', border: '1px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
         Saison <b style={{ color: 'var(--ink)' }}>Harmattan</b> · se termine dans <b style={{ color: 'var(--orange)' }}>12 jours</b>
@@ -430,14 +314,39 @@ function TabClassement({
   );
 }
 
-// ── Composant principal ──────────────────────────────────────
 export default function CompteClient({ 
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, topExplorers, children 
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, topExplorers, dailyMissions, children 
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
+  const [points, setPoints] = useState(totalPoints);
+  const [showAlbum, setShowAlbum] = useState(false);
 
-  const { level, xp, xpNext, title } = computeLevel(totalPoints, checkinCount);
-  const xpPct = Math.min(100, Math.round((xp / xpNext) * 100));
+  // Dynamic calculation of conquest
+  const communeCounts: Record<string, number> = {};
+  checkinsDetail.forEach(c => {
+    const com = c.commune || 'Abidjan';
+    if (com !== 'Abidjan') communeCounts[com] = (communeCounts[com] || 0) + 1;
+  });
+  const uniqueCommunesVisited = Object.keys(communeCounts).length;
+  const explorationPct = Math.round((uniqueCommunesVisited / ABIDJAN_COMMUNES.length) * 100);
+
+  const levelInfo = getLevel(points);
+  const { level, title, xp, xpForNext: xpNext, progress } = levelInfo;
+  const xpPct = Math.round(progress * 100);
+
+  // Daily Bonus XP Logic
+  useEffect(() => {
+    const claimBonus = async () => {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { data } = await supabase.rpc('claim_daily_bonus');
+      if (data?.success) {
+        setPoints(p => p + 50);
+        // On pourrait ajouter une petite notif ici
+      }
+    };
+    claimBonus();
+  }, []);
 
   const TABS = [
     { id: 'passeport', l: 'Passeport' },
@@ -510,8 +419,8 @@ export default function CompteClient({
             {[
               { v: checkinCount.toString(), l: 'Trajets', c: 'var(--orange)' },
               { v: badges.length.toString(), l: 'Badges', c: '#0EA85B' },
-              { v: '17%', l: 'Babi', c: '#1E5BFF' },
-              { v: totalPoints.toLocaleString(), l: 'Points', c: '#E8B23C' },
+              { v: `${explorationPct}%`, l: 'Babi', c: '#1E5BFF' },
+              { v: points.toLocaleString(), l: 'Points', c: '#E8B23C' },
             ].map((s, i) => (
               <div key={i} style={{ padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: s.c }} />
@@ -537,7 +446,7 @@ export default function CompteClient({
       {/* Content */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 100px' }}>
         {tab === 'passeport' && (
-          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={totalPoints} checkinCount={checkinCount} />
+          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={points} checkinCount={checkinCount} dailyMissions={dailyMissions} setShowAlbum={setShowAlbum} />
         )}
         {tab === 'territoire' && (
           <TabTerritoire 
@@ -570,6 +479,53 @@ export default function CompteClient({
           </div>
         </div>
       </div>
+      {/* Modal Album */}
+      <AnimatePresence>
+        {showAlbum && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', flexDirection: 'column', padding: 'env(safe-area-inset-top, 20px) 20px 40px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
+              <div className="font-display" style={{ fontSize: 24, color: '#fff' }}>Album de Badges</div>
+              <button onClick={() => setShowAlbum(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', width: 40, height: 40, borderRadius: '50%', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                {Object.entries(BADGE_META).map(([key, meta]) => {
+                  const unlocked = badges.some(b => b.badge_key === key);
+                  return (
+                    <div key={key} style={{ 
+                      padding: 20, borderRadius: 20, background: unlocked ? 'var(--cream)' : 'rgba(255,255,255,0.05)', 
+                      border: unlocked ? '2px solid var(--orange)' : '1px solid rgba(255,255,255,0.1)',
+                      textAlign: 'center', opacity: unlocked ? 1 : 0.6,
+                      position: 'relative', overflow: 'hidden'
+                    }}>
+                      <div style={{ fontSize: 40, marginBottom: 10 }}>
+                        {unlocked ? BADGE_ICONS[key as keyof typeof BADGE_ICONS] : '🔒'}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: unlocked ? 'var(--ink)' : '#fff', textTransform: 'uppercase', marginBottom: 4 }}>
+                        {meta.label}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: meta.rare === 'SSR' ? 'gold' : meta.rare === 'SR' ? '#E5337A' : '#1E5BFF', color: '#fff', display: 'inline-block' }}>
+                        {meta.rare}
+                      </div>
+                      {!unlocked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>Vérifie les défis pour débloquer</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20, textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+              Total débloqués : <b style={{ color: 'var(--orange)' }}>{badges.length} / {Object.keys(BADGE_META).length}</b>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

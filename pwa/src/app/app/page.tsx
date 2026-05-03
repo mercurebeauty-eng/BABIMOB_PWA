@@ -22,6 +22,7 @@ import { useHotspots } from '@/hooks/useHotspots';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
+import { getLevel } from '@/lib/levels';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -307,9 +308,14 @@ function AppPageContent() {
         <Link
           href="/app/compte"
           className="press"
-          style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}
+          style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none', position: 'relative' }}
         >
           {profile?.display_name?.slice(0, 2).toUpperCase() || 'MK'}
+          {profile && (
+            <div style={{ position: 'absolute', bottom: -4, right: -4, background: 'var(--ink)', color: '#fff', fontSize: 9, fontWeight: 900, width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
+              {getLevel(profile.total_points || 0).level}
+            </div>
+          )}
         </Link>
       </div>
 

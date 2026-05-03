@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
+import { getLevel } from '@/lib/levels';
 
 type Props = {
   isOpen: boolean;
@@ -47,8 +48,11 @@ export default function SidebarMenu({ isOpen, onClose, onToggleHeatmap, profile 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 {profile ? (
                   <Link href="/app/compte" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 16, background: '#fff', border: '2px solid var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 16, background: '#fff', border: '2px solid var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, position: 'relative' }}>
                       {profile.avatar_emoji || '👤'}
+                      <div style={{ position: 'absolute', bottom: -6, right: -6, background: 'var(--ink)', color: '#fff', fontSize: 10, fontWeight: 900, width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream-2)' }}>
+                        {getLevel(profile.total_points || 0).level}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)' }}>{profile.display_name || 'Utilisateur'}</div>

@@ -1,9 +1,8 @@
 /**
- * Système de niveaux BABIMOB
+ * Système de niveaux BABIMOB (v2 - 100 Niveaux)
  * 
- * Basé sur total_points du profil.
- * Niveau 3 minimum pour poster sur Gbairai.
- * Niveau 5 minimum pour poster des stories.
+ * Max XP: 50,000
+ * Niveau 100 atteint à 50,000 XP.
  */
 
 export type LevelInfo = {
@@ -11,49 +10,75 @@ export type LevelInfo = {
   title: string;
   xp: number;
   xpForNext: number;
-  progress: number; // 0-1
-  canPost: boolean;  // level >= 3
-  canStory: boolean; // level >= 5
+  progress: number;
+  canPost: boolean;
+  canStory: boolean;
 };
 
-const LEVEL_THRESHOLDS = [
-  { level: 1, xp: 0,    title: 'Piéton' },
-  { level: 2, xp: 100,  title: 'Passager' },
-  { level: 3, xp: 300,  title: 'Voyageur' },
-  { level: 4, xp: 600,  title: 'Explorateur' },
-  { level: 5, xp: 1000, title: 'Garocheur' },
-  { level: 6, xp: 1500, title: 'Guide' },
-  { level: 7, xp: 2100, title: "Roi d'Abidjan" },
-  { level: 8, xp: 2800, title: 'Empereur' },
-  { level: 9, xp: 3600, title: 'Légende' },
-  { level: 10, xp: 4500, title: 'Dieu de Babi' },
-];
+// Paliers de titres spéciaux
+const MILESTONE_TITLES: Record<number, string> = {
+  1: 'Piéton',
+  5: 'Passager',
+  10: 'Voyageur',
+  20: 'Explorateur',
+  30: 'Garocheur',
+  40: 'Guide',
+  50: "Roi d'Abidjan",
+  60: 'Vieux Père',
+  70: 'Ambassadeur',
+  80: 'Empereur',
+  90: 'Légende',
+  100: 'Dieu de Babi',
+};
+
+/**
+ * Calcule les XP nécessaires pour un niveau donné.
+ * On utilise une courbe pour atteindre 50,000 à Lvl 100.
+ */
+function getThresholdForLevel(level: number): number {
+  if (level <= 1) return 0;
+  if (level >= 100) return 50000;
+  
+  // Courbe quadratique simple: xp = a * (lvl-1)^2 + b * (lvl-1)
+  // On ajuste pour que Lvl 10 soit ~4500 et Lvl 100 soit 50000
+  const x = level - 1;
+  const xp = 4.2 * (x * x) + 85 * x;
+  return Math.round(xp / 10) * 10; // Arrondi à la dizaine
+}
 
 export function getLevel(totalPoints: number): LevelInfo {
-  let current = LEVEL_THRESHOLDS[0];
-  let nextIdx = 1;
-
-  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (totalPoints >= LEVEL_THRESHOLDS[i].xp) {
-      current = LEVEL_THRESHOLDS[i];
-      nextIdx = i + 1;
+  let level = 1;
+  
+  // Recherche du niveau actuel
+  for (let l = 1; l <= 100; l++) {
+    if (totalPoints >= getThresholdForLevel(l)) {
+      level = l;
+    } else {
       break;
     }
   }
 
-  const next = LEVEL_THRESHOLDS[nextIdx] ?? null;
-  const xpInLevel = totalPoints - current.xp;
-  const xpNeeded = next ? next.xp - current.xp : 1;
-  const progress = next ? Math.min(1, xpInLevel / xpNeeded) : 1;
+  const currentThreshold = getThresholdForLevel(level);
+  const nextThreshold = level < 100 ? getThresholdForLevel(level + 1) : 50000;
+  
+  const xpInLevel = totalPoints - currentThreshold;
+  const xpNeeded = nextThreshold - currentThreshold;
+  const progress = level < 100 ? Math.min(1, xpInLevel / xpNeeded) : 1;
+
+  // Déterminer le titre (le dernier milestone atteint)
+  let title = MILESTONE_TITLES[1];
+  for (const m of Object.keys(MILESTONE_TITLES).map(Number).sort((a,b) => a-b)) {
+    if (level >= m) title = MILESTONE_TITLES[m];
+  }
 
   return {
-    level: current.level,
-    title: current.title,
+    level,
+    title,
     xp: totalPoints,
-    xpForNext: next ? next.xp : current.xp,
+    xpForNext: nextThreshold,
     progress,
-    canPost: current.level >= 3,
-    canStory: current.level >= 5,
+    canPost: level >= 3,
+    canStory: level >= 5,
   };
 }
 

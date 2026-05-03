@@ -32,6 +32,22 @@ export default async function ComptePage() {
     .order('total_points', { ascending: false })
     .limit(10);
 
+  const startOfToday = new Date();
+  startOfToday.setHours(0,0,0,0);
+  const todayStr = startOfToday.toISOString();
+
+  const [{ count: todayCheckins }, { count: todayPosts }, { count: todayTarifs }] = await Promise.all([
+    supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
+    supabase.from('gbairai_posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
+    supabase.from('tarif_confirmations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr)
+  ]);
+
+  const dailyMissions = [
+    { id: 'm1', label: 'Explorateur', task: 'Faire un check-in', current: todayCheckins || 0, target: 1, xp: 20 },
+    { id: 'm2', label: 'Bavard', task: 'Poster sur Gbairai', current: todayPosts || 0, target: 1, xp: 30 },
+    { id: 'm3', label: 'Contributeur', task: 'Confirmer un tarif', current: todayTarifs || 0, target: 1, xp: 25 },
+  ];
+
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
   const avatarEmoji = profile?.avatar_emoji || '👤';
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
