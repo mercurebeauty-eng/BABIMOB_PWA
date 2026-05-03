@@ -77,7 +77,7 @@ export default function SidebarMenu({ isOpen, onClose, profile }: Props) {
                   </Link>
                 )}
                 <button onClick={onClose} className="press" style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.05)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <Ic.Close s={18} color="var(--ink)" />
+                  <Ic.X s={18} color="var(--ink)" />
                 </button>
               </div>
 
