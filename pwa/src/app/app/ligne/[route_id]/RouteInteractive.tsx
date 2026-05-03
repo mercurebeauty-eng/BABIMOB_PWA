@@ -108,7 +108,7 @@ export default function RouteInteractive({
 
   return (
     <>
-      {/* ── Direction switch (unified UI) ── */}
+      {/* ── Direction switch ── */}
       <div style={{ display: 'flex', gap: 8, margin: '10px 16px 0', padding: 4, background: 'var(--cream-2)', borderRadius: 14, border: '1px solid var(--line)' }}>
         {tripPerDir.map((dir) => (
           <Link
@@ -128,21 +128,46 @@ export default function RouteInteractive({
         ))}
       </div>
 
-      {/* ── Info pills (dynamic) ── */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
-        {tripHeadsign && <Pill color="var(--green)">{showSegmentedView ? `→ ${orderedStops.find(s => s.stop_id === cutAtId)?.stop_name ?? tripHeadsign}` : `→ ${tripHeadsign}`}</Pill>}
-        <Pill color="var(--ink)">{estimatedPrice}</Pill>
-        <Pill color="var(--blue)">~{estimatedMin} min</Pill>
-        <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
-        {showSegmentedView && (
-          <button
-            onClick={resetSegmentation}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-          >
-            <Pill color="var(--muted)">✕ Choisir une autre destination</Pill>
-          </button>
-        )}
-      </div>
+      {/* ── Journey summary card ── */}
+      {showSegmentedView && currentIdx >= 0 && cutIdx >= 0 && (
+        <div style={{
+          margin: '12px 16px 0', padding: 16, borderRadius: 18,
+          background: 'linear-gradient(135deg, var(--blue) 0%, #1a4fd4 100%)',
+          color: '#fff', position: 'relative', overflow: 'hidden'
+        }}>
+          <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, opacity: 0.7, marginBottom: 10, textTransform: 'uppercase' }}>Ton trajet</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', border: '3px solid rgba(255,255,255,0.4)' }} />
+                <div style={{ width: 2, height: 24, background: 'rgba(255,255,255,0.3)' }} />
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--green)', border: '3px solid rgba(255,255,255,0.4)' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>{orderedStops[currentIdx]?.stop_name}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#a5f3c4' }}>{orderedStops[cutIdx]?.stop_name}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 800 }}>~{estimatedMin} min</div>
+              <div style={{ padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 800 }}>{estimatedPrice}</div>
+              <div style={{ padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 800 }}>{journeyStops} arrêts</div>
+              <button onClick={resetSegmentation} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>✕</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Info pills (when NOT segmented) ── */}
+      {!showSegmentedView && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 16px 12px', borderBottom: '1px solid var(--line)' }}>
+          {tripHeadsign && <Pill color="var(--green)">→ {tripHeadsign}</Pill>}
+          <Pill color="var(--ink)">{estimatedPrice}</Pill>
+          <Pill color="var(--blue)">~{estimatedMin} min</Pill>
+          <Pill color="var(--orange)">{journeyStops} arrêt{journeyStops > 1 ? 's' : ''}</Pill>
+        </div>
+      )}
 
       {/* ── Map ── */}
       <div style={{ height: 250, overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
@@ -157,7 +182,7 @@ export default function RouteInteractive({
 
       {/* ── Timeline ── */}
       <div style={{ padding: '16px 16px 100px', position: 'relative' }}>
-        {fromStop && (
+        {fromStop && !showSegmentedView && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
             <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--blue)', background: 'color-mix(in oklab, var(--blue) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--blue) 25%, transparent)', borderRadius: 99, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
               Votre arrêt mis en évidence
@@ -172,89 +197,104 @@ export default function RouteInteractive({
           const isCurrent = fromStop === stop.stop_id;
           const isPast = currentIdx >= 0 && idx < currentIdx;
           const isFuture = currentIdx >= 0 ? idx > currentIdx : !isFirst;
-          const noCtx = currentIdx < 0; 
           const isDestination = cutAtId === stop.stop_id;
+          const isOnJourney = showSegmentedView && currentIdx >= 0 && cutIdx >= 0 && idx > currentIdx && idx < cutIdx;
 
-          // Alignement des couleurs avec la carte : Départ segment = Bleu, Fin segment = Vert
+          // Colors
           const dotColor = isCurrent
             ? 'var(--blue)'
             : isDestination ? 'var(--green)'
             : isPast ? '#e53935'
             : isTerminus ? 'var(--ink)'
+            : isOnJourney ? 'var(--gold)'
             : isFuture ? 'color-mix(in oklab, var(--line) 40%, transparent)'
             : 'var(--line)';
 
-          const lineColor = isPast ? '#e53935' : (isCurrent || (currentIdx >=0 && idx < cutIdx)) ? 'var(--gold)' : noCtx ? 'var(--line)' : 'var(--line)';
-          const lineDashed = !isPast && !isCurrent && !(currentIdx >=0 && idx < cutIdx);
+          const lineColor = isPast ? '#e53935' : (isCurrent || isOnJourney) ? 'var(--gold)' : 'var(--line)';
+          const lineDashed = !isPast && !isCurrent && !isOnJourney;
 
-          const dotSize = isCurrent ? 40 : isDestination ? 30 : isTerminus ? 20 : 14;
+          const dotSize = isCurrent ? 44 : isDestination ? 34 : isTerminus ? 22 : isOnJourney ? 16 : 12;
 
           return (
             <div
               key={`${stop.stop_id}-${stop.stop_sequence}`}
               style={{
-                display: 'flex', gap: 12, alignItems: 'stretch',
-                background: isCurrent ? 'color-mix(in oklab, var(--blue) 6%, transparent)' : isDestination ? 'color-mix(in oklab, var(--green) 6%, transparent)' : 'transparent',
-                borderRadius: (isCurrent || isDestination) ? 14 : 0,
-                margin: (isCurrent || isDestination) ? '2px -8px' : 0,
-                padding: (isCurrent || isDestination) ? '0 8px' : 0,
-                border: (isCurrent || isDestination) ? `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 18%, transparent)` : 'none',
+                display: 'flex', gap: 14, alignItems: 'stretch',
+                background: isCurrent
+                  ? 'color-mix(in oklab, var(--blue) 6%, transparent)'
+                  : isDestination
+                  ? 'color-mix(in oklab, var(--green) 6%, transparent)'
+                  : 'transparent',
+                borderRadius: (isCurrent || isDestination) ? 18 : 0,
+                margin: (isCurrent || isDestination) ? '4px -10px' : 0,
+                padding: (isCurrent || isDestination) ? '4px 10px' : 0,
+                border: (isCurrent || isDestination) ? `1.5px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 20%, transparent)` : 'none',
+                transition: 'all 0.3s ease',
               }}
             >
               {/* Timeline column */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 28, flexShrink: 0 }}>
                 <div style={{
-                  flex: 1, width: 2, minHeight: 14,
+                  flex: 1, width: isPast || isCurrent || isOnJourney ? 3 : 2, minHeight: 16,
                   background: isFirst ? 'transparent' : lineColor,
                   backgroundImage: lineDashed ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)' : 'none',
+                  transition: 'background 0.3s',
                 }} />
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   {(isCurrent || isDestination) && (
                     <div className="pulse-ring" style={{
                       position: 'absolute', top: '50%', left: '50%',
                       transform: 'translate(-50%,-50%)',
-                      width: 52, height: 52, borderRadius: '50%',
-                      background: isCurrent ? 'var(--blue)' : 'var(--green)', opacity: 0.2, pointerEvents: 'none',
+                      width: dotSize + 16, height: dotSize + 16, borderRadius: '50%',
+                      background: isCurrent ? 'var(--blue)' : 'var(--green)', opacity: 0.15, pointerEvents: 'none',
                     }} />
                   )}
                   <div style={{
                     width: dotSize, height: dotSize, borderRadius: '50%', flexShrink: 0,
                     background: dotColor,
-                    border: (isCurrent || isDestination) ? '3px solid var(--cream)' : 'none',
+                    border: (isCurrent || isDestination) ? '3px solid var(--cream)' : isOnJourney ? '2px solid var(--cream)' : 'none',
                     boxShadow: (isCurrent || isDestination)
-                      ? `0 0 0 2px ${isCurrent ? 'var(--blue)' : 'var(--green)'}, 0 4px 12px rgba(0,0,0,0.15)`
-                      : isTerminus ? `0 0 0 3px color-mix(in oklab, var(--ink) 10%, transparent)` : 'none',
+                      ? `0 0 0 2px ${isCurrent ? 'var(--blue)' : 'var(--green)'}, 0 4px 14px rgba(0,0,0,0.18)`
+                      : isTerminus ? `0 0 0 3px color-mix(in oklab, var(--ink) 12%, transparent)` : 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.3s ease',
                   }}>
-                    {isCurrent && <Vehicle kind={typeKind} size={22} color="#fff" />}
-                    {isDestination && <Ic.Star s={18} fill color="#fff" />}
+                    {isCurrent && <Vehicle kind={typeKind} size={24} color="#fff" />}
+                    {isDestination && <Ic.Pin s={18} fill color="#fff" />}
                   </div>
                 </div>
                 <div style={{
-                  flex: 1, width: 2, minHeight: 14,
+                  flex: 1, width: isPast || isCurrent || isOnJourney ? 3 : 2, minHeight: 16,
                   background: isLast ? 'transparent' : lineColor,
                   backgroundImage: lineDashed ? 'repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 8px)' : 'none',
+                  transition: 'background 0.3s',
                 }} />
               </div>
 
               {/* Content column */}
               <div style={{
                 flex: 1, minWidth: 0,
-                paddingTop: (isCurrent || isDestination) ? 14 : 10, paddingBottom: (isCurrent || isDestination) ? 14 : 10,
-                borderBottom: !isLast && !isCurrent && !isDestination ? '1px solid color-mix(in oklab, var(--line) 55%, transparent)' : 'none',
+                paddingTop: (isCurrent || isDestination) ? 16 : 12, paddingBottom: (isCurrent || isDestination) ? 16 : 12,
+                borderBottom: !isLast && !isCurrent && !isDestination ? '1px solid color-mix(in oklab, var(--line) 50%, transparent)' : 'none',
               }}>
                 {isCurrent || isDestination ? (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span className="font-display" style={{ fontSize: 18, fontWeight: 900, color: isCurrent ? 'var(--blue)' : 'var(--green)' }}>
                         {stop.stop_name}
                       </span>
-                      <span style={{ fontSize: 8, fontWeight: 900, color: isCurrent ? 'var(--blue)' : 'var(--green)', background: `color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 12%, transparent)`, border: `1px solid color-mix(in oklab, ${isCurrent ? 'var(--blue)' : 'var(--green)'} 25%, transparent)`, borderRadius: 99, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        {isCurrent ? 'DÉPART' : 'DESTINATION'}
+                      <span style={{
+                        fontSize: 9, fontWeight: 900,
+                        color: '#fff',
+                        background: isCurrent ? 'var(--blue)' : 'var(--green)',
+                        borderRadius: 6, padding: '3px 8px',
+                        textTransform: 'uppercase', letterSpacing: 0.6,
+                      }}>
+                        {isCurrent ? 'DÉPART' : 'ARRIVÉE'}
                       </span>
                     </div>
                     {stop.commune && (
-                      <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>{stop.commune}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 3 }}>{stop.commune}</div>
                     )}
                   </div>
                 ) : (
@@ -265,10 +305,10 @@ export default function RouteInteractive({
                     <div style={{ minWidth: 0 }}>
                       <div style={{
                         fontSize: isTerminus ? 15 : 13,
-                        fontWeight: isTerminus ? 800 : isPast ? 500 : 600,
-                        color: isPast ? 'var(--muted)' : isTerminus ? 'var(--ink)' : 'var(--ink-2)',
+                        fontWeight: isTerminus ? 800 : isPast ? 500 : isOnJourney ? 700 : 600,
+                        color: isPast ? 'var(--muted)' : isOnJourney ? 'var(--ink)' : isTerminus ? 'var(--ink)' : 'var(--ink-2)',
                         textDecoration: isPast ? 'line-through' : 'none',
-                        opacity: isPast ? 0.55 : 1,
+                        opacity: isPast ? 0.5 : 1,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{stop.stop_name}</div>
                       {stop.commune && (
@@ -279,27 +319,50 @@ export default function RouteInteractive({
                   </Link>
                 )}
 
+                {/* Departure actions */}
                 {isCurrent && (
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                     <button className="press" style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                        Suivi en direct
-                     </button>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                    <button className="press" style={{
+                      padding: '8px 16px', borderRadius: 10,
+                      background: 'var(--orange)', color: '#fff',
+                      fontSize: 11, fontWeight: 800, border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      boxShadow: '0 3px 10px rgba(242,108,26,0.3)',
+                      letterSpacing: 0.3
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'pulse 1.5s infinite' }} />
+                      Suivi en direct
+                    </button>
                   </div>
                 )}
 
+                {/* Destination actions */}
                 {isDestination && (
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                     <button className="press" onClick={resetSegmentation} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--muted)', color: '#fff', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                        Changer destination
-                     </button>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                    <button className="press" onClick={resetSegmentation} style={{
+                      padding: '8px 16px', borderRadius: 10,
+                      background: 'var(--cream)', color: 'var(--ink)',
+                      fontSize: 11, fontWeight: 800, border: '1.5px solid var(--line)', cursor: 'pointer',
+                      letterSpacing: 0.3
+                    }}>
+                      Changer destination
+                    </button>
                   </div>
                 )}
 
+                {/* "Je descends ici" on future stops */}
                 {isFuture && !isCurrent && !isDestination && !showSegmentedView && (
                   <button
                     className="press"
                     onClick={() => handleDescendIci(stop)}
-                    style={{ marginTop: 4, padding: '5px 10px', borderRadius: 8, background: 'var(--orange)', color: '#fff', fontSize: 11, fontWeight: 800, border: 'none', cursor: 'pointer', letterSpacing: 0.3 }}
+                    style={{
+                      marginTop: 6, padding: '7px 14px', borderRadius: 10,
+                      background: 'color-mix(in oklab, var(--orange) 10%, transparent)',
+                      color: 'var(--orange)', fontSize: 11, fontWeight: 800,
+                      border: '1.5px solid color-mix(in oklab, var(--orange) 25%, transparent)',
+                      cursor: 'pointer', letterSpacing: 0.3,
+                      transition: 'all 0.2s',
+                    }}
                   >
                     Je descends ici 🎯
                   </button>
