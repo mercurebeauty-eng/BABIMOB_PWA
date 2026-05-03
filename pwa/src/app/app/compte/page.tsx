@@ -63,6 +63,7 @@ export default async function ComptePage() {
       checkinsDetail={checkinsDetail ?? []}
       commune={commune}
       topExplorers={topExplorers ?? []}
+      dailyMissions={dailyMissions}
     >
       <ProfileEditor
         userId={user.id}
