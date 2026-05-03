@@ -44,6 +44,8 @@ const BADGE_ICONS: Record<string, React.ReactNode> = {
   verified:      <Ic.Trophy s={22} />,
 };
 
+const ACTIVITY_ICONS = ['var(--orange)', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A'];
+
 function computeLevel(points: number, checkins: number): { level: number; xp: number; xpNext: number; title: string } {
   const xp = points + checkins * 15;
   const thresholds = [0, 200, 500, 1000, 2000, 3500, 5000, 7500, 10000, 15000];
