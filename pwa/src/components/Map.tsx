@@ -29,6 +29,7 @@ type Props = {
   onPoiClick?: (poi: POI) => void;
   onMapReady?: (map: L.Map) => void;
   userLocation?: [number, number] | null;
+  userHeading?: number | null;
   route?: [number, number][] | null;
   routeColor?: string;
   legs?: ItineraryLeg[] | null;
