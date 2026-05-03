@@ -125,7 +125,7 @@ function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: n
           <div className="font-display" style={{ fontSize: 15, marginTop: 8, lineHeight: 1.1 }}>{p.content}</div>
           <div style={{ fontSize: 10, opacity: 0.8, marginTop: 4 }}>{p.place_name ?? p.commune} · {meta.prix ?? ''}</div>
           <div style={{ marginTop: 10, fontSize: 10, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Ic.Users s={11} /> {p.likes_count} Babis y vont
+            <Ic.Users s={11} /> {p.likes_count} Mobeurs y vont
           </div>
         </div>
       </div>

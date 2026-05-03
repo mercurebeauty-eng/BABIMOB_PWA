@@ -46,7 +46,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
   const [showComposer, setShowComposer] = useState(false);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
-  const activeBabis = broadcasts.length;
+  const activeMobeurs = broadcasts.length;
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -63,7 +63,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               <span className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: '#FF3B30' }} />
             </div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-              <b style={{ color: 'var(--green)' }}>{activeBabis > 0 ? activeBabis : '—'}</b> Babis en ligne
+              <b style={{ color: 'var(--green)' }}>{activeMobeurs > 0 ? activeMobeurs : '—'}</b> Mobeurs en ligne
             </div>
           </div>
           <button style={{ width: 38, height: 38, borderRadius: 12, border: 'none', background: 'var(--cream-2)', color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

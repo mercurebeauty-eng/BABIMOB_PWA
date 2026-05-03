@@ -40,7 +40,7 @@ export default function SpotsTab({ hotSpots }: { hotSpots: HotSpot[] }) {
             <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ background: 'var(--orange)', color: '#fff', fontFamily: 'Archivo Black, sans-serif', fontSize: 26, padding: '2px 12px', borderRadius: 10, lineHeight: 1 }}>#1</div>
               <div style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 999, letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                🔥 {hero.checkin_count} BABIS
+                🔥 {hero.checkin_count} MOBEURS
               </div>
             </div>
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14, color: '#fff', background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.7))' }}>
