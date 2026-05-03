@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import RouteMapWrapper from './RouteMapWrapper';
 import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
@@ -316,20 +315,19 @@ export default function RouteInteractive({
   senses, availableDirs, routeColor, routeColorRaw,
   fromStop, typeKind, initialActiveDirection, routeId,
 }: Props) {
-  const router = useRouter();
-
   const [activeDir, setActiveDir] = useState(initialActiveDirection);
   const [activeDirFromStop, setActiveDirFromStop] = useState<string | undefined>(fromStop);
   const [activeSegment, setActiveSegment] = useState<SegmentState>({ cutAtId: null, showSeg: false });
 
   const activeSense = senses[activeDir] ?? { stops: [], shape: [], headsign: null };
 
-  // ── FIX URL : garantir ?dir= dans l'URL dès le montage ──
+  // ── FIX URL : garantir ?dir= dans l'URL dès le montage (sans casser from) ──
   useEffect(() => {
     const url = new URL(window.location.href);
     if (!url.searchParams.has('dir')) {
       url.searchParams.set('dir', String(initialActiveDirection));
-      router.replace(url.pathname + url.search, { scroll: false });
+      // Utiliser window.history pour éviter un re-render Next.js qui perdrait le state
+      window.history.replaceState(null, '', url.pathname + url.search);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -383,10 +381,11 @@ export default function RouteInteractive({
     setActiveDir(dir);
     setActiveDirFromStop(undefined);
     setActiveSegment({ cutAtId: null, showSeg: false });
+    // Sync URL sans déclencher de navigation Next.js (pas de re-render serveur)
     const url = new URL(window.location.href);
     url.searchParams.set('dir', String(dir));
     url.searchParams.delete('from');
-    router.replace(url.pathname + url.search);
+    window.history.replaceState(null, '', url.pathname + url.search);
   };
 
   const handleSegmentChange = useCallback((seg: SegmentState) => {

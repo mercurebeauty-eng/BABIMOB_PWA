@@ -515,7 +515,7 @@ function AppPageContent() {
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, margin: '8px 4px 8px' }}>LIGNES RÉCENTES</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                     {recentLines.map((r, i) => (
-                      <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}`} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', textDecoration: 'none' }}>
+                      <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', textDecoration: 'none' }}>
                         <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}`, flexShrink: 0 }}>
                           <Vehicle kind={r.type || 'gbaka'} size={20} />
                         </div>
@@ -578,7 +578,7 @@ function AppPageContent() {
                 <>
                   <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>LIGNES RÉCENTES</div>
                   {recentLines.map((r, i) => (
-                    <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}`} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, textDecoration: 'none' }}>
+                    <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`} style={{ background: 'var(--cream)', padding: 16, borderRadius: 16, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, textDecoration: 'none' }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}` }}>
                         <Vehicle kind={r.type || 'gbaka'} size={20} />
                       </div>

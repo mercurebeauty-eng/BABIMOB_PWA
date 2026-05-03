@@ -32,7 +32,7 @@ export default async function FavorisPage() {
               href={
                 f.kind === 'stop' && f.stop_id ? `/app/arret/${encodeURIComponent(f.stop_id)}`
                 : f.kind === 'place' && f.stop_id ? `/app/place/${encodeURIComponent(f.stop_id)}`
-                : f.kind === 'route' && f.route_id ? `/app/ligne/${encodeURIComponent(f.route_id)}`
+                : f.kind === 'route' && f.route_id ? `/app/ligne/${encodeURIComponent(f.route_id)}?dir=0`
                 : '/app'
               }
               className="flex items-center justify-between p-4 bg-white rounded-2xl border-2 border-beige-200 hover:border-abidjan-orange/30 transition-all shadow-sm"

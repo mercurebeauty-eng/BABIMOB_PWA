@@ -37,10 +37,9 @@ export default function StopLinesList({ lines, preferredModes, stopId }: Props) 
   function buildHref(l: Line) {
     const base = `/app/ligne/${encodeURIComponent(l.route_id)}`;
     const params = new URLSearchParams();
-    if (l.direction_id === 1) params.set('dir', '1');
+    params.set('dir', String(l.direction_id ?? 0));
     if (stopId) params.set('from', stopId);
-    const qs = params.toString();
-    return qs ? `${base}?${qs}` : base;
+    return `${base}?${params.toString()}`;
   }
 
   return (
