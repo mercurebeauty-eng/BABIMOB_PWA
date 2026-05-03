@@ -9,6 +9,7 @@ import type { GbairaiPost, HotSpot, CommunePulse } from './page';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
 import SpotsTab from './SpotsTab';
+import BroadcastButton from '@/components/BroadcastButton';
 
 type Broadcast = {
   id: string;
@@ -101,12 +102,19 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
             <div className="no-scrollbar" style={{ display: 'flex', gap: 10, padding: '12px 16px 14px', overflowX: 'auto' }}>
               {/* Post story CTA */}
               {level?.canStory && (
-                <div style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--cream-2)', border: '2px dashed var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
-                    <Ic.Plus s={22} />
-                  </div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>Sors !</div>
-                </div>
+                <BroadcastButton 
+                  userId={userId} 
+                  currentTier={profile?.sub_tier ?? 'free'} 
+                  isAdmin={profile?.is_admin}
+                  customTrigger={
+                    <div style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>
+                      <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--cream-2)', border: '2px dashed var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
+                        <Ic.Plus s={22} />
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>Sors !</div>
+                    </div>
+                  }
+                />
               )}
               {broadcasts.map((b, i) => (
                 <div key={b.id} style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>

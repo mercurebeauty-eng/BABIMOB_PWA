@@ -17,9 +17,10 @@ type Props = {
   userId: string;
   currentTier?: string;
   isAdmin?: boolean;
+  customTrigger?: React.ReactNode;
 };
 
-export default function BroadcastButton({ userId }: Props) {
+export default function BroadcastButton({ userId, customTrigger }: Props) {
   const supabase = createClient();
   const [showModal, setShowModal] = useState(false);
   const [text, setText] = useState('');
@@ -70,36 +71,42 @@ export default function BroadcastButton({ userId }: Props) {
 
   return (
     <>
-      <button
-        onClick={handleOpen}
-        className="press"
-        style={{
-          width: '100%',
-          background: 'var(--orange)',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 20,
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(242,108,26,0.3)',
-        }}
-      >
-        <div style={{
-          width: 36, height: 36, borderRadius: 12,
-          background: 'rgba(255,255,255,0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Ic.Send s={18} color="#fff" />
+      {customTrigger ? (
+        <div onClick={handleOpen} style={{ cursor: 'pointer', display: 'inline-block' }}>
+          {customTrigger}
         </div>
-        <div style={{ flex: 1, textAlign: 'left' }}>
-          <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.5 }}>DIFFUSER MON STATUT</div>
-          <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.75, letterSpacing: 0.5 }}>Visible sur la carte · 4h</div>
-        </div>
-        <Ic.Arrow s={16} dir="right" color="rgba(255,255,255,0.7)" />
-      </button>
+      ) : (
+        <button
+          onClick={handleOpen}
+          className="press"
+          style={{
+            width: '100%',
+            background: 'var(--orange)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 20,
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            cursor: 'pointer',
+            boxShadow: '0 8px 24px rgba(242,108,26,0.3)',
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: 12,
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Ic.Send s={18} color="#fff" />
+          </div>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.5 }}>DIFFUSER MON STATUT</div>
+            <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.75, letterSpacing: 0.5 }}>Visible sur la carte · 4h</div>
+          </div>
+          <Ic.Arrow s={16} dir="right" color="rgba(255,255,255,0.7)" />
+        </button>
+      )}
 
       {showModal && (
         <div
