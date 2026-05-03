@@ -20,6 +20,12 @@ type StopRow = {
   stop_sequence: number;
 };
 
+export type Sense = {
+  stops: StopRow[];
+  shape: { shape_pt_lat: number; shape_pt_lon: number }[];
+  headsign: string | null;
+};
+
 const TYPE_MAP: Record<string, { label: string; kind: 'gbaka' | 'woro' | 'taxi' | 'saloni' }> = {
   gbaka:  { label: 'Gbaka',              kind: 'gbaka' },
   woro:   { label: 'Woro-woro',          kind: 'woro' },
@@ -35,6 +41,47 @@ function detectType(name: string): { label: string; kind: 'gbaka' | 'woro' | 'ta
   return { label: 'Transport', kind: 'gbaka' };
 }
 
+/** Charge les arrêts ordonnés + shape d'un trip. Retourne des tableaux vides si pas de trip. */
+async function loadSense(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  trip: { trip_id: string; trip_headsign: string | null; shape_id: string | null } | undefined
+): Promise<Sense> {
+  if (!trip) return { stops: [], shape: [], headsign: null };
+
+  const [{ data: stopTimes }, { data: shapePoints }] = await Promise.all([
+    supabase
+      .from('gtfs_stop_times')
+      .select('stop_id, stop_sequence')
+      .eq('trip_id', trip.trip_id)
+      .order('stop_sequence'),
+    trip.shape_id
+      ? supabase
+          .from('gtfs_shapes')
+          .select('shape_pt_lat, shape_pt_lon, shape_pt_sequence')
+          .eq('shape_id', trip.shape_id)
+          .order('shape_pt_sequence')
+      : Promise.resolve({ data: [] as { shape_pt_lat: number; shape_pt_lon: number; shape_pt_sequence: number }[] }),
+  ]);
+
+  const stopIds = (stopTimes ?? []).map((st) => st.stop_id as string);
+  const { data: stopsData } = stopIds.length > 0
+    ? await supabase
+        .from('gtfs_stops')
+        .select('stop_id, stop_name, commune, stop_lat, stop_lon')
+        .in('stop_id', stopIds)
+    : { data: [] as StopRow[] };
+
+  const stopsMap = new Map((stopsData ?? []).map((s) => [s.stop_id, s]));
+  const stops: StopRow[] = (stopTimes ?? [])
+    .map((st) => {
+      const s = stopsMap.get(st.stop_id);
+      return s ? { ...s, stop_sequence: st.stop_sequence } : null;
+    })
+    .filter(Boolean) as StopRow[];
+
+  return { stops, shape: shapePoints ?? [], headsign: trip.trip_headsign };
+}
+
 export default async function LignePage({ params, searchParams }: Props) {
   const supabase = await createClient();
   const { route_id } = await params;
@@ -43,49 +90,45 @@ export default async function LignePage({ params, searchParams }: Props) {
 
   const [{ data: route }, { data: trips }] = await Promise.all([
     supabase.from('gtfs_routes').select('*, route_desc').eq('route_id', routeId).maybeSingle(),
-    supabase.from('gtfs_trips').select('trip_id, direction_id, trip_headsign, shape_id, wheelchair_accessible').eq('route_id', routeId),
+    supabase
+      .from('gtfs_trips')
+      .select('trip_id, direction_id, trip_headsign, shape_id, wheelchair_accessible')
+      .eq('route_id', routeId),
   ]);
 
   if (!route || !trips || trips.length === 0) notFound();
 
-  // Organisation des deux sens
-  const directions = [0, 1];
-  const tripPerDirMap = new Map();
-  directions.forEach(d => {
-    // On cherche un trip pour la direction d. Si absent, on ne met rien (pas de fallback automatique)
-    const trip = trips.find(t => t.direction_id === d);
-    if (trip) tripPerDirMap.set(d, trip);
-  });
+  // Un trip par direction (0 et 1)
+  const trip0 = trips.find((t) => t.direction_id === 0);
+  const trip1 = trips.find((t) => t.direction_id === 1);
+
+  const availableDirs: number[] = [
+    ...(trip0 ? [0] : []),
+    ...(trip1 ? [1] : []),
+  ];
+
+  if (availableDirs.length === 0) notFound();
+
+  // Sens actif initial depuis le paramètre URL
+  const initialActiveDirection = dir !== undefined && availableDirs.includes(parseInt(dir))
+    ? parseInt(dir)
+    : availableDirs[0];
+
+  // ── Chargement des deux sens en parallèle ──────────────────────────
+  const [sense0, sense1] = await Promise.all([
+    loadSense(supabase, trip0),
+    loadSense(supabase, trip1),
+  ]);
+
+  const senses: Sense[] = [sense0, sense1];
+
+  // Vérification que le sens actif a bien des données
+  const currentTrip = initialActiveDirection === 0 ? trip0 : trip1;
+  if (!currentTrip) notFound();
 
   const { label: typeLabel, kind: typeKind } = detectType(route.route_long_name ?? '');
   const routeColorRaw = route.route_color ?? 'F26C1A';
   const routeColor = `#${routeColorRaw}`;
-
-  // Récupérer les sens disponibles
-  const availableDirs = Array.from(tripPerDirMap.keys()).sort();
-  
-  // Sens actif : si dir est spécifié et disponible, on l'utilise, sinon on prend le premier dispo
-  let activeDirection = (dir !== undefined && tripPerDirMap.has(parseInt(dir))) ? parseInt(dir) : availableDirs[0];
-  const currentTrip = tripPerDirMap.get(activeDirection);
-
-  if (!currentTrip) notFound();
-
-  const [{ data: stopTimes }, { data: shapePoints }] = await Promise.all([
-    supabase.from('gtfs_stop_times').select('stop_id, stop_sequence').eq('trip_id', currentTrip.trip_id).order('stop_sequence'),
-    currentTrip.shape_id
-      ? supabase.from('gtfs_shapes').select('shape_pt_lat, shape_pt_lon, shape_pt_sequence').eq('shape_id', currentTrip.shape_id).order('shape_pt_sequence')
-      : Promise.resolve({ data: [] }),
-  ]);
-
-  const stopIds = (stopTimes ?? []).map(st => st.stop_id);
-  const { data: stopsData } = stopIds.length
-    ? await supabase.from('gtfs_stops').select('stop_id, stop_name, commune, stop_lat, stop_lon').in('stop_id', stopIds)
-    : { data: [] };
-
-  const stopsMap = new Map((stopsData ?? []).map(s => [s.stop_id, s]));
-  const orderedStops: StopRow[] = (stopTimes ?? [])
-    .map(st => { const s = stopsMap.get(st.stop_id); return s ? { ...s, stop_sequence: st.stop_sequence } : null; })
-    .filter(Boolean) as StopRow[];
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -122,18 +165,16 @@ export default async function LignePage({ params, searchParams }: Props) {
 
       <WaxStrip color="var(--orange)" height={4} />
 
-      {/* ── Interactive: map + timeline ── */}
+      {/* ── Composant interactif (carte + timeline) ── */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
         <RouteInteractive
-          orderedStops={orderedStops}
-          shapePoints={(shapePoints ?? []) as { shape_pt_lat: number; shape_pt_lon: number }[]}
+          senses={senses}
+          availableDirs={availableDirs}
           routeColor={routeColor}
           routeColorRaw={routeColorRaw}
           fromStop={fromStop}
           typeKind={typeKind}
-          tripHeadsign={currentTrip.trip_headsign}
-          activeDirection={activeDirection}
-          tripPerDir={availableDirs.map(d => ({id: d, headsign: tripPerDirMap.get(d).trip_headsign}))}
+          initialActiveDirection={initialActiveDirection}
           routeId={routeId}
         />
       </div>
