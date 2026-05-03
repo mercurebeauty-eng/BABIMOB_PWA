@@ -1,6 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import GbairaiClient from './GbairaiClient';
 
+export type Story = {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_emoji: string | null;
+  media_url: string | null;
+  media_type: 'image' | 'video' | 'text';
+  content: string | null;
+  created_at: string;
+  expires_at: string;
+};
+
 export type GbairaiPost = {
   id: string;
   user_id: string;
@@ -117,16 +129,46 @@ export default async function GbairaiPage() {
     return { commune, report_count: reportCount, checkin_count: cc, status };
   });
 
-  // 5. Stories — derniers broadcasts actifs
-  const { data: broadcasts } = await supabase
-    .from('profiles')
-    .select('id, display_name, avatar_emoji, broadcast_text, broadcast_lat, broadcast_lon, origin_commune, last_broadcast_at')
-    .not('broadcast_text', 'is', null)
-    .gte('last_broadcast_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
-    .order('last_broadcast_at', { ascending: false })
-    .limit(15);
+  // 5. Fetch Followers (pour filtrage stories)
+  let followingIds: string[] = [];
+  if (user) {
+    const { data: f } = await supabase.from('user_follows').select('following_id').eq('follower_id', user.id);
+    followingIds = (f ?? []).map(row => row.following_id);
+  }
 
-  // 6. Trending hashtags
+  // 6. Fetch Stories (24h actives)
+  // On récupère les stories avec les infos profil
+  const { data: storiesRaw } = await supabase
+    .from('gbairai_stories')
+    .select(`
+      *,
+      profiles(display_name, avatar_emoji, total_points)
+    `)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  // Filtrage des stories selon les règles :
+  // - Celles des gens qu'on suit
+  // - OU celles des gens de niveau 3+ (publiques)
+  const filteredStories: Story[] = (storiesRaw ?? []).filter(s => {
+    const profile = s.profiles as any;
+    const isFollowed = followingIds.includes(s.user_id);
+    const isLevel3Plus = profile && (profile.total_points ?? 0) >= 300; // 300 XP = Lvl 3
+    return isFollowed || isLevel3Plus || s.user_id === user?.id;
+  }).map(s => ({
+    id: s.id,
+    user_id: s.user_id,
+    display_name: s.profiles?.display_name,
+    avatar_emoji: s.profiles?.avatar_emoji,
+    media_url: s.media_url,
+    media_type: s.media_type,
+    content: s.content,
+    created_at: s.created_at,
+    expires_at: s.expires_at,
+  }));
+
+  // 7. Trending hashtags
   const tagCount = new Map<string, number>();
   (posts ?? []).forEach(p => {
     (p.hashtags ?? []).forEach((tag: string) => {
@@ -144,7 +186,7 @@ export default async function GbairaiPage() {
       myLikes={myLikes}
       hotSpots={hotSpots}
       pulse={pulse}
-      broadcasts={broadcasts ?? []}
+      stories={filteredStories}
       trendingTags={trendingTags}
       profile={profile}
       userId={user?.id ?? null}

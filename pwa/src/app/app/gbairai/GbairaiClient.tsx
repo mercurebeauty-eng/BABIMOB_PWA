@@ -3,29 +3,20 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
-import { WaxStrip } from '@/components/ui/WaxStrip';
 import { getLevel } from '@/lib/levels';
-import type { GbairaiPost, HotSpot, CommunePulse } from './page';
+import type { GbairaiPost, HotSpot, CommunePulse, Story } from './page';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
+import StoryComposer from './StoryComposer';
+import StoryViewer from './StoryViewer';
 import SpotsTab from './SpotsTab';
-import BroadcastButton from '@/components/BroadcastButton';
-
-type Broadcast = {
-  id: string;
-  display_name: string | null;
-  avatar_emoji: string | null;
-  broadcast_text: string | null;
-  origin_commune: string | null;
-  last_broadcast_at: string | null;
-};
 
 type Props = {
   initialPosts: GbairaiPost[];
   myLikes: string[];
   hotSpots: HotSpot[];
   pulse: CommunePulse[];
-  broadcasts: Broadcast[];
+  stories: Story[];
   trendingTags: { tag: string; count: number }[];
   profile: any | null;
   userId: string | null;
@@ -42,12 +33,14 @@ const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--
 const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'var(--orange)'];
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, broadcasts, trendingTags, profile, userId }: Props) {
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId }: Props) {
   const [tab, setTab] = useState<string>('vibe');
   const [showComposer, setShowComposer] = useState(false);
+  const [showStoryComposer, setShowStoryComposer] = useState(false);
+  const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
-  const activeMobeurs = broadcasts.length;
+  const activeMobeurs = stories.length;
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -64,7 +57,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               <span className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: '#FF3B30' }} />
             </div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-              <b style={{ color: 'var(--green)' }}>{activeMobeurs > 0 ? activeMobeurs : '—'}</b> Mobeurs en ligne
+              <b style={{ color: 'var(--green)' }}>{activeMobeurs > 0 ? activeMobeurs : '—'}</b> Mobeurs en direct
             </div>
           </div>
           <button style={{ width: 38, height: 38, borderRadius: 12, border: 'none', background: 'var(--cream-2)', color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -99,32 +92,36 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         {tab === 'vibe' && (
           <>
             {/* Stories row */}
-            <div className="no-scrollbar" style={{ display: 'flex', gap: 10, padding: '12px 16px 14px', overflowX: 'auto' }}>
+            <div className="no-scrollbar" style={{ display: 'flex', gap: 12, padding: '12px 16px 14px', overflowX: 'auto' }}>
               {/* Post story CTA */}
               {level?.canStory && userId && (
-                <BroadcastButton 
-                  userId={userId} 
-                  currentTier={profile?.sub_tier ?? 'free'} 
-                  isAdmin={profile?.is_admin}
-                  customTrigger={
-                    <div style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>
-                      <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--cream-2)', border: '2px dashed var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
-                        <Ic.Plus s={22} />
-                      </div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>Sors !</div>
-                    </div>
-                  }
-                />
+                <div onClick={() => setShowStoryComposer(true)} className="press" style={{ flexShrink: 0, textAlign: 'center', width: 64, cursor: 'pointer' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 24, background: 'var(--cream-2)', border: '2px dashed var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
+                    <Ic.Plus s={22} />
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>Sors !</div>
+                </div>
               )}
-              {broadcasts.map((b, i) => (
-                <div key={b.id} style={{ flexShrink: 0, textAlign: 'center', width: 64 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 20, padding: 2.5, background: `linear-gradient(135deg, ${AVATAR_COLORS[i % AVATAR_COLORS.length]}, var(--orange))` }}>
-                    <div style={{ width: '100%', height: '100%', borderRadius: 18, background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: '#fff', fontFamily: 'Archivo Black', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
-                      {b.avatar_emoji || b.display_name?.[0] || '?'}
+
+              {stories.map((s, i) => (
+                <div 
+                  key={s.id} 
+                  onClick={() => setViewingStoryIndex(i)}
+                  className="press" 
+                  style={{ flexShrink: 0, textAlign: 'center', width: 64, cursor: 'pointer' }}
+                >
+                  <div style={{ width: 64, height: 64, borderRadius: 24, padding: 3, background: 'linear-gradient(135deg, #F26C1A, #E5337A)' }}>
+                    <div style={{ width: '100%', height: '100%', borderRadius: 21, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      {s.media_url ? (
+                        <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" />
+                      ) : (
+                        <div style={{ fontSize: 24 }}>{s.avatar_emoji || '👤'}</div>
+                      )}
                     </div>
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 4, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.display_name?.split(' ')[0] || 'Babi'}</div>
-                  <div style={{ fontSize: 9, color: 'var(--muted)', lineHeight: 1, marginTop: 2 }}>{b.origin_commune || ''}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)', marginTop: 4, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.display_name?.split(' ')[0]}
+                  </div>
                 </div>
               ))}
             </div>
@@ -207,6 +204,25 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
           avatarEmoji={profile.avatar_emoji ?? '🧭'}
           commune={profile.origin_commune}
           onClose={() => setShowComposer(false)}
+        />
+      )}
+
+      {/* Story Composer Modal */}
+      {showStoryComposer && userId && (
+        <StoryComposer 
+          userId={userId} 
+          onClose={() => setShowStoryComposer(false)} 
+          onSuccess={() => window.location.reload()} 
+        />
+      )}
+
+      {/* Story Viewer Modal */}
+      {viewingStoryIndex !== null && (
+        <StoryViewer 
+          stories={stories}
+          initialIndex={viewingStoryIndex}
+          userId={userId}
+          onClose={() => setViewingStoryIndex(null)}
         />
       )}
     </div>
