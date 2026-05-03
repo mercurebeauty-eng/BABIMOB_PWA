@@ -26,6 +26,12 @@ export default async function ComptePage() {
     .order('created_at', { ascending: false })
     .limit(300);
 
+  const { data: topExplorers } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_emoji, total_points')
+    .order('total_points', { ascending: false })
+    .limit(10);
+
   const displayName = profile?.display_name ?? (user.email?.split('@')[0] ?? 'Explorateur');
   const avatarEmoji = profile?.avatar_emoji || '👤';
   const prefs = profile?.preferred_transit_modes || ['Gbaka', 'Woro-woro', 'Taxi', 'Saloni'];
@@ -40,6 +46,7 @@ export default async function ComptePage() {
       badges={badges ?? []}
       checkinsDetail={checkinsDetail ?? []}
       commune={commune}
+      topExplorers={topExplorers ?? []}
     >
       <ProfileEditor
         userId={user.id}

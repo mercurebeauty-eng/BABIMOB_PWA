@@ -19,6 +19,7 @@ type Props = {
   badges: Badge[];
   checkinsDetail: CheckinDetail[];
   commune: string;
+  topExplorers: { id: string; display_name: string; avatar_emoji: string; total_points: number }[];
   children: React.ReactNode; // ProfileEditor + PreferencesEditor + SignOutButton + PersonalHeatmap
 };
 
@@ -46,6 +47,12 @@ const BADGE_ICONS: Record<string, React.ReactNode> = {
 
 const ACTIVITY_ICONS = ['var(--orange)', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A'];
 
+const ABIDJAN_COMMUNES = [
+  'Abobo', 'Adjamé', 'Anyama', 'Attécoubé', 'Bingerville', 
+  'Cocody', 'Koumassi', 'Marcory', 'Plateau', 'Port-Bouët', 
+  'Songon', 'Treichville', 'Yopougon'
+];
+
 function computeLevel(points: number, checkins: number): { level: number; xp: number; xpNext: number; title: string } {
   const xp = points + checkins * 15;
   const thresholds = [0, 200, 500, 1000, 2000, 3500, 5000, 7500, 10000, 15000];
@@ -66,8 +73,8 @@ function timeAgo(iso: string): string {
 }
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, children }: {
-  badges: Badge[]; checkinsDetail: CheckinDetail[]; totalPoints: number; checkinCount: number; children: React.ReactNode;
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount }: {
+  badges: Badge[]; checkinsDetail: CheckinDetail[]; totalPoints: number; checkinCount: number;
 }) {
   const today = new Date().toISOString().split('T')[0];
   const hasCheckedInToday = checkinsDetail.some(c => c.created_at.startsWith(today));
@@ -80,38 +87,51 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, child
 
   return (
     <>
-      {/* Premium Passport Card */}
-      <div style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 20, position: 'relative', background: 'linear-gradient(135deg,#1A1410 0%,#2A1F18 100%)', color: '#fff', boxShadow: '0 12px 30px rgba(0,0,0,0.2)' }}>
-        <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: 'var(--orange)', opacity: 0.15 }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: 'linear-gradient(90deg,var(--orange),#E8B23C)' }} />
-        
-        <div style={{ position: 'relative', padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Ic.Flame s={24} color="#E8B23C" />
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5 }}>SÉRIE ACTUELLE</div>
-              <div className="font-display" style={{ fontSize: 28, color: '#fff' }}>{checkinCount}j</div>
-            </div>
-          </div>
-          
-          <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>VOTRE PROGRESSION HEBDO</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => {
-                const isDone = i < (checkinCount % 7) || (i === 6 && checkinCount > 0 && checkinCount % 7 === 0);
-                return (
-                  <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, height: 32, borderRadius: 10, background: isDone ? 'var(--orange)' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDone ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }}>
-                      {isDone ? '✓' : ''}
-                    </div>
-                    <div style={{ fontSize: 9, fontWeight: 800, marginTop: 4, color: isDone ? '#fff' : 'rgba(255,255,255,0.4)' }}>{d}</div>
-                  </div>
-                );
-              })}
+      {/* ──── STREAK · type Duolingo / LINE ──── */}
+      <div style={{
+        borderRadius: 20, overflow: 'hidden', marginBottom: 14, position: 'relative',
+        background: 'linear-gradient(135deg, #FF6B35 0%, #F26C1A 50%, #D9510A 100%)',
+        color: '#fff', padding: 16, boxShadow: '0 8px 24px rgba(242,108,26,0.3)'
+      }}>
+        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.12 }} />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 20,
+            background: 'rgba(0,0,0,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+            boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3)',
+          }}>
+            <span className="font-display" style={{ fontSize: 28, color: '#E8B23C' }}>{checkinCount}</span>
+            <div style={{ position: 'absolute', top: -8, right: -8, fontSize: 24 }}>
+              <Ic.Flame s={28} />
             </div>
           </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>SÉRIE EN COURS</div>
+            <div className="font-display" style={{ fontSize: 22, lineHeight: 1, marginTop: 2 }}>{checkinCount} jours sur Babi</div>
+            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 4 }}>Reviens demain pour <b style={{ color: '#fff' }}>+50 XP</b> bonus</div>
+          </div>
+        </div>
+        {/* 7 jours mini-tracker */}
+        <div style={{ display: 'flex', gap: 5, marginTop: 12, position: 'relative' }}>
+          {['L','M','M','J','V','S','D'].map((d, i) => {
+            const todayIdx = (new Date().getDay() + 6) % 7;
+            const done = i < todayIdx || (i === todayIdx && checkinCount > 0);
+            const isToday = i === todayIdx;
+            return (
+              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 3, fontWeight: 700 }}>{d}</div>
+                <div style={{
+                  height: 28, borderRadius: 8,
+                  background: done ? 'rgba(255,255,255,0.95)' : isToday ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+                  border: isToday ? '1.5px dashed rgba(255,255,255,0.7)' : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#F26C1A', fontSize: 14, fontWeight: 900,
+                }}>{done ? '✓' : ''}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -223,9 +243,6 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, child
         )}
       </div>
 
-      {/* Paramètres (ProfileEditor + PreferencesEditor) */}
-      <h3 className="font-display" style={{ fontSize: 18, margin: '24px 0 12px' }}>Paramètres</h3>
-      {children}
     </>
   );
 }
@@ -240,28 +257,34 @@ function TabTerritoire({
   heatmapNode: React.ReactNode;
   checkinsDetail: CheckinDetail[];
 }) {
+  const totalVisits = checkinsDetail.length;
+  
   // Dynamic calculation of conquest by commune
   const communeCounts: Record<string, number> = {};
   checkinsDetail.forEach(c => {
     const com = c.commune || 'Abidjan';
+    // Ignorer "Abidjan" si c'est le nom générique
+    if (com === 'Abidjan') return;
     communeCounts[com] = (communeCounts[com] || 0) + 1;
   });
 
-  const total = checkinsDetail.length || 1;
+  const uniqueCommunesVisited = Object.keys(communeCounts).length;
+  const explorationPct = Math.round((uniqueCommunesVisited / ABIDJAN_COMMUNES.length) * 100);
+
   const COMMUNES = Object.entries(communeCounts)
     .map(([n, count]) => ({
       n,
       count,
-      pct: Math.round((count / total) * 100),
+      pct: Math.round((count / (totalVisits || 1)) * 100),
       c: n === commune ? 'var(--orange)' : n === 'Plateau' ? '#1E5BFF' : n === 'Marcory' ? '#E5337A' : '#0EA85B',
       mayor: n === commune && count > 5
     }))
-    .sort((a, b) => b.pct - a.pct);
+    .sort((a, b) => b.count - a.count);
 
   // Fallback if no checkins
-  const displayCommunes = COMMUNES.length > 0 ? COMMUNES : [
-    { n: commune || 'Ma Commune', count: 0, pct: 0, c: 'var(--orange)', mayor: false }
-  ];
+  const displayCommunes = COMMUNES.length > 0 ? COMMUNES : (commune && commune !== 'Abidjan' ? [
+    { n: commune, count: 0, pct: 0, c: 'var(--orange)', mayor: false }
+  ] : []);
 
   return (
     <>
@@ -270,9 +293,9 @@ function TabTerritoire({
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1 }}>TON EMPREINTE</div>
-            <h3 className="font-display" style={{ fontSize: 24, margin: '2px 0 0' }}>{Math.round((COMMUNES.length / 13) * 100)}% d'Abidjan</h3>
+            <h3 className="font-display" style={{ fontSize: 24, margin: '2px 0 0' }}>{explorationPct}% d'Abidjan</h3>
           </div>
-          <Pill color="#0EA85B">+{COMMUNES.length} COMMUNES</Pill>
+          <Pill color="#0EA85B">{uniqueCommunesVisited}/13 COMMUNES</Pill>
         </div>
         <div style={{ height: 220, background: 'var(--cream)', position: 'relative' }}>
           {heatmapNode}
@@ -282,7 +305,10 @@ function TabTerritoire({
       {/* Conquête par commune */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h3 className="font-display" style={{ fontSize: 18, margin: 0 }}>Conquête du territoire</h3>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)' }}>{COMMUNES.length} EXPLORÉES</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)' }}>{uniqueCommunesVisited} EXPLORÉES</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>{totalVisits} VISITES TOTAL</span>
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
         {displayCommunes.map((c, i) => (
@@ -305,70 +331,110 @@ function TabTerritoire({
             </div>
           </div>
         ))}
+        {displayCommunes.length === 0 && (
+          <div style={{ padding: '24px 20px', textAlign: 'center', borderRadius: 14, background: 'var(--cream-2)', border: '1px dashed var(--line)', fontSize: 13, color: 'var(--muted)' }}>
+            Commence ton exploration pour conquérir Abidjan !
+          </div>
+        )}
       </div>
     </>
   );
 }
 
 // ── Tab : Classement ─────────────────────────────────────────
-function TabClassement({ displayName, totalPoints }: { displayName: string; totalPoints: number }) {
-  const [scope, setScope] = useState<0 | 1 | 2>(0);
-
-  const PODIUM = [
-    { rank: 2, name: 'Aïcha B.', xp: '4 820', c: '#1E5BFF', h: 80 },
-    { rank: 1, name: 'Boris K.', xp: '6 240', c: '#E8B23C', h: 100 },
-    { rank: 3, name: 'Yann T.', xp: '3 110', c: '#0EA85B', h: 64 },
+function TabClassement({ 
+  displayName, 
+  topExplorers 
+}: { 
+  displayName: string; 
+  topExplorers: { id: string; display_name: string; avatar_emoji: string; total_points: number }[]
+}) {
+  // Map real data to podium format
+  // Boris K. logic (if exists) or top 1
+  const podiumData = [
+    topExplorers[1] || null, // Rank 2
+    topExplorers[0] || null, // Rank 1
+    topExplorers[2] || null, // Rank 3
   ];
 
-  const LIST = [
-    { rank: 4, name: displayName, me: true, xp: totalPoints.toLocaleString(), delta: '+12', c: 'var(--orange)' },
-    { rank: 5, name: 'Didier A.', xp: '2 290', delta: '+5', c: '#0EA85B' },
-    { rank: 6, name: 'Awa K.', xp: '2 105', delta: '-2', c: '#E8B23C' },
-    { rank: 7, name: 'Kobi N.', xp: '1 880', delta: '+8', c: '#E5337A' },
+  const PODIUM_CONFIG = [
+    { rank: 2, c: '#1E5BFF', h: 80 },
+    { rank: 1, c: '#E8B23C', h: 100 },
+    { rank: 3, c: '#0EA85B', h: 64 },
   ];
+
+  const LIST = topExplorers.slice(3).map((p, i) => ({
+    rank: i + 4,
+    name: p.display_name,
+    me: p.display_name === displayName,
+    xp: p.total_points.toLocaleString(),
+    delta: '+0', // No real delta yet
+    c: ACTIVITY_ICONS[i % ACTIVITY_ICONS.length]
+  }));
 
   return (
     <>
-      {/* Podium */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 24, padding: '10px 0' }}>
-        {PODIUM.map((p, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ position: 'relative', width: 50, height: 50, margin: '0 auto 8px' }}>
-              <div style={{ width: '100%', height: '100%', borderRadius: 16, background: p.c, color: '#fff', fontSize: 18, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', border: p.rank === 1 ? '3px solid #E8B23C' : 'none', transform: 'rotate(-5deg)' }}>
-                {p.name[0]}
+      {/* Podium top 3 */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 20, padding: '10px 0' }}>
+        {PODIUM_CONFIG.map((conf, i) => {
+          const user = podiumData[i];
+          return (
+            <div key={i} style={{ flex: 1, textAlign: 'center', opacity: user ? 1 : 0.4 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: conf.c, color: '#fff', fontSize: 16, fontWeight: 900, fontFamily: 'Archivo Black, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px', border: conf.rank === 1 ? '3px solid #E8B23C' : 'none', position: 'relative' }}>
+                {user ? (user.avatar_emoji || user.display_name[0]) : '?'}
+                {conf.rank === 1 && <div style={{ position: 'absolute', top: -16, left: '50%', transform: 'translateX(-50%)', fontSize: 18 }}>👑</div>}
               </div>
-              {p.rank === 1 && <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', fontSize: 24 }}>👑</div>}
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user ? user.display_name : '---'}</div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{user ? `${user.total_points.toLocaleString()} XP` : '0 XP'}</div>
+              <div style={{
+                height: conf.h, borderRadius: '12px 12px 0 0', marginTop: 6,
+                background: `linear-gradient(180deg, ${conf.c} 0%, color-mix(in oklab, ${conf.c} 70%, black) 100%)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontFamily: 'Archivo Black, sans-serif', fontSize: 24,
+              }}>{conf.rank}</div>
             </div>
-            <div className="font-display" style={{ fontSize: 13, color: 'var(--ink)' }}>{p.name}</div>
-            <div style={{ height: p.h, borderRadius: '14px 14px 0 0', marginTop: 10, background: `linear-gradient(180deg,${p.c} 0%,color-mix(in oklab,${p.c} 70%,black) 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Archivo Black,sans-serif', fontSize: 28, boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-              {p.rank}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Liste */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Liste 4-10 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {LIST.map((p, i) => (
-          <div key={i} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, background: p.me ? 'color-mix(in oklab,var(--orange) 10%,var(--cream-2))' : 'var(--cream-2)', border: p.me ? '2px solid var(--orange)' : '1px solid var(--line)' }}>
-            <div className="font-display" style={{ width: 24, fontSize: 16, color: p.me ? 'var(--orange)' : 'var(--muted)', textAlign: 'center' }}>{p.rank}</div>
-            <div style={{ width: 36, height: 36, borderRadius: 12, background: p.c, color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.name[0]}</div>
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+            borderRadius: 12,
+            background: p.me ? 'color-mix(in oklab, var(--orange) 12%, var(--cream-2))' : 'var(--cream-2)',
+            border: p.me ? '1.5px solid var(--orange)' : '1px solid var(--line)',
+          }}>
+            <div className="font-display" style={{ width: 22, fontSize: 14, color: p.me ? 'var(--orange)' : 'var(--muted)', textAlign: 'center' }}>{p.rank}</div>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: p.c, color: '#fff', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.name[0]}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}{p.me && <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', marginLeft: 6, padding: '1px 5px', background: '#fff', borderRadius: 4, letterSpacing: 0.5 }}>TOI</span>}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.xp} XP</div>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 900, color: p.delta.startsWith('+') ? '#0EA85B' : '#D9510A', background: 'var(--cream)', padding: '4px 8px', borderRadius: 8 }}>
-              {p.delta}
+            <div style={{ fontSize: 11, fontWeight: 800, color: p.delta.startsWith('+') ? '#0EA85B' : p.delta.startsWith('-') ? '#D9510A' : 'var(--muted)' }}>
+              {p.delta !== '0' ? (p.delta.startsWith('+') ? '↑' : '↓') : '·'} {p.delta}
             </div>
           </div>
         ))}
+        {topExplorers.length === 0 && (
+          <div style={{ padding: '24px 20px', textAlign: 'center', borderRadius: 14, background: 'var(--cream-2)', border: '1px dashed var(--line)', fontSize: 13, color: 'var(--muted)' }}>
+            Le classement est encore vide. Sois le premier !
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: 'var(--cream-2)', border: '1px dashed var(--line)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
+        Saison <b style={{ color: 'var(--ink)' }}>Harmattan</b> · se termine dans <b style={{ color: 'var(--orange)' }}>12 jours</b>
       </div>
     </>
   );
 }
 
 // ── Composant principal ──────────────────────────────────────
-export default function CompteClient({ displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, children }: Props) {
+export default function CompteClient({ 
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, topExplorers, children 
+}: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
 
   const { level, xp, xpNext, title } = computeLevel(totalPoints, checkinCount);
@@ -472,9 +538,7 @@ export default function CompteClient({ displayName, avatarEmoji, totalPoints, ch
       {/* Content */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 100px' }}>
         {tab === 'passeport' && (
-          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={totalPoints} checkinCount={checkinCount}>
-            {children}
-          </TabPasseport>
+          <TabPasseport badges={badges} checkinsDetail={checkinsDetail} totalPoints={totalPoints} checkinCount={checkinCount} />
         )}
         {tab === 'territoire' && (
           <TabTerritoire 
@@ -491,14 +555,20 @@ export default function CompteClient({ displayName, avatarEmoji, totalPoints, ch
           />
         )}
         {tab === 'tableau' && (
-          <TabClassement displayName={displayName} totalPoints={totalPoints} />
+          <TabClassement displayName={displayName} topExplorers={topExplorers} />
         )}
 
         {/* Paramètres toujours visibles en bas */}
-        <div style={{ marginTop: 32 }}>
-          <div style={{ height: 1, background: 'var(--line)', marginBottom: 24 }} />
-          <h3 className="font-display" style={{ fontSize: 20, marginBottom: 16 }}>Paramètres du compte</h3>
-          {children}
+        <div style={{ marginTop: 40, padding: '0 4px' }}>
+          <div style={{ height: 1.5, background: 'var(--line)', marginBottom: 28, position: 'relative' }}>
+            <div style={{ position: 'absolute', top: -1, left: 0, width: 40, height: 3, background: 'var(--orange)' }} />
+          </div>
+          <h3 className="font-display" style={{ fontSize: 20, marginBottom: 20, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Ic.Settings s={20} /> Paramètres du compte
+          </h3>
+          <div style={{ background: 'var(--cream-2)', padding: 20, borderRadius: 24, border: '1.5px solid var(--line)' }}>
+            {children}
+          </div>
         </div>
       </div>
     </div>
