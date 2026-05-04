@@ -1,4 +1,4 @@
-type IconProps = { s?: number; fill?: boolean; dir?: 'right'|'left'|'up'|'down'; color?: string };
+type IconProps = { s?: number; fill?: boolean; dir?: 'right'|'left'|'up'|'down'; color?: string; strokeWidth?: string | number };
 
 const P = (props: React.SVGProps<SVGSVGElement> & { s?: number; color?: string }) => {
   const { s = 20, color, style, ...rest } = props;
@@ -98,8 +98,8 @@ export const Ic = {
   Card: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M2 10h20M7 15h3" stroke="currentColor" strokeWidth="2"/></P>
   ),
-  Info: ({ s = 24, color = 'currentColor', fill = false }: IconProps) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill={fill ? color : 'none'} stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  Info: ({ s = 24, color = 'currentColor', fill = false, strokeWidth = '2.5' }: IconProps) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill={fill ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
       <line x1="12" y1="8" x2="12.01" y2="8" />
