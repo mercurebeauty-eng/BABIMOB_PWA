@@ -18,7 +18,9 @@ export function BottomNav({
   nearbyStopsCount = 0,
   onCycleNearby,
   onDiscover,
-  isAdmin
+  isAdmin,
+  isPlusOpen,
+  onTogglePlus
 }: { 
   onToggleHeatmap: () => void;
   heatMode: boolean;
@@ -26,10 +28,11 @@ export function BottomNav({
   onCycleNearby?: () => void;
   onDiscover?: () => void;
   isAdmin?: boolean;
+  isPlusOpen?: boolean;
+  onTogglePlus?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isPlusOpen, setIsPlusOpen] = React.useState(false);
 
   return (
     <div style={{
@@ -144,7 +147,7 @@ export function BottomNav({
         <div style={{ position: 'relative' }}>
           {/* Plus Button */}
           <button
-            onClick={() => setIsPlusOpen(!isPlusOpen)}
+            onClick={onTogglePlus}
             className="press"
             style={{
               width: 54,
@@ -162,16 +165,8 @@ export function BottomNav({
           >
             <Ic.Menu s={24} />
           </button>
-
-          <PlusBubble 
-            isOpen={isPlusOpen} 
-            onClose={() => setIsPlusOpen(false)} 
-            onToggleHeatmap={onToggleHeatmap}
-            onDiscover={onDiscover}
-            heatMode={heatMode}
-            isAdmin={isAdmin}
-          />
         </div>
+
       </motion.nav>
     </div>
   );

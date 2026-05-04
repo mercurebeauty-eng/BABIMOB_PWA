@@ -14,6 +14,8 @@ const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () 
 import { useXP } from '@/components/providers/XPProvider';
 import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
+import PlusBubble from '@/components/ui/PlusBubble';
+import { useRouter } from 'next/navigation';
 
 type Badge = { badge_key: string; awarded_at: string };
 type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
@@ -36,6 +38,7 @@ type Props = {
   favorites: any[];
   recentPosts: any[];
   recentTarifs: any[];
+  isAdmin?: boolean;
   children?: React.ReactNode;
 };
 
@@ -184,9 +187,9 @@ function CrewCard({ following, followersCount }: { following: FollowProfile[]; f
 const PALETTE = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount, crew, collectiveQuest, favorites }: {
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount, crew, collectiveQuest, favorites, isAdmin }: {
   badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; streak: number; showWeekly: boolean; setShowWeekly: (v: boolean) => void; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
-  following: FollowProfile[]; followersCount: number; crew: any; collectiveQuest: any; favorites: any[];
+  following: FollowProfile[]; followersCount: number; crew: any; collectiveQuest: any; favorites: any[]; isAdmin?: boolean;
 }) {
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   const todayIndex = (new Date().getDay() + 6) % 7; // 0=Mon, 6=Sun
@@ -508,11 +511,15 @@ function TabClassement({
 }
 
 export default function CompteClient({
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, isAdmin, children
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
   const [streak, setStreak] = useState(initialStreak);
+  const [showBadges, setShowBadges] = useState(false);
+  const [isPlusOpen, setIsPlusOpen] = useState(false);
+  const [heatMode, setHeatMode] = useState(false);
+  const router = useRouter();
   const [showWeekly, setShowWeekly] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
   const [activities, setActivities] = useState<any[]>(() => {
@@ -525,7 +532,6 @@ export default function CompteClient({
   });
   const { addXP } = useXP();
   const supabase = createClient();
-  const [heatMode, setHeatMode] = useState(false);
 
   // Dynamic calculation of conquest
   const communeCounts: Record<string, number> = {};
@@ -714,6 +720,7 @@ export default function CompteClient({
             crew={crew}
             collectiveQuest={collectiveQuest}
             favorites={favorites}
+            isAdmin={isAdmin}
           />
         )}
         {tab === 'territoire' && (
@@ -798,6 +805,18 @@ export default function CompteClient({
       <BottomNav 
         onToggleHeatmap={() => setHeatMode(!heatMode)} 
         heatMode={heatMode} 
+        isPlusOpen={isPlusOpen}
+        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+        isAdmin={isAdmin}
+      />
+
+      <PlusBubble 
+        isOpen={isPlusOpen} 
+        onClose={() => setIsPlusOpen(false)} 
+        onToggleHeatmap={() => setHeatMode(!heatMode)}
+        onDiscover={() => router.push('/app?discover=1')}
+        heatMode={heatMode}
+        isAdmin={isAdmin}
       />
     </div>
   );

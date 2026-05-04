@@ -131,6 +131,7 @@ export default async function ComptePage() {
       crew={crew}
       collectiveQuest={colQuest}
       favorites={favorites}
+      isAdmin={profile?.is_admin}
     >
       <ProfileEditor
         userId={user.id}

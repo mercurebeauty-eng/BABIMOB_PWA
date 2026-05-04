@@ -23,6 +23,7 @@ import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
+import PlusBubble from '@/components/ui/PlusBubble';
 import { HelpTip } from '@/components/ui/HelpTip';
 
 type RecentItem = {
@@ -68,6 +69,7 @@ function AppPageContent() {
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isPlusOpen, setIsPlusOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
@@ -403,8 +405,6 @@ function AppPageContent() {
         </div>
       </div>
 
-      {/* ── PlusBubble is now inside BottomNav ── */}
-
       {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
       <AnimatePresence>
         {!selected && !selectedPoi && !activeItinerary && (
@@ -412,7 +412,16 @@ function AppPageContent() {
             initial={{ y: 20, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0, scale: 0.9 }}
-            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}
+            style={{ 
+              position: 'absolute', 
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
+              left: 0, 
+              right: 0, 
+              zIndex: 8500,
+              display: 'flex', 
+              justifyContent: 'center', 
+              pointerEvents: 'none' 
+            }}
           >
             {/* Recherche & Swipe */}
             <motion.button 
@@ -462,35 +471,28 @@ function AppPageContent() {
             initial={{ y: 100, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.95 }}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 400 }}
-            dragElastic={0.2}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 100 || info.velocity.y > 500) {
-                setSelected(null);
-                setSelectedPoi(null);
-                setActiveItinerary(null);
-              }
-            }}
             style={{ 
               position: 'absolute', 
-              bottom: 100, 
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
               left: 16, 
               right: 16, 
-              zIndex: 1000, 
-              maxHeight: '65vh',
-              background: 'rgba(255, 255, 255, 0.8)',
-              backdropFilter: 'blur(30px) saturate(200%)',
-              WebkitBackdropFilter: 'blur(30px) saturate(200%)',
+              zIndex: 8000, 
+              height: heightMV,
+              background: 'rgba(255, 255, 255, 0.75)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
               borderRadius: 32,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.4)',
+              border: '1px solid rgba(255,255,255,0.5)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.4)',
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              touchAction: 'none'
+              pointerEvents: 'auto'
             }}
           >
-            <div style={{ width: '100%', padding: '10px 0', display: 'flex', justifyContent: 'center', cursor: 'grab' }}>
+            <div 
+              onPointerDown={onHandlePointerDown}
+              style={{ width: '100%', padding: '10px 0', display: 'flex', justifyContent: 'center', cursor: 'grab', touchAction: 'none' }}>
               <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.15 }} />
             </div>
 
@@ -867,6 +869,17 @@ function AppPageContent() {
           handleSelectStop(nearbyStops[next]);
         }}
         onDiscover={handleDiscover}
+        isAdmin={profile?.is_admin}
+        isPlusOpen={isPlusOpen}
+        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+      />
+
+      <PlusBubble 
+        isOpen={isPlusOpen} 
+        onClose={() => setIsPlusOpen(false)} 
+        onToggleHeatmap={() => setHeatMode(!heatMode)}
+        onDiscover={handleDiscover}
+        heatMode={heatMode}
         isAdmin={profile?.is_admin}
       />
     </div>

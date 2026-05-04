@@ -59,6 +59,9 @@ const TABS = [
   { id: 'crews', l: 'Crews' },
 ] as const;
 
+import PlusBubble from '@/components/ui/PlusBubble';
+import { useRouter } from 'next/navigation';
+
 const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--gold)', rouge: '#FF3B30' };
 const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'var(--orange)'];
@@ -288,6 +291,8 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
   const [tab, setTab] = useState<string>('vibe');
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
+  const [isPlusOpen, setIsPlusOpen] = useState(false);
+  const router = useRouter();
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [heatMode, setHeatMode] = useState(false);
 
@@ -504,6 +509,18 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
       <BottomNav 
         onToggleHeatmap={() => setHeatMode(!heatMode)} 
         heatMode={heatMode} 
+        isPlusOpen={isPlusOpen}
+        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+        isAdmin={profile?.is_admin}
+      />
+
+      <PlusBubble 
+        isOpen={isPlusOpen} 
+        onClose={() => setIsPlusOpen(false)} 
+        onToggleHeatmap={() => setHeatMode(!heatMode)}
+        onDiscover={() => router.push('/app?discover=1')}
+        heatMode={heatMode}
+        isAdmin={profile?.is_admin}
       />
     </div>
   );
