@@ -38,6 +38,7 @@ export type HotSpot = {
   logo_emoji: string;
   cover_color: string;
   checkin_count: number;
+  category: string | null;
   lat: number;
   lon: number;
 };
@@ -79,42 +80,32 @@ export default async function GbairaiPage() {
     myLikes = (likes ?? []).map(l => l.post_id);
   }
 
-  // 3. Spots chauds — UNIQUEMENT lieux & établissements (places),
-  //    7 derniers jours, classés par nombre de check-ins.
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // 3. Spots chauds via RPC
+  const { data: hotSpotsRaw } = await supabase.rpc('get_hot_spots', { limit_count: 10 });
+  const hotSpots: HotSpot[] = (hotSpotsRaw ?? []).map((s: any) => ({
+    place_id: s.id,
+    place_name: s.name,
+    commune: s.commune,
+    logo_emoji: s.is_new ? '✨' : '📍',
+    cover_color: s.is_new ? '#0EA85B' : '#F26C1A',
+    checkin_count: Number(s.checkin_count),
+    category: s.category,
+    lat: Number(s.lat || 5.308),
+    lon: Number(s.lon || -4.016)
+  }));
 
+  // 3b. Fetch Events & Voice Rooms
+  const { data: events } = await supabase.from('events').select('*').order('start_at', { ascending: true }).limit(5);
+  const { data: voiceRooms } = await supabase.from('voice_rooms').select('*').eq('is_live', true).limit(3);
+
+  // 3c. Fetch recent checkins for City Pulse
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentCheckins } = await supabase
     .from('checkins')
     .select('place_id, place_name, commune, lat, lon')
     .gte('created_at', oneWeekAgo)
     .eq('is_public', true)
     .not('place_id', 'is', null);
-
-  const spotMap = new Map<string, { name: string; commune?: string | null; count: number; lat: number; lon: number }>();
-
-  (recentCheckins ?? []).forEach(c => {
-    if (!c.place_id) return;
-    const existing = spotMap.get(c.place_id);
-    if (existing) {
-      existing.count++;
-    } else if (c.lat && c.lon) {
-      spotMap.set(c.place_id, { name: c.place_name, commune: c.commune, count: 1, lat: c.lat, lon: c.lon });
-    }
-  });
-
-  const hotSpots: HotSpot[] = Array.from(spotMap.entries())
-    .map(([id, v]) => ({
-      place_id: id,
-      place_name: v.name,
-      commune: v.commune ?? null,
-      logo_emoji: '📍',
-      cover_color: '#F26C1A',
-      checkin_count: v.count,
-      lat: v.lat,
-      lon: v.lon
-    }))
-    .sort((a, b) => b.checkin_count - a.checkin_count)
-    .slice(0, 10);
 
   // 4. Pulse de la ville — basé sur alertes Gbairai + check-ins par commune (24h)
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -227,6 +218,8 @@ export default async function GbairaiPage() {
       userId={user?.id ?? null}
       reactionsByStory={reactionsByStory}
       myReactions={myReactions}
+      events={events ?? []}
+      voiceRooms={voiceRooms ?? []}
     />
   );
 }

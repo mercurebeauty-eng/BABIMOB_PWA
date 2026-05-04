@@ -11,6 +11,25 @@ import StoryComposer from './StoryComposer';
 import StoryViewer from './StoryViewer';
 import SpotsTab from './SpotsTab';
 
+export type Event = {
+  id: string;
+  title: string;
+  description: string | null;
+  start_at: string;
+  location_name: string | null;
+  price_label: string | null;
+  category: string | null;
+  image_url: string | null;
+};
+
+export type VoiceRoom = {
+  id: string;
+  title: string;
+  participants_count: number;
+  emoji: string;
+  is_live: boolean;
+};
+
 type Props = {
   initialPosts: GbairaiPost[];
   myLikes: string[];
@@ -22,6 +41,8 @@ type Props = {
   userId: string | null;
   reactionsByStory?: Record<string, Record<string, number>>;
   myReactions?: Record<string, string[]>;
+  events: Event[];
+  voiceRooms: VoiceRoom[];
 };
 
 const TABS = [
@@ -35,7 +56,136 @@ const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--
 const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'var(--orange)'];
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {} }: Props) {
+// ── Components ──
+
+function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
+  if (rooms.length === 0) return null;
+  return (
+    <div style={{ padding: '0 16px', marginBottom: 20 }}>
+      {rooms.map(room => (
+        <div key={room.id} className="press" style={{
+          borderRadius: 24, padding: 20, background: 'linear-gradient(135deg, #E5337A 0%, #C12763 100%)',
+          color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 24px rgba(229,51,122,0.3)'
+        }}>
+          <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900, marginBottom: 8 }}>
+              <Ic.Mic s={14} fill /> SALON VOCAL · LIVE
+            </div>
+            <h3 className="font-display" style={{ fontSize: 24, margin: '0 0 16px', lineHeight: 1.1 }}>« {room.title} »</h3>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: -8 }}>
+                {[0,1,2,3].map(i => (
+                  <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: AVATAR_COLORS[i], border: '2px solid #E5337A', marginLeft: i === 0 ? 0 : -10 }} />
+                ))}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 800 }}>+{room.participants_count}</span>
+            </div>
+
+            <button style={{ width: '100%', padding: '12px', borderRadius: 14, border: 'none', background: '#fff', color: '#E5337A', fontSize: 14, fontWeight: 900, cursor: 'pointer' }}>
+              Entrer
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TrendingSection({ spots }: { spots: HotSpot[] }) {
+  if (spots.length === 0) return null;
+  const top = spots[0];
+  const others = spots.slice(1, 4);
+
+  return (
+    <div style={{ padding: '0 16px', marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1 }}>OÙ ÇA BOUGE · MAINTENANT</div>
+      </div>
+      <h2 className="font-display" style={{ fontSize: 28, margin: '0 0 16px' }}>Les spots qui chauffent</h2>
+
+      {/* Top 1 Card */}
+      <div className="press" style={{
+        borderRadius: 24, height: 240, background: `linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%), linear-gradient(135deg, ${top.cover_color} 0%, #1A1410 100%)`,
+        position: 'relative', overflow: 'hidden', marginBottom: 16, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 20, color: '#fff'
+      }}>
+        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
+        <div style={{ position: 'absolute', top: 16, left: 16, background: 'var(--orange)', color: '#fff', padding: '4px 12px', borderRadius: 8, fontSize: 18, fontWeight: 900 }}>#1</div>
+        <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          🔥 {top.checkin_count * 12} BABIS Y VONT CE SOIR
+        </div>
+        
+        <h3 className="font-display" style={{ fontSize: 32, margin: 0 }}>{top.place_name}</h3>
+        <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8, marginTop: 4 }}>
+          {top.commune} · {top.category || 'Spot'} · Poisson braisé
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>★ 4.8</div>
+          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>5 000–15 000F</div>
+          <div style={{ background: '#0EA85B', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>OUVERT</div>
+        </div>
+      </div>
+
+      {/* Others List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {others.map((s, i) => (
+          <div key={s.place_id} className="press" style={{
+            padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)',
+            display: 'flex', alignItems: 'center', gap: 16
+          }}>
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: s.cover_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -6, left: -6, width: 24, height: 24, borderRadius: 6, background: 'var(--ink)', color: '#fff', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>#{i + 2}</div>
+              <span style={{ fontSize: 24 }}>{s.logo_emoji}</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 900 }}>{s.place_name} — {s.commune}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>Attiéké · 1 500F</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 800 }}>🔥 {s.checkin_count * 10}</span>
+                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>👥 12 amis</span>
+              </div>
+            </div>
+            <button style={{ padding: '8px 14px', borderRadius: 12, border: '1px solid var(--line)', background: '#fff', fontWeight: 800, fontSize: 12 }}>Y aller</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EventsSection({ events }: { events: Event[] }) {
+  if (events.length === 0) return null;
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ padding: '0 16px', marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1 }}>ÉVÉNEMENTS · CETTE SEMAINE</div>
+        <h2 className="font-display" style={{ fontSize: 28, margin: '0 0 16px' }}>Sors avec Babi</h2>
+      </div>
+      
+      <div className="no-scrollbar" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 16px' }}>
+        {events.map((e, i) => (
+          <div key={e.id} className="press" style={{
+            flexShrink: 0, width: 240, height: 160, borderRadius: 24, padding: 20,
+            background: i % 2 === 0 ? 'linear-gradient(135deg, #1E5BFF 0%, #1540B3 100%)' : 'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
+            color: '#fff', position: 'relative', overflow: 'hidden'
+          }}>
+            <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.15, transform: 'rotate(-45deg) scale(2)' }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, marginBottom: 8 }}>
+                {new Date(e.start_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }).toUpperCase()}
+              </div>
+              <h3 className="font-display" style={{ fontSize: 22, margin: '0 0 4px', lineHeight: 1.1 }}>{e.title}</h3>
+              <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>{e.location_name} · {new Date(e.start_at).getHours()}h</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms }: Props) {
   const [tab, setTab] = useState<string>('vibe');
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
@@ -128,6 +278,9 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               ))}
             </div>
 
+            {/* Voice Rooms (If any) */}
+            <VoiceRoomSection rooms={voiceRooms} />
+
             {/* Pulse card */}
             <div style={{ padding: '0 16px', marginBottom: 14 }}>
               <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #0EA85B 0%, #0A8A4A 100%)', color: '#fff', padding: 18 }}>
@@ -153,9 +306,13 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               </div>
             </div>
 
+            {/* Trending Sections */}
+            <TrendingSection spots={hotSpots} />
+            <EventsSection events={events} />
+
             {/* Trending hashtags */}
             {trendingTags.length > 0 && (
-              <div style={{ padding: '0 16px', marginBottom: 14 }}>
+              <div style={{ padding: '0 16px', marginBottom: 20 }}>
                 <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, marginBottom: 8 }}>QUI BUZZ AUJOURD&apos;HUI</div>
                 <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -16px', padding: '0 16px' }}>
                   {trendingTags.map((h, i) => (

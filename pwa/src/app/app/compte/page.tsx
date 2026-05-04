@@ -64,6 +64,37 @@ export default async function ComptePage() {
     supabase.from('tarif_confirmations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr)
   ]);
 
+  // Récupération du Crew
+  const { data: memberOf } = await supabase
+    .from('crew_members')
+    .select('crew_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  let crew = null;
+  if (memberOf) {
+    const { data: crewData } = await supabase
+      .from('crews')
+      .select('*, crew_members(count)')
+      .eq('id', memberOf.crew_id)
+      .maybeSingle();
+    
+    if (crewData) {
+      crew = {
+        ...crewData,
+        membersCount: crewData.crew_members?.[0]?.count || 0
+      };
+    }
+  }
+
+  // Récupération de la Quête Collective active
+  const { data: colQuest } = await supabase
+    .from('collective_quest')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const dailyMissions = [
     { id: 'm1', label: 'Explorateur', task: 'Faire un check-in', current: todayCheckins || 0, target: 1, xp: 20 },
     { id: 'm2', label: 'Bavard', task: 'Poster sur Gbairai', current: todayPosts || 0, target: 1, xp: 30 },
@@ -90,6 +121,8 @@ export default async function ComptePage() {
       dailyMissions={dailyMissions}
       following={following}
       followersCount={followersCount ?? 0}
+      crew={crew}
+      collectiveQuest={colQuest}
     >
       <ProfileEditor
         userId={user.id}

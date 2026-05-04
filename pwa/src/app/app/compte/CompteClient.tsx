@@ -27,6 +27,8 @@ type Props = {
   dailyMissions: { id: string; label: string; task: string; current: number; target: number; xp: number }[];
   following?: FollowProfile[];
   followersCount?: number;
+  crew?: any;
+  collectiveQuest?: any;
   children?: React.ReactNode;
 };
 
@@ -175,9 +177,9 @@ function CrewCard({ following, followersCount }: { following: FollowProfile[]; f
 const PALETTE = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount }: {
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount, crew, collectiveQuest }: {
   badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; streak: number; showWeekly: boolean; setShowWeekly: (v: boolean) => void; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
-  following: FollowProfile[]; followersCount: number;
+  following: FollowProfile[]; followersCount: number; crew: any; collectiveQuest: any;
 }) {
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   const todayIndex = (new Date().getDay() + 6) % 7; // 0=Mon, 6=Sun
@@ -301,7 +303,7 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
       {/* Proches & Famille (Optionnel si on veut garder la fonctionnalité réelle) */}
       {/* <CrewCard following={following} followersCount={followersCount} /> */}
 
-      <ActivityLog checkinsDetail={checkinsDetail} />
+      <ActivityLog checkinsDetail={checkinsDetail} crew={crew} collectiveQuest={collectiveQuest} />
     </>
   );
 }
@@ -466,7 +468,7 @@ function TabClassement({
 }
 
 export default function CompteClient({
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, children
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, children
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
@@ -484,7 +486,7 @@ export default function CompteClient({
   const explorationPct = Math.round((uniqueCommunesVisited / ABIDJAN_COMMUNES.length) * 100);
 
   const levelInfo = getLevel(points);
-  const { level, title, xp, xpForNext: xpNext, progress } = levelInfo;
+  const { level, title, nextTitle, xp, xpForNext: xpNext, progress } = levelInfo;
   const xpPct = Math.round(progress * 100);
 
   // Daily Bonus XP Logic
@@ -556,11 +558,11 @@ export default function CompteClient({
 
           {/* XP bar */}
           <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 700, color: 'rgba(247,241,230,0.7)', marginBottom: 5, letterSpacing: 0.5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 900, color: 'rgba(247,241,230,0.9)', marginBottom: 6, letterSpacing: 0.5 }}>
               <span>NIV. {level} · {title.toUpperCase()}</span>
               <span>{xp.toLocaleString()} / {xpNext.toLocaleString()} XP</span>
             </div>
-            <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', position: 'relative', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.4)' }}>
+            <div style={{ height: 12, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', position: 'relative', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.4)' }}>
               <div
                 className="xp-glow"
                 style={{
@@ -576,6 +578,9 @@ export default function CompteClient({
                 {/* Reflet supérieur */}
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(180deg, rgba(255,255,255,0.45), transparent)', borderRadius: 999 }} />
               </div>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(247,241,230,0.5)', fontWeight: 600 }}>
+              Plus que <b style={{ color: '#E8B23C' }}>{(xpNext - xp).toLocaleString()} XP</b> pour devenir <b style={{ color: '#fff' }}>{nextTitle}</b> (Niv.{level + 1})
             </div>
           </div>
 
@@ -623,6 +628,8 @@ export default function CompteClient({
             setShowAlbum={setShowAlbum}
             following={following}
             followersCount={followersCount}
+            crew={crew}
+            collectiveQuest={collectiveQuest}
           />
         )}
         {tab === 'territoire' && (
@@ -707,66 +714,76 @@ export default function CompteClient({
   );
 }
 // ── Component : ActivityLog (Screenshot 1 style) ──────────────────────────
-function ActivityLog({ checkinsDetail }: { checkinsDetail: any[] }) {
-  // Simulating crew data for the WOW effect requested
-  const crew = {
-    name: 'Cocody Family',
-    rank: '#3 sur 47 crews',
-    members: 24,
-    active: 5,
-    quest: { label: 'Cartographier 1 000 arrêts ensemble', current: 847, target: 1000, daysLeft: 4 }
+function ActivityLog({ checkinsDetail, crew: realCrew, collectiveQuest: realQuest }: { checkinsDetail: any[]; crew: any; collectiveQuest: any }) {
+  const crew = realCrew || null;
+  const quest = realQuest || {
+    title: 'Quête : Explorateur de Babi',
+    target_count: 1000,
+    current: 450, // Mock current if no real progression table exists yet
+    ends_at: new Date(Date.now() + 5 * 86400000).toISOString()
   };
 
-  const activities = checkinsDetail.slice(0, 5).map((c, i) => ({
+  const daysLeft = quest.ends_at ? Math.max(0, Math.ceil((new Date(quest.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+
+  const activities = checkinsDetail.slice(0, 10).map((c, i) => ({
     id: c.id || i,
     type: 'Check-in',
     title: 'Check-in',
-    subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · il y a ${i + 1}h`,
-    points: 15,
+    subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · ${timeAgo(c.created_at)}`,
+    points: c.points_earned || 15,
     icon: <Ic.Pin s={18} fill />
-  })).concat([
-    { id: 't1', type: 'Tarif', title: 'Tarif confirmé', subtitle: 'Adjamé → Yop · 200F · il y a 3h', points: 5, icon: <Ic.Card s={18} /> },
-    { id: 'b1', type: 'Badge', title: 'Badge débloqué', subtitle: 'Pont d\'or · hier', points: 100, icon: <Ic.Trophy s={18} /> }
-  ]);
+  }));
 
   return (
     <div style={{ marginTop: 20 }}>
-      {/* ──── CREW CARD (Screenshot 1 style) ──── */}
+      {/* ──── CREW CARD (Functional) ──── */}
       <div style={{
         borderRadius: 24, padding: 20, marginBottom: 24, position: 'relative', overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1A1410 0%, #2A1F18 100%)', color: '#fff'
+        background: crew ? `linear-gradient(135deg, ${crew.color_from || '#1A1410'} 0%, ${crew.color_to || '#2A1F18'} 100%)` : 'linear-gradient(135deg, #1A1410 0%, #2A1F18 100%)', 
+        color: '#fff'
       }}>
         <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.1, color: '#fff' }} />
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1 }}>TON CREW</div>
-              <div className="font-display" style={{ fontSize: 24, marginBottom: 2 }}>{crew.name}</div>
-              <div style={{ fontSize: 11, opacity: 0.6, fontWeight: 700 }}>{crew.rank} · {crew.members} membres</div>
+              <div className="font-display" style={{ fontSize: 24, marginBottom: 2 }}>{crew ? crew.name : 'Pas de Crew'}</div>
+              <div style={{ fontSize: 11, opacity: 0.6, fontWeight: 700 }}>
+                {crew ? `${crew.membersCount} membres · ${crew.commune || 'Abidjan'}` : 'Rejoins une famille pour progresser plus vite !'}
+              </div>
             </div>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #0EA85B 0%, #0B8A4A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-              <span className="font-display" style={{ fontSize: 24 }}>CF</span>
-              <div style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: '50%', background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: crew ? 'linear-gradient(135deg, #0EA85B 0%, #0B8A4A 100%)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+              <span className="font-display" style={{ fontSize: 24 }}>{crew ? (crew.emoji || '🏙️') : '👤'}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: -8, marginTop: 12 }}>
-            {['M','A','D','K','I'].map((initial, i) => (
-              <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: i % 2 === 0 ? 'var(--orange)' : 'var(--blue)', border: '2px solid #1A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, marginLeft: i === 0 ? 0 : -8 }}>{initial}</div>
-            ))}
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#333', border: '2px solid #1A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, marginLeft: -8, color: 'rgba(255,255,255,0.6)' }}>+19</div>
-            <div style={{ marginLeft: 10, fontSize: 11, fontWeight: 700 }}><span style={{ color: 'var(--orange)' }}>{crew.active} actifs</span> en ce moment</div>
-            <div style={{ marginLeft: 'auto', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 12, padding: '4px 12px', fontSize: 11, fontWeight: 800 }}>Crew</div>
-          </div>
+          {crew && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: -8, marginTop: 12 }}>
+              {['M','A','D','K','I'].map((initial, i) => (
+                <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: PALETTE[i % PALETTE.length], border: '2px solid #1A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, marginLeft: i === 0 ? 0 : -8 }}>{initial}</div>
+              ))}
+              {crew.membersCount > 5 && (
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#333', border: '2px solid #1A1410', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, marginLeft: -8, color: 'rgba(255,255,255,0.6)' }}>+{crew.membersCount - 5}</div>
+              )}
+              <div style={{ marginLeft: 10, fontSize: 11, fontWeight: 700 }}><span style={{ color: 'var(--orange)' }}>2 actifs</span> en ce moment</div>
+              <Link href="/app/crews" style={{ marginLeft: 'auto', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 12, padding: '4px 12px', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>Gérer</Link>
+            </div>
+          )}
+
+          {!crew && (
+            <div style={{ marginTop: 16 }}>
+              <Link href="/app/crews" style={{ display: 'inline-block', background: 'var(--orange)', color: '#fff', borderRadius: 12, padding: '8px 16px', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>Trouver un Crew</Link>
+            </div>
+          )}
 
           <div style={{ marginTop: 20, padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', marginBottom: 8 }}>
-              <span>QUÊTE COLLECTIVE · {crew.quest.daysLeft}j RESTANTS</span>
-              <span style={{ color: '#fff' }}>{crew.quest.current} / {crew.quest.target}</span>
+              <span>QUÊTE COLLECTIVE · {daysLeft}j RESTANTS</span>
+              <span style={{ color: '#fff' }}>{quest.current || 0} / {quest.target_count}</span>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 12 }}>{crew.quest.label}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 12 }}>{quest.title}</div>
             <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
-              <div style={{ height: '100%', width: `${(crew.quest.current / crew.quest.target) * 100}%`, background: 'var(--orange)', borderRadius: 3, boxShadow: '0 0 10px rgba(242,108,26,0.5)' }} />
+              <div style={{ height: '100%', width: `${Math.min(100, ((quest.current || 0) / quest.target_count) * 100)}%`, background: 'var(--orange)', borderRadius: 3, boxShadow: '0 0 10px rgba(242,108,26,0.5)' }} />
             </div>
           </div>
         </div>
@@ -777,6 +794,13 @@ function ActivityLog({ checkinsDetail }: { checkinsDetail: any[] }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {activities.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)', background: 'var(--cream-2)', borderRadius: 24, border: '1px dashed var(--line)' }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🌵</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Pas encore d'activité</div>
+            <div style={{ fontSize: 12 }}>Explore Abidjan pour gagner tes premiers points !</div>
+          </div>
+        )}
         {activities.map((a) => (
           <div key={a.id} style={{ 
             padding: '16px', borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)',
