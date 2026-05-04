@@ -16,7 +16,8 @@ export function BottomNav({
   onToggleHeatmap, 
   heatMode,
   nearbyStopsCount = 0,
-  onCycleNearby
+  onCycleNearby,
+  isAdmin
 }: { 
   onToggleHeatmap: () => void;
   heatMode: boolean;
