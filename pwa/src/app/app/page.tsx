@@ -347,23 +347,44 @@ function AppPageContent() {
         profile={profile} 
       />
 
-      {/* ── FLOATING SEARCH PILL (ANTIGRAVITY STYLE) ── */}
+      {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
       <AnimatePresence>
         {!selected && !selectedPoi && !activeItinerary && (
           <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            style={{ position: 'absolute', bottom: 100, left: 16, right: 16, zIndex: 500, display: 'flex', justifyContent: 'center' }}
+            initial={{ y: 20, opacity: 0, scale: 0.9 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.9 }}
+            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}
           >
             <button
               onClick={openSearch}
               className="press"
-              style={{ width: '100%', maxWidth: 400, height: 54, borderRadius: 27, border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px', color: 'var(--ink)', cursor: 'pointer' }}
+              style={{ 
+                pointerEvents: 'auto',
+                height: 32, 
+                padding: '0 16px',
+                borderRadius: 16, 
+                border: 'none', 
+                background: 'rgba(255, 255, 255, 0.45)', 
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                color: 'var(--ink)', 
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
             >
-              <Ic.Search s={20} />
-              <span style={{ fontSize: 16, fontWeight: 700, flex: 1, textAlign: 'left' }}>Où vas-tu, Mobeur ?</span>
-              <div style={{ padding: '4px 10px', borderRadius: 10, background: 'var(--orange-pale)', color: 'var(--orange)', fontSize: 10, fontWeight: 900 }}>LIVE</div>
+              <Ic.Search s={14} />
+              <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>Recherche</span>
+              
+              {/* iOS Style Dots (Dynamic indicators) */}
+              <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.8 }} />
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.3 }} />
+              </div>
             </button>
           </motion.div>
         )}
