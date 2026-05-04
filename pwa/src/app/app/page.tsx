@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import dynamic from 'next/dynamic';
+import NextDynamic from 'next/dynamic';
 import Image from 'next/image';
 import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -40,7 +40,7 @@ type RecentItem = {
   logo?: string;
 };
 
-const Map = dynamic(() => import('@/components/Map'), {
+const Map = NextDynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
