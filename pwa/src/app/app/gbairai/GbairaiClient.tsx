@@ -136,8 +136,15 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
       }}>
         <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
         <div style={{ position: 'absolute', top: 16, left: 16, background: 'var(--orange)', color: '#fff', padding: '4px 12px', borderRadius: 8, fontSize: 18, fontWeight: 900 }}>#1</div>
-        <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          🔥 {top.checkin_count * 12} BABIS Y VONT CE SOIR
+        <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 6 }}>
+          {top.is_new && (
+            <div style={{ background: '#0EA85B', color: '#fff', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)' }}>
+              ✨ NOUVEAU
+            </div>
+          )}
+          <div style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {top.checkin_count > 0 ? `🔥 ${top.checkin_count * 12} BABIS Y VONT` : '🔥 PREMIER À ARRIVER ?'}
+          </div>
         </div>
         
         <h3 className="font-display" style={{ fontSize: 32, margin: 0 }}>{top.place_name}</h3>
@@ -166,7 +173,10 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
               <div style={{ fontSize: 16, fontWeight: 900 }}>{s.place_name} — {s.commune}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>Attiéké · 1 500F</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 800 }}>🔥 {s.checkin_count * 10}</span>
+                <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 800 }}>
+                  {s.checkin_count > 0 ? `🔥 ${s.checkin_count * 10}` : '🔥 À DÉCOUVRIR'}
+                </span>
+                {s.is_new && <span style={{ fontSize: 10, color: '#0EA85B', fontWeight: 900 }}>✨ NOUVEAU</span>}
                 <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>👥 12 amis</span>
               </div>
             </div>

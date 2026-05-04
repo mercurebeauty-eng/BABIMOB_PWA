@@ -41,6 +41,7 @@ export type HotSpot = {
   category: string | null;
   lat: number;
   lon: number;
+  is_new: boolean;
 };
 
 export type ReportCategory = 'trafic' | 'incident' | 'travaux' | 'ambiance';
@@ -85,17 +86,18 @@ export default async function GbairaiPage() {
   }
 
   // 3. Spots chauds via RPC
-  const { data: hotSpotsRaw } = await supabase.rpc('get_hot_spots', { limit_count: 10 });
+  const { data: hotSpotsRaw } = await supabase.rpc('get_hot_spots');
   const hotSpots: HotSpot[] = (hotSpotsRaw ?? []).map((s: any) => ({
-    place_id: s.id,
-    place_name: s.name,
+    place_id: s.place_id,
+    place_name: s.place_name,
     commune: s.commune,
-    logo_emoji: s.is_new ? '✨' : '📍',
-    cover_color: s.is_new ? '#0EA85B' : '#F26C1A',
+    logo_emoji: s.logo_emoji || (s.is_new ? '✨' : '📍'),
+    cover_color: s.cover_color || (s.is_new ? '#0EA85B' : '#F26C1A'),
     checkin_count: Number(s.checkin_count),
     category: s.category,
     lat: Number(s.lat || 5.308),
-    lon: Number(s.lon || -4.016)
+    lon: Number(s.lon || -4.016),
+    is_new: !!s.is_new
   }));
 
   // 3b. Fetch Events & Voice Rooms
