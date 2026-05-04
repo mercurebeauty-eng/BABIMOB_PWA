@@ -5,16 +5,25 @@ import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { Ic } from './Ic';
 
+import PlusBubble from './PlusBubble';
+
 const NAV_ITEMS = [
   { id: 'home', label: 'Carte', icon: Ic.Map, path: '/app' },
   { id: 'gbairai', label: 'Gbairai', icon: Ic.Chat, path: '/app/gbairai' },
   { id: 'compte', label: 'Profil', icon: Ic.Star, path: '/app/compte' },
-  { id: 'menu', label: 'Plus', icon: Ic.Menu, path: null }, // Ouvre la sidebar
+  { id: 'menu', label: 'Plus', icon: Ic.Menu, path: null },
 ];
 
-export function BottomNav({ onMenuClick }: { onMenuClick: () => void }) {
+export function BottomNav({ 
+  onToggleHeatmap, 
+  heatMode 
+}: { 
+  onToggleHeatmap: () => void;
+  heatMode: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isPlusOpen, setIsPlusOpen] = React.useState(false);
 
   return (
     <div style={{
@@ -27,6 +36,13 @@ export function BottomNav({ onMenuClick }: { onMenuClick: () => void }) {
       justifyContent: 'center',
       pointerEvents: 'none',
     }}>
+      <PlusBubble 
+        isOpen={isPlusOpen} 
+        onClose={() => setIsPlusOpen(false)} 
+        onToggleHeatmap={onToggleHeatmap}
+        heatMode={heatMode}
+      />
+
       <motion.nav 
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -55,7 +71,7 @@ export function BottomNav({ onMenuClick }: { onMenuClick: () => void }) {
                 if (item.path) {
                   router.push(item.path);
                 } else {
-                  onMenuClick();
+                  setIsPlusOpen(!isPlusOpen);
                 }
               }}
               style={{

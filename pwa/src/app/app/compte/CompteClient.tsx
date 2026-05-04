@@ -14,7 +14,6 @@ const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () 
 import { useXP } from '@/components/providers/XPProvider';
 import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
-import SidebarMenu from '@/components/SidebarMenu';
 
 type Badge = { badge_key: string; awarded_at: string };
 type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
@@ -511,8 +510,6 @@ function TabClassement({
 export default function CompteClient({
   displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
 }: Props) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const profileForMenu = { display_name: displayName, avatar_emoji: avatarEmoji, total_points: totalPoints };
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
   const [streak, setStreak] = useState(initialStreak);
@@ -528,6 +525,7 @@ export default function CompteClient({
   });
   const { addXP } = useXP();
   const supabase = createClient();
+  const [heatMode, setHeatMode] = useState(false);
 
   // Dynamic calculation of conquest
   const communeCounts: Record<string, number> = {};
@@ -797,12 +795,10 @@ export default function CompteClient({
         )}
       </AnimatePresence>
 
-      <SidebarMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-        profile={profileForMenu} 
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)} 
+        heatMode={heatMode} 
       />
-      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
     </div>
   );
 }

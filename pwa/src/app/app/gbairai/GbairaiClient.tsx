@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
-import SidebarMenu from '@/components/SidebarMenu';
 import type { GbairaiPost, HotSpot, CommunePulse, Story } from './page';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
@@ -226,7 +225,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [heatMode, setHeatMode] = useState(false);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
@@ -440,12 +439,10 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         />
       )}
 
-      <SidebarMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-        profile={profile} 
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)} 
+        heatMode={heatMode} 
       />
-      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
     </div>
   );
 }

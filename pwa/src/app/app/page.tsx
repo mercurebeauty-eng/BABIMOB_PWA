@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
-import SidebarMenu from '@/components/SidebarMenu';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
@@ -24,6 +23,17 @@ import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
+import NearbyStopsBubble from '@/components/ui/NearbyStopsBubble';
+
+type RecentItem = {
+  id: string;
+  name: string;
+  type: 'line' | 'stop' | 'place';
+  commune?: string;
+  color?: string;
+  lat?: number;
+  lon?: number;
+};
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -56,7 +66,6 @@ function AppPageContent() {
 
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
@@ -66,17 +75,26 @@ function AppPageContent() {
     if (typeof window === 'undefined') return null;
     try { return JSON.parse(localStorage.getItem('babimob_lastDest') ?? 'null'); } catch { return null; }
   });
-  const [recentLines, setRecentLines] = useState<any[]>([]);
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
-        setRecentLines(saved);
+        const saved = JSON.parse(localStorage.getItem('babimob_recent_history') || '[]');
+        setRecentItems(saved);
       } catch (e) {
         console.error("Erreur lecture recents:", e);
       }
     }
+  }, []);
+
+  const addToRecent = useCallback((item: RecentItem) => {
+    setRecentItems((prev) => {
+      const filtered = prev.filter((i) => i.id !== item.id);
+      const next = [item, ...filtered].slice(0, 8);
+      localStorage.setItem('babimob_recent_history', JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   const { heatMode, setHeatMode, hotspots } = useHotspots();
@@ -198,8 +216,16 @@ function AppPageContent() {
     : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
 
   const handleSelectStop = useCallback((stop: Stop) => {
+    addToRecent({ 
+      id: stop.stop_id, 
+      name: stop.stop_name, 
+      type: 'stop', 
+      commune: stop.commune ?? undefined,
+      lat: stop.stop_lat,
+      lon: stop.stop_lon
+    });
     router.push(`/app/arret/${encodeURIComponent(stop.stop_id)}`);
-  }, [router]);
+  }, [router, addToRecent]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
@@ -273,6 +299,14 @@ function AppPageContent() {
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => {
           if (poi.place_id) {
+            addToRecent({
+              id: poi.id,
+              name: poi.name,
+              type: 'place',
+              commune: poi.commune ?? undefined,
+              lat: poi.lat,
+              lon: poi.lon
+            });
             router.push(`/app/place/${poi.place_id}`);
           } else {
             setSelectedPoi(poi); 
@@ -336,13 +370,17 @@ function AppPageContent() {
         </div>
       </div>
 
-      {/* ── Sidebar Menu ── */}
-      <SidebarMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        profile={profile} 
-      />
+      {/* ── PlusBubble is now inside BottomNav ── */}
+
+      {/* ── Nearby Stops Bubble (Floating) ── */}
+      {!selected && !selectedPoi && !activeItinerary && (
+        <NearbyStopsBubble 
+          stops={nearbyStops} 
+          onSelect={(stop) => {
+            // Optionnel: recentrer ou autre action
+          }} 
+        />
+      )}
 
       {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
       <AnimatePresence>
@@ -351,9 +389,16 @@ function AppPageContent() {
             initial={{ y: 20, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0, scale: 0.9 }}
-            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}
+            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none', gap: 8 }}
           >
-            <button
+            <motion.button
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              onDragEnd={(_, info) => {
+                if (Math.abs(info.offset.x) > 50) {
+                  setHeatMode(!heatMode);
+                }
+              }}
               onClick={openSearch}
               className="press"
               style={{ 
@@ -371,7 +416,8 @@ function AppPageContent() {
                 gap: 8, 
                 color: 'var(--ink)', 
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                position: 'relative'
               }}
             >
               <Ic.Search s={14} />
@@ -381,7 +427,28 @@ function AppPageContent() {
                 <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.8 }} />
                 <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.3 }} />
               </div>
-            </button>
+            </motion.button>
+
+            {/* Heatmap Mini Toggle Indicator */}
+            <motion.div
+              onClick={() => setHeatMode(!heatMode)}
+              style={{
+                pointerEvents: 'auto',
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)',
+                backdropFilter: 'blur(20px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: heatMode ? '#fff' : 'var(--ink)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                cursor: 'pointer'
+              }}
+            >
+              <Ic.Layers s={16} />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -613,7 +680,27 @@ function AppPageContent() {
               {results.map((r, i) => (
                 <button
                   key={i}
-                  onClick={() => handleSelectStop(r)}
+                  onClick={() => {
+                    if (r.type === 'stop') {
+                      handleSelectStop({
+                        stop_id: r.id,
+                        stop_name: r.name,
+                        stop_lat: r.lat,
+                        stop_lon: r.lon,
+                        commune: r.commune
+                      });
+                    } else {
+                      addToRecent({
+                        id: r.id,
+                        name: r.name,
+                        type: 'place',
+                        commune: r.commune ?? undefined,
+                        lat: r.lat,
+                        lon: r.lon
+                      });
+                      router.push(`/app/place/${r.id}`);
+                    }
+                  }}
                   className="press"
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 12,
@@ -622,12 +709,12 @@ function AppPageContent() {
                     marginBottom: 8, textAlign: 'left', cursor: 'pointer',
                   }}
                 >
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                    <Ic.Pin s={18} />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'stop' ? 'var(--orange-pale)' : 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: r.type === 'place' ? '1px solid var(--line)' : 'none' }}>
+                    {r.type === 'stop' ? <Ic.Pin s={18} /> : <span>{r.logo || '📍'}</span>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{r.commune}</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{r.commune || (r.type === 'stop' ? 'Arrêt' : 'Lieu')}</div>
                   </div>
                   <Ic.Arrow s={16} />
                 </button>
@@ -635,15 +722,15 @@ function AppPageContent() {
 
               {!query && (
                 <>
-                  {recentLines.length > 0 ? (
+                  {recentItems.length > 0 ? (
                     <>
                       <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
-                        Lignes récentes
+                        Récentes
                       </div>
-                      {recentLines.map((r, i) => (
+                      {recentItems.map((r, i) => (
                         <Link
                           key={i}
-                          href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`}
+                          href={r.type === 'line' ? `/app/ligne/${encodeURIComponent(r.id)}?dir=0` : r.type === 'stop' ? `/app/arret/${encodeURIComponent(r.id)}` : `/app/place/${r.id}`}
                           className="press"
                           style={{
                             background: 'var(--cream)', padding: 12, borderRadius: 14,
@@ -652,12 +739,14 @@ function AppPageContent() {
                             marginBottom: 8, textDecoration: 'none',
                           }}
                         >
-                          <div style={{ width: 40, height: 40, borderRadius: 12, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}`, flexShrink: 0 }}>
-                            <Vehicle kind={r.type || 'gbaka'} size={22} />
+                          <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'line' ? `#${r.color}20` : r.type === 'stop' ? 'var(--orange-pale)' : 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'line' ? `#${r.color}` : r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: r.type === 'place' ? '1px solid var(--line)' : 'none' }}>
+                            {r.type === 'line' ? <Vehicle kind="gbaka" size={22} /> : r.type === 'stop' ? <Ic.Pin s={18} /> : <Ic.Pin s={18} />}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{r.type || 'Transport'}</div>
+                            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                              {r.type === 'line' ? 'Ligne' : r.type === 'stop' ? (r.commune || 'Arrêt') : (r.commune || 'Lieu')}
+                            </div>
                           </div>
                           <Ic.Arrow s={16} />
                         </Link>
@@ -716,7 +805,10 @@ function AppPageContent() {
         )}
       </AnimatePresence>
 
-      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)} 
+        heatMode={heatMode} 
+      />
     </div>
   );
 }
