@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Ic } from './Ic';
 import PlusBubble from './PlusBubble';
 
@@ -32,7 +33,6 @@ export function BottomNav({
   onTogglePlus?: () => void;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <div style={{
@@ -111,9 +111,9 @@ export function BottomNav({
           const Icon = item.icon;
 
           return (
-            <button
+            <Link
               key={item.id}
-              onClick={() => item.path && router.push(item.path)}
+              href={item.path}
               className="press"
               style={{
                 width: 54,
@@ -128,10 +128,11 @@ export function BottomNav({
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
+                textDecoration: 'none'
               }}
             >
               <Icon s={24} fill={isActive} />
-            </button>
+            </Link>
           );
         })}
 

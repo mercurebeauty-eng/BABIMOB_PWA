@@ -90,10 +90,31 @@ async function fetchSupabasePlaces(
     }));
 }
 
-// ── 2. Places depuis OpenStreetMap (fallback) ─────────────────────────────
+// ── Cache mémoire pour OSM ──────────────────────────────────────────────
+type OSMCacheEntry = {
+  bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
+  pois: POI[];
+  timestamp: number;
+};
+let osmCache: OSMCacheEntry[] = [];
+
 async function fetchOSMPlaces(
   centerLat: number, centerLon: number, radiusM: number,
+  minLat: number, maxLat: number, minLon: number, maxLon: number
 ): Promise<POI[]> {
+  // 1. Vérifier si on a déjà ces données en cache (rayon de 500m de tolérance ou bounds inclus)
+  const now = Date.now();
+  const cached = osmCache.find(entry => 
+    entry.bounds.minLat <= minLat && entry.bounds.maxLat >= maxLat &&
+    entry.bounds.minLon <= minLon && entry.bounds.maxLon >= maxLon &&
+    (now - entry.timestamp) < 300000 // 5 minutes de cache
+  );
+
+  if (cached) {
+    console.log("Using cached OSM data");
+    return cached.pois;
+  }
+
   // On ne cherche que si on a un rayon raisonnable
   if (radiusM < 10) return [];
 
@@ -169,6 +190,15 @@ async function fetchOSMPlaces(
       })
       .filter(Boolean) as POI[];
     
+    // Mettre en cache
+    osmCache.push({
+      bounds: { minLat, maxLat, minLon, maxLon },
+      pois: results,
+      timestamp: now
+    });
+    // Limiter la taille du cache
+    if (osmCache.length > 5) osmCache.shift();
+
     return results;
   } catch (err) {
     console.error(`Error fetching from OSM proxy:`, err);
@@ -191,7 +221,7 @@ export async function fetchNearbyPOIs(
 
   const [supabasePOIs, osmPOIs] = await Promise.all([
     fetchSupabasePlaces(minLat, maxLat, minLon, maxLon),
-    fetchOSMPlaces(centerLat, centerLon, radiusM),
+    fetchOSMPlaces(centerLat, centerLon, radiusM, minLat, maxLat, minLon, maxLon),
   ]);
 
   const supabaseOsmIds = new Set(supabasePOIs.filter(p => p.id.startsWith('osm-')).map(p => p.id));
