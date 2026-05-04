@@ -12,6 +12,7 @@ interface HelpTipProps {
 export function HelpTip({ title, content }: HelpTipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, bottom: 0 });
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
 
   // Dimensions et marges
   const tooltipWidth = Math.min(260, screenWidth - 24);
