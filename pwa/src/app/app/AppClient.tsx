@@ -794,13 +794,164 @@ function AppPageContent() {
             </div>
 
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 32px' }}>
+              {/* État vide — pas de query : affiche les récents */}
+              {query.trim().length < 2 && recentItems.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 4px 10px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase' }}>
+                      Récents
+                    </div>
+                    <button
+                      onClick={() => { setRecentItems([]); localStorage.setItem('babimob_recent_history', '[]'); }}
+                      style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                    >
+                      Effacer
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {recentItems.map((item) => (
+                      <button
+                        key={`${item.type}-${item.id}`}
+                        onClick={() => {
+                          closeSearch();
+                          if (item.type === 'place') {
+                            router.push(`/app/place/${encodeURIComponent(item.id)}`);
+                          } else if (item.type === 'line') {
+                            router.push(`/app/ligne/${encodeURIComponent(item.id)}`);
+                          } else if (item.lat != null && item.lon != null) {
+                            handleSelectStop({
+                              stop_id: item.id,
+                              stop_name: item.name,
+                              stop_lat: item.lat,
+                              stop_lon: item.lon,
+                              commune: item.commune ?? null,
+                            } as Stop);
+                          }
+                        }}
+                        className="press"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          width: '100%', textAlign: 'left',
+                          padding: '12px 14px', background: 'var(--cream)',
+                          border: '1px solid var(--line)', borderRadius: 14, cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 10,
+                          background: 'var(--cream-2)', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {item.type === 'place'
+                            ? <span style={{ fontSize: 18 }}>{item.logo ?? '📍'}</span>
+                            : item.type === 'line'
+                            ? <Ic.Route s={18} color="var(--ink)" />
+                            : <Ic.Bus s={18} color="var(--orange)" />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.name}
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
+                            {item.commune ?? (item.type === 'place' ? 'Lieu' : item.type === 'line' ? 'Ligne' : 'Arrêt')}
+                          </div>
+                        </div>
+                        <Ic.History s={14} color="var(--muted)" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
               {/* Résultats de recherche */}
-              {results.length > 0 && (
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '14px 4px 10px' }}>
-                  Résultats
+              {query.trim().length >= 2 && results.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '14px 4px 10px' }}>
+                    Résultats · {results.length}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {results.map((r) => (
+                      <button
+                        key={`${r.type}-${r.id}`}
+                        onClick={() => {
+                          closeSearch();
+                          if (r.type === 'place') {
+                            addToRecent({ id: r.id, name: r.name, type: 'place', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon, logo: r.logo });
+                            router.push(`/app/place/${encodeURIComponent(r.id)}`);
+                          } else {
+                            addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
+                            handleSelectStop({
+                              stop_id: r.id,
+                              stop_name: r.name,
+                              stop_lat: r.lat,
+                              stop_lon: r.lon,
+                              commune: r.commune,
+                            } as Stop);
+                          }
+                        }}
+                        className="press"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          width: '100%', textAlign: 'left',
+                          padding: '12px 14px', background: 'var(--cream)',
+                          border: '1px solid var(--line)', borderRadius: 14, cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 10,
+                          background: r.type === 'place' ? 'var(--orange-pale)' : 'var(--cream-2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {r.type === 'place'
+                            ? <span style={{ fontSize: 18 }}>{r.logo ?? '📍'}</span>
+                            : <Ic.Bus s={18} color="var(--orange)" />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {r.name}
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
+                            {r.commune ?? (r.type === 'place' ? 'Lieu' : 'Arrêt')}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: 9, fontWeight: 800, color: r.type === 'place' ? 'var(--orange)' : 'var(--ink-2)',
+                          textTransform: 'uppercase', letterSpacing: 0.6,
+                        }}>
+                          {r.type === 'place' ? 'Lieu' : 'Arrêt'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Aucun résultat */}
+              {query.trim().length >= 2 && !isSearching && results.length === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px', textAlign: 'center', color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🔍</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+                    Aucun résultat pour « {query.trim()} »
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>
+                    Essaie un autre mot-clé ou vérifie l'orthographe.
+                  </div>
                 </div>
               )}
-              {/* ... reste de la logique de recherche si nécessaire ... */}
+
+              {/* Vide initial — pas de query, pas de récents */}
+              {query.trim().length < 2 && recentItems.length === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px', textAlign: 'center', color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🚌</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+                    Cherche un arrêt ou un lieu
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>
+                    Tape au moins 2 lettres pour démarrer.
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

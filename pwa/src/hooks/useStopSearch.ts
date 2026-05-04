@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-type SearchResult = {
+export type SearchResult = {
   id: string;
   name: string;
   lat: number;
@@ -25,11 +25,25 @@ export function useStopSearch() {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (q.trim().length < 2) {
       setResults([]);
+      setSearching(false);
       return;
     }
     timerRef.current = setTimeout(async () => {
       setSearching(true);
-      const words = q.trim().split(/\s+/).filter((w) => w.length >= 2);
+      // Caractères spéciaux qui cassent la syntaxe PostgREST .or()
+      const sanitize = (w: string) => w.replace(/[(),%*]/g, '').trim();
+      const words = q
+        .trim()
+        .split(/\s+/)
+        .map(sanitize)
+        .filter((w) => w.length >= 2);
+
+      if (words.length === 0) {
+        setSearching(false);
+        setResults([]);
+        return;
+      }
+
       const stopFilter = words
         .map((w) => `stop_name.ilike.%${w}%,commune.ilike.%${w}%`)
         .join(',');
@@ -37,7 +51,6 @@ export function useStopSearch() {
         .map((w) => `name.ilike.%${w}%,commune.ilike.%${w}%`)
         .join(',');
 
-      // Parallell search
       const [stopsReq, placesReq] = await Promise.all([
         supabase
           .from('gtfs_stops')
@@ -71,7 +84,7 @@ export function useStopSearch() {
       }));
 
       setSearching(false);
-      setResults([...stops, ...places]);
+      setResults([...places, ...stops]);
     }, 250);
   }, [supabase]);
 
