@@ -39,8 +39,46 @@ export type HotSpot = {
   cover_color: string;
   checkin_count: number;
   category: string | null;
+  price_range: string | null;
+  rating: number | null;
+  is_new: boolean;
+  friends_count: number;
   lat: number;
   lon: number;
+};
+
+export type CollectiveQuest = {
+  id: string;
+  title: string;
+  description: string | null;
+  target_count: number;
+  current_count: number;
+  reward_xp: number;
+  reward_badge: string | null;
+  ends_at: string;
+};
+
+export type Quest = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  xp_reward: number;
+  quest_type: string;
+  target_count: number;
+};
+
+export type Crew = {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  color_from: string | null;
+  color_to: string | null;
+  commune: string | null;
+  member_count: number;
+  is_member: boolean;
 };
 
 export type ReportCategory = 'trafic' | 'incident' | 'travaux' | 'ambiance';
@@ -84,18 +122,47 @@ export default async function GbairaiPage() {
     myLikes = (likes ?? []).map(l => l.post_id);
   }
 
-  // 3. Spots chauds via RPC
+  // 2b. Followers (utilisé pour spots/stories)
+  let followingIds: string[] = [];
+  if (user) {
+    const { data: f } = await supabase.from('user_follows').select('following_id').eq('follower_id', user.id);
+    followingIds = (f ?? []).map(row => row.following_id);
+  }
+
+  // 3. Spots chauds via RPC (renvoie maintenant logo_emoji/cover_color/lat/lon/price_range/rating)
   const { data: hotSpotsRaw } = await supabase.rpc('get_hot_spots', { limit_count: 10 });
-  const hotSpots: HotSpot[] = (hotSpotsRaw ?? []).map((s: any) => ({
+  const FALLBACK_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E5337A', '#E8B23C', '#C4582E'];
+  const hotSpotIds = (hotSpotsRaw ?? []).map((s: any) => s.id);
+
+  // Compte d'amis présents sur chaque spot (ceux qu'on suit qui ont check-in dans les 12h)
+  const friendsByPlace = new Map<string, number>();
+  if (user && hotSpotIds.length > 0 && followingIds.length > 0) {
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const { data: friendCheckins } = await supabase
+      .from('checkins')
+      .select('place_id, user_id')
+      .in('place_id', hotSpotIds)
+      .in('user_id', followingIds)
+      .gte('created_at', twelveHoursAgo);
+    (friendCheckins ?? []).forEach(c => {
+      if (c.place_id) friendsByPlace.set(c.place_id, (friendsByPlace.get(c.place_id) ?? 0) + 1);
+    });
+  }
+
+  const hotSpots: HotSpot[] = (hotSpotsRaw ?? []).map((s: any, i: number) => ({
     place_id: s.id,
     place_name: s.name,
     commune: s.commune,
-    logo_emoji: s.is_new ? '✨' : '📍',
-    cover_color: s.is_new ? '#0EA85B' : '#F26C1A',
-    checkin_count: Number(s.checkin_count),
+    logo_emoji: s.logo_emoji ?? (s.is_new ? '✨' : '📍'),
+    cover_color: s.cover_color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+    checkin_count: Number(s.checkin_count ?? 0),
     category: s.category,
+    price_range: s.price_range ?? null,
+    rating: s.rating !== null && s.rating !== undefined ? Number(s.rating) : null,
+    is_new: Boolean(s.is_new),
+    friends_count: friendsByPlace.get(s.id) ?? 0,
     lat: Number(s.lat || 5.308),
-    lon: Number(s.lon || -4.016)
+    lon: Number(s.lon || -4.016),
   }));
 
   // 3b. Fetch Events & Voice Rooms
@@ -173,13 +240,6 @@ export default async function GbairaiPage() {
     return { commune, report_count: reportCount, checkin_count: cc, status, top_category: topCategory };
   });
 
-  // 5. Fetch Followers (pour filtrage stories)
-  let followingIds: string[] = [];
-  if (user) {
-    const { data: f } = await supabase.from('user_follows').select('following_id').eq('follower_id', user.id);
-    followingIds = (f ?? []).map(row => row.following_id);
-  }
-
   // 6. Fetch Stories (24h actives)
   // On récupère les stories avec les infos profil
   const { data: storiesRaw } = await supabase
@@ -230,7 +290,82 @@ export default async function GbairaiPage() {
     expires_at: s.expires_at,
   }));
 
-  // 7. Trending hashtags
+  // 7a. Quêtes individuelles (catalogue)
+  const { data: questsRaw } = await supabase
+    .from('quests')
+    .select('id, title, description, icon, color, xp_reward, quest_type, target_count, is_secret, sort_order')
+    .eq('is_secret', false)
+    .order('sort_order', { ascending: true });
+  const quests: Quest[] = (questsRaw ?? []).map(q => ({
+    id: q.id,
+    title: q.title,
+    description: q.description,
+    icon: q.icon ?? 'Star',
+    color: q.color ?? '#F26C1A',
+    xp_reward: q.xp_reward ?? 0,
+    quest_type: q.quest_type,
+    target_count: q.target_count ?? 1,
+  }));
+
+  // 7b. Quête collective (active)
+  const { data: collectiveRaw } = await supabase
+    .from('collective_quest')
+    .select('*')
+    .gt('ends_at', nowIso)
+    .order('ends_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  let collectiveQuest: CollectiveQuest | null = null;
+  if (collectiveRaw) {
+    // current_count = total checkins publics depuis le démarrage de la quête
+    const { count: currentCount } = await supabase
+      .from('checkins')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', collectiveRaw.created_at);
+    collectiveQuest = {
+      id: collectiveRaw.id,
+      title: collectiveRaw.title,
+      description: collectiveRaw.description,
+      target_count: collectiveRaw.target_count,
+      reward_xp: collectiveRaw.reward_xp,
+      reward_badge: collectiveRaw.reward_badge,
+      ends_at: collectiveRaw.ends_at,
+      current_count: Math.min(currentCount ?? 0, collectiveRaw.target_count),
+    };
+  }
+
+  // 7c. Crews + nombre de membres
+  const { data: crewsRaw } = await supabase
+    .from('crews')
+    .select('id, name, description, emoji, color_from, color_to, commune')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  const crewIds = (crewsRaw ?? []).map(c => c.id);
+  const memberCounts = new Map<string, number>();
+  let myCrewIds = new Set<string>();
+  if (crewIds.length > 0) {
+    const { data: members } = await supabase
+      .from('crew_members')
+      .select('crew_id, user_id')
+      .in('crew_id', crewIds);
+    (members ?? []).forEach(m => {
+      memberCounts.set(m.crew_id, (memberCounts.get(m.crew_id) ?? 0) + 1);
+      if (user && m.user_id === user.id) myCrewIds.add(m.crew_id);
+    });
+  }
+  const crews: Crew[] = (crewsRaw ?? []).map(c => ({
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    emoji: c.emoji,
+    color_from: c.color_from,
+    color_to: c.color_to,
+    commune: c.commune,
+    member_count: memberCounts.get(c.id) ?? 0,
+    is_member: myCrewIds.has(c.id),
+  }));
+
+  // 8. Trending hashtags
   const tagCount = new Map<string, number>();
   (posts ?? []).forEach(p => {
     (p.hashtags ?? []).forEach((tag: string) => {
@@ -256,6 +391,9 @@ export default async function GbairaiPage() {
       myReactions={myReactions}
       events={events ?? []}
       voiceRooms={voiceRooms ?? []}
+      quests={quests}
+      collectiveQuest={collectiveQuest}
+      crews={crews}
     />
   );
 }

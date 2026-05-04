@@ -4,12 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
-import type { GbairaiPost, HotSpot, CommunePulse, Story } from './page';
+import { pickWax } from '@/lib/waxPattern';
+import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew } from './page';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
 import StoryComposer from './StoryComposer';
 import StoryViewer from './StoryViewer';
 import SpotsTab from './SpotsTab';
+import QuetesTab from './QuetesTab';
+import CrewsTab from './CrewsTab';
 
 export type Event = {
   id: string;
@@ -43,6 +46,9 @@ type Props = {
   myReactions?: Record<string, string[]>;
   events: Event[];
   voiceRooms: VoiceRoom[];
+  quests: Quest[];
+  collectiveQuest: CollectiveQuest | null;
+  crews: Crew[];
 };
 
 const TABS = [
@@ -83,44 +89,65 @@ function pulseHeadline(pulse: CommunePulse[]): string {
 }
 
 function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
+  const [notice, setNotice] = useState<string | null>(null);
   if (rooms.length === 0) return null;
   return (
-    <div style={{ padding: '0 16px', marginBottom: 20 }}>
-      {rooms.map(room => (
-        <div key={room.id} className="press" style={{
-          borderRadius: 24, padding: 20, background: 'linear-gradient(135deg, #E5337A 0%, #C12763 100%)',
-          color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 24px rgba(229,51,122,0.3)'
-        }}>
-          <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900, marginBottom: 8 }}>
-              <Ic.Mic s={14} fill /> SALON VOCAL · LIVE
-            </div>
-            <h3 className="font-display" style={{ fontSize: 24, margin: '0 0 16px', lineHeight: 1.1 }}>« {room.title} »</h3>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: -8 }}>
-                {[0,1,2,3].map(i => (
-                  <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: AVATAR_COLORS[i], border: '2px solid #E5337A', marginLeft: i === 0 ? 0 : -10 }} />
-                ))}
+    <div style={{ padding: '0 16px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {rooms.map(room => {
+        const wax = pickWax(`vroom-${room.id}`, { rotate: true });
+        const visibleAvatars = Math.min(4, Math.max(1, room.participants_count));
+        const overflow = Math.max(0, room.participants_count - visibleAvatars);
+        return (
+          <div key={room.id} className="press" style={{
+            borderRadius: 24, padding: 20, background: 'linear-gradient(135deg, #E5337A 0%, #C12763 100%)',
+            color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 24px rgba(229,51,122,0.3)'
+          }}>
+            <div className={wax} style={{ position: 'absolute', inset: 0, opacity: 0.12 }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900, marginBottom: 8 }}>
+                <Ic.Mic s={14} fill /> {room.emoji ? `${room.emoji} ` : ''}SALON VOCAL · LIVE
               </div>
-              <span style={{ fontSize: 13, fontWeight: 800 }}>+{room.participants_count}</span>
-            </div>
+              <h3 className="font-display" style={{ fontSize: 24, margin: '0 0 16px', lineHeight: 1.1 }}>« {room.title} »</h3>
 
-            <button style={{ width: '100%', padding: '12px', borderRadius: 14, border: 'none', background: '#fff', color: '#E5337A', fontSize: 14, fontWeight: 900, cursor: 'pointer' }}>
-              Entrer
-            </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {Array.from({ length: visibleAvatars }).map((_, i) => {
+                    const seed = hashString(`${room.id}-${i}`);
+                    return (
+                      <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: AVATAR_COLORS[seed % AVATAR_COLORS.length], border: '2px solid #E5337A', marginLeft: i === 0 ? 0 : -10 }} />
+                    );
+                  })}
+                </div>
+                {overflow > 0 && <span style={{ fontSize: 13, fontWeight: 800 }}>+{overflow}</span>}
+                {overflow === 0 && <span style={{ fontSize: 13, fontWeight: 800 }}>{room.participants_count} dans le salon</span>}
+              </div>
+
+              <button
+                onClick={() => setNotice('Les salons vocaux arrivent bientôt 👀')}
+                style={{ width: '100%', padding: '12px', borderRadius: 14, border: 'none', background: '#fff', color: '#E5337A', fontSize: 14, fontWeight: 900, cursor: 'pointer' }}>
+                Entrer
+              </button>
+              {notice && <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, opacity: 0.95 }}>{notice}</div>}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+// Petit hash texte → entier pour seeds
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
 }
 
 function TrendingSection({ spots }: { spots: HotSpot[] }) {
   if (spots.length === 0) return null;
   const top = spots[0];
   const others = spots.slice(1, 4);
+  const topWax = pickWax(`spot-top-${top.place_id}`, { rotate: true });
 
   return (
     <div style={{ padding: '0 16px', marginBottom: 28 }}>
@@ -130,49 +157,75 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
       <h2 className="font-display" style={{ fontSize: 28, margin: '0 0 16px' }}>Les spots qui chauffent</h2>
 
       {/* Top 1 Card */}
-      <div className="press" style={{
+      <Link href={`/app/place/${top.place_id}`} className="press" style={{
+        textDecoration: 'none',
+        display: 'flex',
         borderRadius: 24, height: 240, background: `linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%), linear-gradient(135deg, ${top.cover_color} 0%, #1A1410 100%)`,
-        position: 'relative', overflow: 'hidden', marginBottom: 16, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 20, color: '#fff'
+        position: 'relative', overflow: 'hidden', marginBottom: 16, flexDirection: 'column', justifyContent: 'flex-end', padding: 20, color: '#fff'
       }}>
-        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.1 }} />
+        <div className={topWax} style={{ position: 'absolute', inset: 0, opacity: 0.12 }} />
         <div style={{ position: 'absolute', top: 16, left: 16, background: 'var(--orange)', color: '#fff', padding: '4px 12px', borderRadius: 8, fontSize: 18, fontWeight: 900 }}>#1</div>
-        <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          🔥 {top.checkin_count * 12} BABIS Y VONT CE SOIR
-        </div>
-        
+        {top.checkin_count > 0 && (
+          <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            🔥 {top.checkin_count} {top.checkin_count > 1 ? 'BABIS Y SONT' : 'BABI Y EST'}
+          </div>
+        )}
+
         <h3 className="font-display" style={{ fontSize: 32, margin: 0 }}>{top.place_name}</h3>
         <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8, marginTop: 4 }}>
-          {top.commune} · {top.category || 'Spot'} · Poisson braisé
+          {[top.commune, top.category].filter(Boolean).join(' · ')}
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>★ 4.8</div>
-          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>5 000–15 000F</div>
-          <div style={{ background: '#0EA85B', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>OUVERT</div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          {top.rating !== null && (
+            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>★ {top.rating.toFixed(1)}</div>
+          )}
+          {top.price_range && (
+            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>{top.price_range}</div>
+          )}
+          {top.is_new && (
+            <div style={{ background: 'var(--green)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>NOUVEAU</div>
+          )}
         </div>
-      </div>
+      </Link>
 
       {/* Others List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {others.map((s, i) => (
-          <div key={s.place_id} className="press" style={{
-            padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)',
-            display: 'flex', alignItems: 'center', gap: 16
-          }}>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: s.cover_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: -6, left: -6, width: 24, height: 24, borderRadius: 6, background: 'var(--ink)', color: '#fff', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>#{i + 2}</div>
-              <span style={{ fontSize: 24 }}>{s.logo_emoji}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 900 }}>{s.place_name} — {s.commune}</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>Attiéké · 1 500F</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 800 }}>🔥 {s.checkin_count * 10}</span>
-                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>👥 12 amis</span>
+        {others.map((s, i) => {
+          const wax = pickWax(`spot-${s.place_id}`, { rotate: true });
+          return (
+            <Link key={s.place_id} href={`/app/place/${s.place_id}`} className="press" style={{
+              textDecoration: 'none', color: 'inherit',
+              padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)',
+              display: 'flex', alignItems: 'center', gap: 16
+            }}>
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: s.cover_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+                <div className={wax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.25 }} />
+                <div style={{ position: 'absolute', top: -6, left: -6, width: 24, height: 24, borderRadius: 6, background: 'var(--ink)', color: '#fff', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>#{i + 2}</div>
+                <span style={{ fontSize: 24, position: 'relative' }}>{s.logo_emoji}</span>
               </div>
-            </div>
-            <button style={{ padding: '8px 14px', borderRadius: 12, border: '1px solid var(--line)', background: '#fff', fontWeight: 800, fontSize: 12 }}>Y aller</button>
-          </div>
-        ))}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.place_name}{s.commune ? ` — ${s.commune}` : ''}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>
+                  {[s.category, s.price_range].filter(Boolean).join(' · ') || 'Spot'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                  {s.checkin_count > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 800 }}>🔥 {s.checkin_count}</span>
+                  )}
+                  {s.friends_count > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>👥 {s.friends_count} ami{s.friends_count > 1 ? 's' : ''}</span>
+                  )}
+                  {s.rating !== null && (
+                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>★ {s.rating.toFixed(1)}</span>
+                  )}
+                </div>
+              </div>
+              <span style={{ padding: '8px 14px', borderRadius: 12, border: '1px solid var(--line)', background: '#fff', fontWeight: 800, fontSize: 12 }}>Y aller</span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -180,36 +233,53 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
 
 function EventsSection({ events }: { events: Event[] }) {
   if (events.length === 0) return null;
+  const GRADIENTS = [
+    'linear-gradient(135deg, #1E5BFF 0%, #1540B3 100%)',
+    'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
+    'linear-gradient(135deg, #E5337A 0%, #9B2454 100%)',
+    'linear-gradient(135deg, #0EA85B 0%, #0A6E3D 100%)',
+    'linear-gradient(135deg, #E8B23C 0%, #B5832A 100%)',
+    'linear-gradient(135deg, #1A2D6B 0%, #2B4FB7 100%)',
+  ];
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ padding: '0 16px', marginBottom: 12 }}>
         <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1 }}>ÉVÉNEMENTS · CETTE SEMAINE</div>
         <h2 className="font-display" style={{ fontSize: 28, margin: '0 0 16px' }}>Sors avec Babi</h2>
       </div>
-      
+
       <div className="no-scrollbar" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 16px' }}>
-        {events.map((e, i) => (
-          <div key={e.id} className="press" style={{
-            flexShrink: 0, width: 240, height: 160, borderRadius: 24, padding: 20,
-            background: i % 2 === 0 ? 'linear-gradient(135deg, #1E5BFF 0%, #1540B3 100%)' : 'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
-            color: '#fff', position: 'relative', overflow: 'hidden'
-          }}>
-            <div className="wax-stripe" style={{ position: 'absolute', inset: 0, opacity: 0.15, transform: 'rotate(-45deg) scale(2)' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, marginBottom: 8 }}>
-                {new Date(e.start_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }).toUpperCase()}
+        {events.map((e) => {
+          const wax = pickWax(`event-${e.id}`, { rotate: true });
+          const grad = GRADIENTS[hashString(e.id) % GRADIENTS.length];
+          const start = new Date(e.start_at);
+          return (
+            <div key={e.id} className="press" style={{
+              flexShrink: 0, width: 240, height: 160, borderRadius: 24, padding: 20,
+              background: grad, color: '#fff', position: 'relative', overflow: 'hidden'
+            }}>
+              <div className={wax} style={{ position: 'absolute', inset: 0, opacity: 0.15 }} />
+              <div style={{ position: 'relative' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, marginBottom: 8 }}>
+                  {start.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }).toUpperCase()}
+                </div>
+                <h3 className="font-display" style={{ fontSize: 22, margin: '0 0 4px', lineHeight: 1.1 }}>{e.title}</h3>
+                <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>
+                  {[e.location_name, `${start.getHours()}h${start.getMinutes() ? String(start.getMinutes()).padStart(2,'0') : ''}`].filter(Boolean).join(' · ')}
+                </div>
+                {e.price_label && (
+                  <div style={{ marginTop: 10, display: 'inline-block', background: 'rgba(255,255,255,0.18)', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>{e.price_label}</div>
+                )}
               </div>
-              <h3 className="font-display" style={{ fontSize: 22, margin: '0 0 4px', lineHeight: 1.1 }}>{e.title}</h3>
-              <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>{e.location_name} · {new Date(e.start_at).getHours()}h</div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms }: Props) {
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms, quests, collectiveQuest, crews }: Props) {
   const [tab, setTab] = useState<string>('vibe');
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
@@ -217,6 +287,18 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
+
+  // Couleur du pouls global = pire statut courant
+  const overallStatus: 'vert' | 'orange' | 'rouge' =
+    pulse.some(p => p.status === 'rouge')  ? 'rouge'
+    : pulse.some(p => p.status === 'orange') ? 'orange'
+    : 'vert';
+  const PULSE_GRADIENTS = {
+    vert:   'linear-gradient(135deg, #0EA85B 0%, #0A8A4A 100%)',
+    orange: 'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
+    rouge:  'linear-gradient(135deg, #FF3B30 0%, #B22A22 100%)',
+  } as const;
+  const pulseWax = pickWax(`pulse-${overallStatus}`, { rotate: true });
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
@@ -307,12 +389,12 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
             {/* Pulse card */}
             <div style={{ padding: '0 16px', marginBottom: 14 }}>
-              <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #0EA85B 0%, #0A8A4A 100%)', color: '#fff', padding: 18 }}>
-                <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.13 }} />
+              <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', background: PULSE_GRADIENTS[overallStatus], color: '#fff', padding: 18 }}>
+                <div className={pulseWax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.13 }} />
                 <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
                 <div style={{ position: 'relative' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, opacity: 0.9, letterSpacing: 0.7 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
+                    <span className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
                     POULS · MAINTENANT
                   </div>
                   <div className="font-display" style={{ fontSize: 24, marginTop: 6, lineHeight: 1.05 }}>
@@ -374,25 +456,11 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         {/* TAB — SPOTS DU MOMENT */}
         {tab === 'spots' && <SpotsTab hotSpots={hotSpots} />}
 
-        {/* TAB — QUÊTES (placeholder) */}
-        {tab === 'quetes' && (
-          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
-            <div className="font-display" style={{ fontSize: 22, marginBottom: 8 }}>Quêtes collectives</div>
-            <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 280, margin: '0 auto' }}>Les quêtes pour cartographier Abidjan ensemble arrivent bientôt !</p>
-            <div style={{ marginTop: 16, fontSize: 10, fontWeight: 900, background: 'var(--line)', padding: '6px 14px', borderRadius: 8, display: 'inline-block', color: 'var(--ink)' }}>BIENTÔT DISPONIBLE</div>
-          </div>
-        )}
+        {/* TAB — QUÊTES */}
+        {tab === 'quetes' && <QuetesTab quests={quests} collective={collectiveQuest} />}
 
-        {/* TAB — CREWS (placeholder) */}
-        {tab === 'crews' && (
-          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
-            <div className="font-display" style={{ fontSize: 22, marginBottom: 8 }}>Crews de quartier</div>
-            <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 280, margin: '0 auto' }}>Forme ton crew et conquiers Abidjan ensemble.</p>
-            <div style={{ marginTop: 16, fontSize: 10, fontWeight: 900, background: 'var(--line)', padding: '6px 14px', borderRadius: 8, display: 'inline-block', color: 'var(--ink)' }}>BIENTÔT DISPONIBLE</div>
-          </div>
-        )}
+        {/* TAB — CREWS */}
+        {tab === 'crews' && <CrewsTab crews={crews} userId={userId} />}
       </div>
 
       {/* Post Composer Modal */}

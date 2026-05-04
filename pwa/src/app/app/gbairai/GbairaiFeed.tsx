@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
+import { pickWax } from '@/lib/waxPattern';
 import type { GbairaiPost } from './page';
 
 const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#FF3B30', '#C4582E'];
@@ -78,13 +79,14 @@ export default function GbairaiFeed({ initialPosts, myLikes: initialMyLikes, use
 
 function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: number; isLiked: boolean; onLike: () => void }) {
   const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  const wax = pickWax(`post-${p.id}`, { rotate: true });
 
   // TARIF CARD
   if (p.post_type === 'tarif') {
     const meta = p.metadata ?? {};
     return (
       <div style={{ borderRadius: 16, padding: 14, background: 'var(--ink)', color: 'var(--cream)', position: 'relative', overflow: 'hidden', minHeight: 180 }}>
-        <div className="wax-zigzag" style={{ position: 'absolute', inset: 0, color: 'var(--green)', opacity: 0.12 }} />
+        <div className={wax} style={{ position: 'absolute', inset: 0, color: 'var(--green)', opacity: 0.14 }} />
         <div style={{ position: 'relative' }}>
           <Pill color="var(--green)">TARIF CONFIRMÉ</Pill>
           <div className="font-display" style={{ fontSize: 16, marginTop: 8, color: '#fff', lineHeight: 1.05 }}>
@@ -103,7 +105,7 @@ function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: n
     return (
       <div style={{ borderRadius: 20, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)', position: 'relative' }}>
         <div style={{ height: 100, background: 'linear-gradient(135deg, #1E5BFF 0%, #1540B3 100%)', position: 'relative', overflow: 'hidden' }}>
-          <div className="wax-zigzag" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+          <div className={wax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
           <div style={{ position: 'absolute', top: 12, left: 12, fontSize: 10, fontWeight: 900, color: '#fff', background: '#FF3B30', padding: '4px 10px', borderRadius: 8, letterSpacing: 0.5 }}>ALERTE TRAFIC</div>
           {/* Mock path line */}
           <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, height: 4, background: '#FF3B30', boxShadow: '0 0 12px rgba(255,59,48,0.6)', transform: 'rotate(-2deg)' }} />
@@ -121,7 +123,7 @@ function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: n
     const meta = p.metadata ?? {};
     return (
       <div style={{ borderRadius: 20, padding: 20, background: 'linear-gradient(135deg, #1A2D6B 0%, #2B4FB7 100%)', color: '#fff', position: 'relative', overflow: 'hidden', minHeight: 180 }}>
-        <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: 'var(--gold)', opacity: 0.15, transform: 'rotate(45deg) scale(1.5)' }} />
+        <div className={wax} style={{ position: 'absolute', inset: 0, color: 'var(--gold)', opacity: 0.18 }} />
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             <span style={{ fontSize: 9, fontWeight: 900, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8 }}>{meta.date || 'CE SEMAINE'}</span>
@@ -129,9 +131,11 @@ function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: n
           </div>
           <h3 className="font-display" style={{ fontSize: 20, margin: '0 0 4px', lineHeight: 1.1 }}>{p.content}</h3>
           <div style={{ fontSize: 12, opacity: 0.8, fontWeight: 700 }}>{p.place_name || p.commune} · {meta.prix || '5 000F'}</div>
-          <div style={{ marginTop: 16, fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Ic.Users s={14} /> {p.likes_count + 140} Babis y vont
-          </div>
+          {p.likes_count > 0 && (
+            <div style={{ marginTop: 16, fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Ic.Users s={14} /> {p.likes_count} Babi{p.likes_count > 1 ? 's' : ''} intéressé{p.likes_count > 1 ? 's' : ''}
+            </div>
+          )}
           <CardFooter p={p} ac={ac} isLiked={isLiked} onLike={onLike} light />
         </div>
       </div>
@@ -143,7 +147,7 @@ function PostCard({ post: p, idx, isLiked, onLike }: { post: GbairaiPost; idx: n
     return (
       <div style={{ borderRadius: 20, overflow: 'hidden', background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
         <div style={{ height: 160, background: `linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 100%), linear-gradient(135deg, #E8B23C, #F26C1A)`, position: 'relative', overflow: 'hidden' }}>
-          <div className="wax-stripe" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.1 }} />
+          <div className={wax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.14 }} />
         </div>
         <div style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>

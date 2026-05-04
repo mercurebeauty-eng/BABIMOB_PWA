@@ -124,6 +124,83 @@ body {
     transparent 20px, transparent 28px
   );
 }
+/* Bigger soft dots, kente vibe */
+.wax-dots-lg {
+  background-image:
+    radial-gradient(circle, currentColor 2.5px, transparent 3px);
+  background-size: 22px 22px;
+}
+/* Cross / plus pattern */
+.wax-cross {
+  background-image:
+    linear-gradient(currentColor 1.5px, transparent 1.5px),
+    linear-gradient(90deg, currentColor 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  background-position: center;
+}
+/* Triangles / chevrons */
+.wax-triangle {
+  background-image:
+    linear-gradient(60deg, currentColor 25%, transparent 25.5%, transparent 75%, currentColor 75%, currentColor),
+    linear-gradient(120deg, currentColor 25%, transparent 25.5%, transparent 75%, currentColor 75%, currentColor);
+  background-size: 22px 38px;
+}
+/* Wave / sinus stripes */
+.wax-wave {
+  background-image:
+    radial-gradient(ellipse 14px 6px at 7px 0, currentColor 49%, transparent 51%),
+    radial-gradient(ellipse 14px 6px at 21px 12px, currentColor 49%, transparent 51%);
+  background-size: 28px 24px;
+}
+/* Diamond / lozenge */
+.wax-diamond {
+  background-image:
+    linear-gradient(45deg, currentColor 25%, transparent 25%, transparent 75%, currentColor 75%),
+    linear-gradient(45deg, currentColor 25%, transparent 25%, transparent 75%, currentColor 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 9px;
+}
+/* Checker / kente squares */
+.wax-checker {
+  background-image:
+    linear-gradient(45deg, currentColor 25%, transparent 25%),
+    linear-gradient(-45deg, currentColor 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, currentColor 75%),
+    linear-gradient(-45deg, transparent 75%, currentColor 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+/* Grid */
+.wax-grid {
+  background-image:
+    linear-gradient(currentColor 1px, transparent 1px),
+    linear-gradient(90deg, currentColor 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+/* Hexagon-ish dots staggered */
+.wax-hex {
+  background-image:
+    radial-gradient(circle at 0 0, currentColor 1.5px, transparent 2px),
+    radial-gradient(circle at 16px 16px, currentColor 1.5px, transparent 2px);
+  background-size: 32px 32px;
+}
+/* Dashes */
+.wax-dash {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    currentColor 0 6px, transparent 6px 14px
+  );
+}
+
+/* Rotation modifiers — combine on the same element */
+.wax-rot-15  { transform: rotate(15deg)  scale(1.6); }
+.wax-rot-30  { transform: rotate(30deg)  scale(1.6); }
+.wax-rot-45  { transform: rotate(45deg)  scale(1.7); }
+.wax-rot-60  { transform: rotate(60deg)  scale(1.7); }
+.wax-rot-90  { transform: rotate(90deg)  scale(1.6); }
+.wax-rot-n30 { transform: rotate(-30deg) scale(1.6); }
+.wax-rot-n45 { transform: rotate(-45deg) scale(1.7); }
+
 .wax-strip-orange { color: var(--orange); }
 .wax-strip-green  { color: var(--green); }
 
