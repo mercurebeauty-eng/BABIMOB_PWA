@@ -4,22 +4,24 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { Ic } from './Ic';
-
 import PlusBubble from './PlusBubble';
 
 const NAV_ITEMS = [
-  { id: 'home', label: 'Carte', icon: Ic.Map, path: '/app' },
-  { id: 'gbairai', label: 'Gbairai', icon: Ic.Chat, path: '/app/gbairai' },
-  { id: 'compte', label: 'Profil', icon: Ic.Star, path: '/app/compte' },
-  { id: 'menu', label: 'Plus', icon: Ic.Menu, path: null },
+  { id: 'home', label: 'Carte', icon: Ic.Map, path: '/app', color: 'var(--orange)' },
+  { id: 'gbairai', label: 'Gbairai', icon: Ic.Chat, path: '/app/gbairai', color: 'var(--blue)' },
+  { id: 'compte', label: 'Profil', icon: Ic.Users, path: '/app/compte', color: 'var(--ink)' },
 ];
 
 export function BottomNav({ 
   onToggleHeatmap, 
-  heatMode 
+  heatMode,
+  nearbyStopsCount = 0,
+  onCycleNearby
 }: { 
   onToggleHeatmap: () => void;
   heatMode: boolean;
+  nearbyStopsCount?: number;
+  onCycleNearby?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -28,9 +30,9 @@ export function BottomNav({
   return (
     <div style={{
       position: 'fixed',
-      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-      left: 16,
-      right: 16,
+      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+      left: 0,
+      right: 0,
       zIndex: 9000,
       display: 'flex',
       justifyContent: 'center',
@@ -47,19 +49,61 @@ export function BottomNav({
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         style={{
-          background: 'rgba(255, 255, 255, 0.55)',
-          backdropFilter: 'blur(24px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-          borderRadius: 24,
-          padding: '8px 12px',
+          background: 'rgba(255, 255, 255, 0.45)',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
+          borderRadius: 32,
+          padding: '10px',
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.05)',
+          gap: 10,
+          boxShadow: '0 20px 40px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.4)',
           pointerEvents: 'auto',
-          border: '1px solid rgba(255, 255, 255, 0.4)',
+          border: '1px solid rgba(0,0,0,0.05)',
         }}
       >
+        {/* Nearby Stops / Près de toi Icon (App Style) */}
+        {nearbyStopsCount > 0 && (
+          <button
+            onClick={onCycleNearby}
+            className="press"
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 16,
+              background: 'linear-gradient(135deg, #FF9500, #FF5E00)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+              position: 'relative',
+              boxShadow: '0 4px 12px rgba(255,149,0,0.3)'
+            }}
+          >
+            <Ic.Bus s={24} />
+            <div style={{
+              position: 'absolute',
+              top: -5,
+              right: -5,
+              background: 'var(--ink)',
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 900,
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid rgba(255,255,255,0.8)'
+            }}>
+              {nearbyStopsCount}
+            </div>
+          </button>
+        )}
+
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
@@ -67,67 +111,57 @@ export function BottomNav({
           return (
             <button
               key={item.id}
-              onClick={() => {
-                if (item.path) {
-                  router.push(item.path);
-                } else {
-                  setIsPlusOpen(!isPlusOpen);
-                }
-              }}
+              onClick={() => item.path && router.push(item.path)}
+              className="press"
               style={{
-                position: 'relative',
+                width: 54,
+                height: 54,
+                borderRadius: 16,
+                background: isActive ? '#fff' : 'rgba(255,255,255,0.3)',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '10px 16px',
+                color: isActive ? item.color : 'rgba(0,0,0,0.6)',
                 border: 'none',
-                background: 'transparent',
                 cursor: 'pointer',
-                borderRadius: 18,
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                minWidth: 64,
+                boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
               }}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="nav-active"
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'var(--orange)',
-                    borderRadius: 16,
-                    zIndex: 0,
-                  }}
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              
-              <div style={{ 
-                position: 'relative', 
-                zIndex: 1,
-                color: isActive ? '#fff' : 'var(--muted)',
-                transition: 'color 0.3s ease',
-              }}>
-                <Icon s={22} fill={isActive} />
-              </div>
-              
-              <span style={{
-                position: 'relative',
-                zIndex: 1,
-                fontSize: 10,
-                fontWeight: 800,
-                marginTop: 4,
-                color: isActive ? '#fff' : 'var(--muted)',
-                transition: 'color 0.3s ease',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}>
-                {item.label}
-              </span>
+              <Icon s={24} fill={isActive} />
             </button>
           );
         })}
+
+        {/* Separator like iPad Dock */}
+        <div style={{
+          width: 1.5,
+          height: 32,
+          background: 'rgba(0,0,0,0.1)',
+          margin: '0 4px',
+          borderRadius: 1
+        }} />
+
+        {/* Plus Button */}
+        <button
+          onClick={() => setIsPlusOpen(!isPlusOpen)}
+          className="press"
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: 16,
+            background: isPlusOpen ? 'var(--ink)' : 'rgba(255,255,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isPlusOpen ? '#fff' : 'rgba(0,0,0,0.6)',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <Ic.Menu s={24} />
+        </button>
       </motion.nav>
     </div>
   );

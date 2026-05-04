@@ -12,7 +12,6 @@ import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
 import { useCommunityData } from '@/hooks/useCommunityData';
@@ -23,7 +22,6 @@ import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
-import NearbyStopsBubble from '@/components/ui/NearbyStopsBubble';
 
 type RecentItem = {
   id: string;
@@ -99,6 +97,7 @@ function AppPageContent() {
   }, []);
 
   const { heatMode, setHeatMode, hotspots } = useHotspots();
+  const [nearbyIndex, setNearbyIndex] = useState(0);
   const { activeItinerary, setActiveItinerary } = useItinerary();
 
   const { logReach } = useReachTracking();
@@ -805,7 +804,14 @@ function AppPageContent() {
 
       <BottomNav 
         onToggleHeatmap={() => setHeatMode(!heatMode)} 
-        heatMode={heatMode} 
+        heatMode={heatMode}
+        nearbyStopsCount={nearbyStops.length}
+        onCycleNearby={() => {
+          if (nearbyStops.length === 0) return;
+          const next = (nearbyIndex + 1) % Math.min(nearbyStops.length, 5);
+          setNearbyIndex(next);
+          handleSelectStop(nearbyStops[next]);
+        }}
       />
     </div>
   );
