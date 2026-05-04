@@ -799,6 +799,13 @@ export default function CompteClient({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SidebarMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        profile={profileForMenu} 
+      />
+      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
     </div>
   );
 }
@@ -934,12 +941,8 @@ function ActivityLog({ checkinsDetail, crew: realCrew, collectiveQuest: realQues
         ))}
       </div>
 
-      <SidebarMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-        profile={profileForMenu} 
-      />
-      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
+        ))}
+      </div>
     </div>
   );
 }
