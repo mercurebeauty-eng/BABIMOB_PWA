@@ -678,7 +678,7 @@ function AppPageContent() {
                         stop_name: r.name,
                         stop_lat: r.lat,
                         stop_lon: r.lon,
-                        commune: r.commune
+                        commune: r.commune ?? null
                       });
                     } else {
                       router.push(`/app/place/${r.id}`);
@@ -720,7 +720,7 @@ function AppPageContent() {
                             stop_name: r.name,
                             stop_lat: r.lat!,
                             stop_lon: r.lon!,
-                            commune: r.commune
+                            commune: r.commune ?? null
                           });
                         } else {
                           router.push(`/app/place/${r.id}`);
