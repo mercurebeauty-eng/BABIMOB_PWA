@@ -10,17 +10,16 @@ interface PlusBubbleProps {
   onClose: () => void;
   onToggleHeatmap: () => void;
   heatMode: boolean;
+  isAdmin?: boolean;
 }
 
-export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode }: PlusBubbleProps) {
+export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode, isAdmin }: PlusBubbleProps) {
   const router = useRouter();
 
   const menuItems = [
-    { icon: <Ic.Pin s={20} />, label: 'Stories', path: '/app/stories', color: 'var(--orange)' },
-    { icon: <Ic.Users s={20} />, label: 'Mon Profil', path: '/app/compte', color: 'var(--blue)' },
-    { icon: <Ic.Layers s={20} />, label: heatMode ? 'Heatmap: ON' : 'Heatmap: OFF', action: onToggleHeatmap, color: heatMode ? 'var(--orange)' : 'var(--muted)' },
-    { icon: <Ic.Settings s={20} />, label: 'Paramètres', path: '/app/settings', color: 'var(--ink)' },
-    { icon: <Ic.Map s={20} />, label: 'Admin', path: '/app/admin', color: 'var(--ink-2)' },
+    { icon: <Ic.Flame s={20} />, label: heatMode ? 'Heatmap: Activée' : 'Heatmap: Désactivée', action: onToggleHeatmap, color: heatMode ? 'var(--orange)' : 'var(--muted)' },
+    { icon: <Ic.Route s={20} />, label: 'Escale', path: '/app/itineraire', color: 'var(--blue)' },
+    ...(isAdmin ? [{ icon: <Ic.Map s={20} />, label: 'Admin', path: '/app/admin', color: 'var(--ink)' }] : []),
   ];
 
   return (

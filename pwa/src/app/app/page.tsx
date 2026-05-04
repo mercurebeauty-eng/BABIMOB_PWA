@@ -343,6 +343,7 @@ function AppPageContent() {
             { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite, loading: false },
             { icon: <Ic.Locate s={18} />, action: handleLocateMe, active: !!userLoc, loading: geoLoading },
             { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole'), active: false, loading: false },
+            { icon: <Ic.Info s={18} />, action: () => router.push('/app/aide'), active: false, loading: false },
           ] as { icon: React.ReactNode; action: () => void; active: boolean; loading: boolean }[]
         ).map((btn, i) => (
           <button
@@ -824,6 +825,7 @@ function AppPageContent() {
           setNearbyIndex(next);
           handleSelectStop(nearbyStops[next]);
         }}
+        isAdmin={profile?.is_admin}
       />
     </div>
   );

@@ -22,6 +22,7 @@ export function BottomNav({
   heatMode: boolean;
   nearbyStopsCount?: number;
   onCycleNearby?: () => void;
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -164,6 +165,7 @@ export function BottomNav({
             onClose={() => setIsPlusOpen(false)} 
             onToggleHeatmap={onToggleHeatmap}
             heatMode={heatMode}
+            isAdmin={isAdmin}
           />
         </div>
       </motion.nav>
