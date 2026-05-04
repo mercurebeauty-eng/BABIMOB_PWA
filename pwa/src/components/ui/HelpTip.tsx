@@ -13,6 +13,20 @@ export function HelpTip({ title, content }: HelpTipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
+  // Calcul de la position horizontale sécurisée
+  const tooltipWidth = 220;
+  const margin = 12;
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
+  
+  // On contraint le centre du tooltip pour qu'il reste à l'intérieur
+  const safeLeft = Math.max(
+    tooltipWidth / 2 + margin, 
+    Math.min(screenWidth - tooltipWidth / 2 - margin, coords.left)
+  );
+
+  // Décalage de la flèche par rapport au centre du tooltip
+  const arrowOffset = coords.left - safeLeft;
+
   return (
     <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 6 }}>
       <button
@@ -49,7 +63,6 @@ export function HelpTip({ title, content }: HelpTipProps) {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop transparent pour fermer au clic ailleurs */}
             <div 
               onClick={() => setIsOpen(false)}
               style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
@@ -62,9 +75,9 @@ export function HelpTip({ title, content }: HelpTipProps) {
               style={{
                 position: 'fixed',
                 top: coords.top - 12,
-                left: coords.left,
+                left: safeLeft,
                 transform: 'translate(-50%, -100%)',
-                width: 220,
+                width: tooltipWidth,
                 background: 'var(--ink)',
                 color: 'var(--cream)',
                 padding: 14,
@@ -83,11 +96,11 @@ export function HelpTip({ title, content }: HelpTipProps) {
               <div style={{ opacity: 0.9 }}>
                 {content}
               </div>
-              {/* Triangle */}
+              {/* Triangle avec offset dynamique */}
               <div style={{
                 position: 'absolute',
                 top: '100%',
-                left: '50%',
+                left: `calc(50% + ${arrowOffset}px)`,
                 marginLeft: -8,
                 borderWidth: 8,
                 borderStyle: 'solid',
