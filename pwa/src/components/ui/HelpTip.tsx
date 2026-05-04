@@ -31,7 +31,7 @@ export function HelpTip({ title, content }: HelpTipProps) {
   const arrowOffset = coords.left - safeLeft;
 
   return (
-    <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 6 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginLeft: 6 }}>
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -46,26 +46,19 @@ export function HelpTip({ title, content }: HelpTipProps) {
         }}
         aria-label={`Aide pour ${title}`}
         style={{
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          border: '1.5px solid var(--muted)',
+          border: 'none',
           background: 'transparent',
-          fontSize: 11,
-          fontWeight: '900',
+          color: isOpen ? 'var(--orange)' : 'var(--muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          padding: 0,
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          opacity: isOpen ? 1 : 0.6,
-          boxShadow: isOpen ? '0 0 0 4px color-mix(in oklab, var(--orange) 20%, transparent)' : 'none',
-          borderColor: isOpen ? 'var(--orange)' : 'var(--muted)',
-          color: isOpen ? 'var(--orange)' : 'var(--muted)',
+          padding: 2,
+          transition: 'all 0.2s ease',
+          opacity: isOpen ? 1 : 0.7,
         }}
       >
-        ?
+        <Ic.Info s={16} color={isOpen ? 'var(--orange)' : 'var(--muted)'} strokeWidth="3" />
       </button>
 
       <AnimatePresence>
@@ -77,45 +70,48 @@ export function HelpTip({ title, content }: HelpTipProps) {
             />
             
             <motion.div
-              initial={{ opacity: 0, y: showBelow ? -10 : 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: showBelow ? -8 : 8, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: showBelow ? -10 : 10, scale: 0.95 }}
+              exit={{ opacity: 0, y: showBelow ? -8 : 8, scale: 0.96 }}
               style={{
                 position: 'fixed',
-                top: showBelow ? (coords.bottom + 12) : (coords.top - 12),
+                top: showBelow ? (coords.bottom + 10) : (coords.top - 10),
                 left: safeLeft,
                 transform: showBelow ? 'translateX(-50%)' : 'translate(-50%, -100%)',
                 width: tooltipWidth,
                 background: 'var(--ink)',
                 color: 'var(--cream)',
-                padding: '16px 18px',
-                borderRadius: 20,
-                boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+                padding: '14px 16px',
+                borderRadius: 18,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
                 zIndex: 9999,
                 fontSize: 13,
-                lineHeight: 1.6,
+                lineHeight: 1.55,
                 pointerEvents: 'auto'
               }}
             >
-              <div style={{ fontWeight: 950, color: 'var(--orange)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontSize: 10 }}>
-                {title}
-              </div>
-              <div style={{ opacity: 0.95, fontWeight: 500 }}>
+              {title && (
+                <div style={{ fontWeight: 900, color: 'var(--orange)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1, fontSize: 10 }}>
+                  {title}
+                </div>
+              )}
+              <div style={{ fontWeight: 500 }}>
                 {content}
               </div>
               
-              {/* Triangle avec orientation et offset dynamiques */}
+              {/* Triangle ajusté */}
               <div style={{
                 position: 'absolute',
                 [showBelow ? 'bottom' : 'top']: '100%',
                 left: `calc(50% + ${arrowOffset}px)`,
-                marginLeft: -10,
-                borderWidth: 10,
+                marginLeft: -8,
+                borderWidth: 8,
                 borderStyle: 'solid',
                 borderColor: showBelow 
                   ? 'transparent transparent var(--ink) transparent' 
                   : 'var(--ink) transparent transparent transparent',
-                transform: showBelow ? 'translateY(-200%) translateY(-12px)' : 'none'
+                transform: showBelow ? 'translateY(-200%) translateY(2px)' : 'translateY(-2px)',
+                zIndex: 1
               }} />
             </motion.div>
           </>
