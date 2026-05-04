@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { POI } from '@/lib/poi';
 import { Stop } from '@/lib/types';
 
 // Styles de base
-const MAP_STYLE_VECTOR = 'https://tiles.openfreemap.org/styles/liberty';
+const MAP_STYLE_VECTOR = 'https://www.arcgis.com/sharing/rest/content/items/3b93337983e9436f880cd481a9f7cb40/resources/styles/root.json';
 const ABIDJAN_CENTER = { latitude: 5.345, longitude: -4.020 };
 
 type Props = {
