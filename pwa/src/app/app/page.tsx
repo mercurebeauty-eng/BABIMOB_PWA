@@ -558,8 +558,12 @@ function AppPageContent() {
                     </button>
                     <button 
                       onClick={() => {
-                        // On redirige vers la page des lignes, idéalement avec un contexte
-                        router.push(`/app/ligne`);
+                        const firstLigne = nearbyTransport.find(t => t.available && t.routeId);
+                        if (firstLigne) {
+                          router.push(`/app/ligne/${firstLigne.routeId}`);
+                        } else {
+                          router.push(`/app/ligne`);
+                        }
                       }}
                       style={{ width: 44, height: 44, background: 'var(--cream)', color: 'var(--ink)', borderRadius: 14, border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >

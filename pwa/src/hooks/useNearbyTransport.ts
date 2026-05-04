@@ -12,6 +12,7 @@ export type TransportCard = {
   color: string;
   stop: ArretProche | null;
   routeName: string | null;
+  routeId: string | null;
   available: boolean;
 };
 
@@ -37,7 +38,7 @@ const PLACEHOLDER: TransportCard[] = KINDS.map(kind => ({
   kind, ...META[kind], stop: null, routeName: null, available: false,
 }));
 
-type LigneRow = { route_long_name: string; agency_id: string };
+type LigneRow = { route_id: string; route_long_name: string; agency_id: string };
 
 export function useNearbyTransport(nearbyStops: ArretProche[]): TransportCard[] {
   const supabaseRef = useRef(createClient());
@@ -65,13 +66,13 @@ export function useNearbyTransport(nearbyStops: ArretProche[]): TransportCard[] 
 
       if (cancelled) return;
 
-      const found: Partial<Record<VehicleKind, { stop: ArretProche; routeName: string }>> = {};
+      const found: Partial<Record<VehicleKind, { stop: ArretProche; routeName: string; routeId: string }>> = {};
 
       for (const { stop, lines } of results) {
         for (const line of lines) {
           const kind = detectKind(line.agency_id ?? '');
           if (kind && kind !== 'saloni' && !found[kind]) {
-            found[kind] = { stop, routeName: line.route_long_name };
+            found[kind] = { stop, routeName: line.route_long_name, routeId: line.route_id };
           }
         }
       }
@@ -81,6 +82,7 @@ export function useNearbyTransport(nearbyStops: ArretProche[]): TransportCard[] 
         ...META[kind],
         stop: kind === 'saloni' ? null : (found[kind]?.stop ?? null),
         routeName: kind === 'saloni' ? null : (found[kind]?.routeName ?? null),
+        routeId: kind === 'saloni' ? null : (found[kind]?.routeId ?? null),
         available: kind !== 'saloni' && !!found[kind],
       })));
     }
