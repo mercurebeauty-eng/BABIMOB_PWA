@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Ic } from '@/components/ui/Ic';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useXP } from '@/components/providers/XPProvider';
