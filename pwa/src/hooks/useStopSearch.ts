@@ -4,12 +4,13 @@ import { useCallback, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 type SearchResult = {
-  stop_id: string;
-  stop_name: string;
-  stop_lat: number;
-  stop_lon: number;
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
   commune: string | null;
-  type: 'stop';
+  type: 'stop' | 'place';
+  logo?: string;
 };
 
 export function useStopSearch() {
@@ -29,16 +30,48 @@ export function useStopSearch() {
     timerRef.current = setTimeout(async () => {
       setSearching(true);
       const words = q.trim().split(/\s+/).filter((w) => w.length >= 2);
-      const orFilter = words
+      const stopFilter = words
         .map((w) => `stop_name.ilike.%${w}%,commune.ilike.%${w}%`)
         .join(',');
-      const { data } = await supabase
-        .from('gtfs_stops')
-        .select('stop_id, stop_name, stop_lat, stop_lon, commune')
-        .or(orFilter)
-        .limit(12);
+      const placeFilter = words
+        .map((w) => `name.ilike.%${w}%,commune.ilike.%${w}%`)
+        .join(',');
+
+      // Parallell search
+      const [stopsReq, placesReq] = await Promise.all([
+        supabase
+          .from('gtfs_stops')
+          .select('stop_id, stop_name, stop_lat, stop_lon, commune')
+          .or(stopFilter)
+          .limit(8),
+        supabase
+          .from('places')
+          .select('id, name, lat, lon, commune, logo_emoji')
+          .or(placeFilter)
+          .limit(8)
+      ]);
+
+      const stops: SearchResult[] = (stopsReq.data ?? []).map((s) => ({
+        id: s.stop_id,
+        name: s.stop_name,
+        lat: s.stop_lat,
+        lon: s.stop_lon,
+        commune: s.commune,
+        type: 'stop'
+      }));
+
+      const places: SearchResult[] = (placesReq.data ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        lat: p.lat,
+        lon: p.lon,
+        commune: p.commune,
+        type: 'place',
+        logo: p.logo_emoji
+      }));
+
       setSearching(false);
-      setResults((data ?? []).map((s) => ({ ...s, type: 'stop' as const })));
+      setResults([...stops, ...places]);
     }, 250);
   }, [supabase]);
 

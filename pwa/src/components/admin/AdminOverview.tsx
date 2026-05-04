@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
+import { Ic } from '@/components/ui/Ic';
 
 export default function AdminOverview() {
   const supabase = createClient();
@@ -12,20 +13,27 @@ export default function AdminOverview() {
     checkins: 0,
     reviews: 0
   });
+  const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadStats() {
+    async function loadData() {
       const [
         { count: userCount },
         { count: placeCount },
         { count: checkinCount },
-        { count: reviewCount }
+        { count: reviewCount },
+        { data: recentCheckins },
+        { data: recentUsers },
+        { data: recentReviews }
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('places').select('*', { count: 'exact', head: true }),
         supabase.from('checkins').select('*', { count: 'exact', head: true }),
-        supabase.from('place_advice').select('*', { count: 'exact', head: true })
+        supabase.from('place_advice').select('*', { count: 'exact', head: true }),
+        supabase.from('checkins').select('*').order('created_at', { ascending: false }).limit(3),
+        supabase.from('profiles').select('*').order('updated_at', { ascending: false }).limit(3),
+        supabase.from('place_advice').select('*').order('created_at', { ascending: false }).limit(2)
       ]);
 
       setStats({
@@ -34,33 +42,53 @@ export default function AdminOverview() {
         checkins: checkinCount || 0,
         reviews: reviewCount || 0
       });
+
+      // Format activities
+      const acts: any[] = [];
+      recentUsers?.forEach(u => acts.push({ text: `Nouveau Babi : ${u.display_name}`, time: u.updated_at, type: 'user' }));
+      recentCheckins?.forEach(c => acts.push({ text: `Check-in : ${c.place_name}`, time: c.created_at, type: 'checkin' }));
+      recentReviews?.forEach(r => acts.push({ text: `Nouvel avis #${r.id.slice(0,4)}`, time: r.created_at, type: 'review' }));
+      
+      setActivities(acts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5));
       setLoading(false);
     }
-    loadStats();
+    loadData();
   }, [supabase]);
 
+  const getTimeAgo = (date: string) => {
+    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    return Math.floor(hours / 24) + 'j';
+  };
+
   const cards = [
-    { label: 'Utilisateurs', value: stats.users, icon: '👥', color: 'var(--blue)', trend: '+12%' },
-    { label: 'Établissements', value: stats.places, icon: '🏢', color: 'var(--orange)', trend: '+5' },
-    { label: 'Check-ins', value: stats.checkins, icon: '📍', color: 'var(--green)', trend: '+85' },
-    { label: 'Avis (C\'comment)', value: stats.reviews, icon: '💬', color: 'var(--gold)', trend: '+24' },
+    { label: 'Utilisateurs', value: stats.users, icon: '👥', color: 'var(--blue)', trend: '+12%', sub: 'Explorateurs actifs' },
+    { label: 'Lieux', value: stats.places, icon: '🏢', color: 'var(--orange)', trend: '+5', sub: 'Établissements' },
+    { label: 'Activités', value: stats.checkins, icon: '📍', color: 'var(--green)', trend: '+85', sub: 'Check-ins récents' },
+    { label: 'Interactions', value: stats.reviews, icon: '💬', color: 'var(--gold)', trend: '+24', sub: 'Avis & Questions' },
   ];
 
-  // Dummy Chart Data for visual impact
-  const points = "0,80 20,60 40,75 60,40 80,45 100,20 120,35 140,10 160,25 180,5 200,15";
-
   return (
-    <div style={{ color: 'var(--ink)' }}>
+    <div style={{ color: '#fff' }}>
       
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, marginBottom: 8 }}>Akaba ! 👋</h1>
-        <p style={{ fontSize: 16, color: 'var(--muted)', fontWeight: 600 }}>Voici l'état de ton empire aujourd'hui.</p>
+      <div style={{ marginBottom: 50 }}>
+        <h1 className="font-display" style={{ fontSize: 48, marginBottom: 12, letterSpacing: -1.5 }}>
+          Dashboard <span style={{ color: 'var(--orange)' }}>Master</span>
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>Intelligence Center en temps réel</p>
+        </div>
       </div>
 
       {/* STATS GRID */}
       <div style={{ 
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-        gap: 24, marginBottom: 40 
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', 
+        gap: 24, marginBottom: 50 
       }}>
         {cards.map((card, i) => (
           <motion.div
@@ -69,26 +97,27 @@ export default function AdminOverview() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             style={{
-              background: '#fff', padding: 28, borderRadius: 32,
-              boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
-              border: '1px solid rgba(0,0,0,0.02)',
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+              padding: '32px', borderRadius: 32,
+              border: '1px solid rgba(255,255,255,0.05)',
               position: 'relative', overflow: 'hidden'
             }}
           >
             <div style={{ 
-              width: 48, height: 48, borderRadius: 16, background: `${card.color}10`,
+              width: 52, height: 52, borderRadius: 16, background: `${card.color}20`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-              marginBottom: 20
+              marginBottom: 24, boxShadow: `0 8px 20px ${card.color}15`
             }}>
               {card.icon}
             </div>
-            <div style={{ fontSize: 36, fontWeight: 900, marginBottom: 4 }}>{card.value}</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{card.label}</div>
+            <div style={{ fontSize: 42, fontWeight: 900, marginBottom: 6, letterSpacing: -1 }}>{card.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5 }}>{card.label}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>{card.sub}</div>
             
             <div style={{ 
-              position: 'absolute', top: 28, right: 28, 
+              position: 'absolute', top: 32, right: 32, 
               fontSize: 11, fontWeight: 900, color: '#10b981',
-              background: '#10b98115', padding: '4px 8px', borderRadius: 8
+              background: 'rgba(16, 185, 129, 0.1)', padding: '6px 12px', borderRadius: 10
             }}>
               {card.trend}
             </div>
@@ -96,83 +125,50 @@ export default function AdminOverview() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 32 }}>
         
-        {/* CHART BOX */}
-        <div style={{ 
-          background: 'var(--ink)', borderRadius: 32, padding: 32, color: '#fff',
-          boxShadow: '0 20px 40px rgba(26,20,16,0.2)', position: 'relative'
-        }}>
+        {/* NETWORK STATUS */}
+        <div style={panelStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>Croissance Communauté</h3>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>Derniers 30 jours</p>
+              <h3 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Statut du Réseau</h3>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>Disponibilité des services de transport</p>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--orange)' }}>+142%</div>
+            <button className="press" style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', padding: '10px 20px', borderRadius: 12, fontSize: 11, fontWeight: 900 }}>DÉTAILS</button>
           </div>
 
-          <div style={{ height: 200, width: '100%', position: 'relative' }}>
-            <svg viewBox="0 0 200 100" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-              <defs>
-                <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: 'var(--orange)', stopOpacity: 0.5 }} />
-                  <stop offset="100%" style={{ stopColor: 'var(--orange)', stopOpacity: 0 }} />
-                </linearGradient>
-              </defs>
-              <path 
-                d={`M ${points} L 200,100 L 0,100 Z`} 
-                fill="url(#grad)" 
-              />
-              <motion.path
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 2, ease: "easeInOut" }}
-                d={`M ${points}`}
-                fill="none"
-                stroke="var(--orange)"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20, opacity: 0.4, fontSize: 10, fontWeight: 900 }}>
-             <span>01 AVR</span>
-             <span>10 AVR</span>
-             <span>20 AVR</span>
-             <span>30 AVR</span>
-          </div>
-        </div>
-
-        {/* RECENT ACTIVITY */}
-        <div style={{ 
-          background: '#fff', borderRadius: 32, padding: 32,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
-          border: '1px solid rgba(0,0,0,0.02)'
-        }}>
-          <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 24 }}>Activité Récente</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {[
-              { type: 'user', text: 'Nouveau Babi inscrit : "Yoro"', time: '2 min' },
-              { type: 'place', text: 'Nouveau lieu : "Maquis Le Dôme"', time: '15 min' },
-              { type: 'review', text: 'Nouvel avis sur "Cap Sud"', time: '1h' },
-              { type: 'checkin', text: 'Check-in groupé à Cocody', time: '2h' },
-            ].map((act, i) => (
-              <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800 }}>{act.text}</div>
-                  <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 900, textTransform: 'uppercase', marginTop: 2 }}>{act.time}</div>
-                </div>
+              { label: 'GTFS SOTRA API', status: 'Optimal', load: '12ms' },
+              { label: 'Mapbox Navigation', status: 'Optimal', load: '45ms' },
+              { label: 'Supabase Realtime', status: 'Stable', load: '8ms' },
+            ].map(item => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div className="shimmer" style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} />
+                <div style={{ flex: 1, fontWeight: 800, fontSize: 15 }}>{item.label}</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.3)' }}>{item.load}</div>
+                <div style={{ fontSize: 11, fontWeight: 900, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: 8 }}>{item.status}</div>
               </div>
             ))}
           </div>
-          <button style={{ 
-            width: '100%', marginTop: 24, padding: '14px', borderRadius: 16,
-            background: 'var(--cream-2)', border: 'none', color: 'var(--ink)',
-            fontSize: 12, fontWeight: 900, cursor: 'pointer'
-          }}>VOIR TOUT</button>
+        </div>
+
+        {/* RECENT FEED */}
+        <div style={{ ...panelStyle, background: 'rgba(255,255,255,0.02)' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 32 }}>Activités Live</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {activities.length > 0 ? activities.map((act, i) => (
+              <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                <div style={{ width: 4, height: 24, borderRadius: 2, background: act.type === 'user' ? 'var(--blue)' : 'var(--orange)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800 }}>{act.text}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 900, textTransform: 'uppercase', marginTop: 4 }}>Il y a {getTimeAgo(act.time)}</div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ opacity: 0.3, fontSize: 13 }}>Aucune activité récente.</div>
+            )}
+          </div>
         </div>
 
       </div>
@@ -180,3 +176,11 @@ export default function AdminOverview() {
     </div>
   );
 }
+
+const panelStyle = {
+  background: 'rgba(255,255,255,0.03)',
+  borderRadius: 40,
+  padding: 40,
+  border: '1px solid rgba(255,255,255,0.05)',
+  backdropFilter: 'blur(20px)'
+};

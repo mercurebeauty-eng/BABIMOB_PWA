@@ -53,14 +53,14 @@ export default function SpotsTab({ hotSpots }: { hotSpots: HotSpot[] }) {
             <div className={heroWax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.2 }} />
             <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ background: 'var(--orange)', color: '#fff', fontFamily: 'Archivo Black, sans-serif', fontSize: 26, padding: '2px 12px', borderRadius: 10, lineHeight: 1 }}>#1</div>
-              {hero.checkin_count > 0 && (
-                <div style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 999, letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  🔥 {hero.checkin_count} MOBEUR{hero.checkin_count > 1 ? 'S' : ''}
-                </div>
-              )}
               {hero.is_new && (
-                <div style={{ background: 'var(--green)', color: '#fff', fontSize: 9, fontWeight: 900, padding: '4px 8px', borderRadius: 999, letterSpacing: 0.4 }}>NOUVEAU</div>
+                <div style={{ background: '#0EA85B', color: '#fff', fontSize: 9, fontWeight: 900, padding: '4px 8px', borderRadius: 999 }}>✨ NOUVEAU</div>
               )}
+              <div style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 999, letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                {hero.checkin_count > 0
+                  ? `🔥 ${hero.checkin_count} MOBEUR${hero.checkin_count > 1 ? 'S' : ''}`
+                  : '🔥 PREMIER À ARRIVER ?'}
+              </div>
             </div>
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14, color: '#fff', background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.7))' }}>
               <div className="font-display" style={{ fontSize: 22, lineHeight: 1 }}>{hero.place_name}</div>
@@ -90,11 +90,10 @@ export default function SpotsTab({ hotSpots }: { hotSpots: HotSpot[] }) {
                   {[s.commune, s.category].filter(Boolean).join(' · ') || 'Abidjan'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-                  {s.checkin_count > 0 && (
-                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                      🔥 {s.checkin_count}
-                    </span>
-                  )}
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    {s.checkin_count > 0 ? `🔥 ${s.checkin_count}` : '🔥 À DÉCOUVRIR'}
+                  </span>
+                  {s.is_new && <span style={{ fontSize: 9, fontWeight: 900, color: '#0EA85B' }}>✨ NOUVEAU</span>}
                   {s.friends_count > 0 && (
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)' }}>👥 {s.friends_count} ami{s.friends_count > 1 ? 's' : ''}</span>
                   )}

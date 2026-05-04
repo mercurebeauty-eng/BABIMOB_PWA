@@ -161,6 +161,7 @@ export default function Map({
     map.on('zoomend', () => setCurrentZoom(map.getZoom()));
 
     onMapReady?.(map);
+    console.log("📍 Map Leaflet initialisée avec succès à Abidjan");
 
     return () => {
       map.remove();

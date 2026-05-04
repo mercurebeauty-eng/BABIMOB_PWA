@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { useXP } from '@/components/providers/XPProvider';
 
 type ReviewTag = 'incroyable' | 'cosy' | 'bien' | 'moyen' | 'ennuyeux' | 'bruyant' | 'cher';
 
@@ -30,6 +32,7 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { addXP } = useXP();
 
   const currentTag = TAGS.find(t => t.id === selectedTag)!;
 
@@ -68,9 +71,20 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
 
     if (error) {
       console.error('Erreur Supabase place_advice:', error);
-      alert("Erreur lors de l'envoi : " + error.message);
+      toast.error("Impossible de publier ton avis", {
+        description: error.message
+      });
       return;
     }
+
+    const xpEarned = (monthlyCount ?? 0) < 5 ? 10 : 0;
+    if (xpEarned > 0) {
+      addXP(xpEarned);
+    }
+    
+    toast.success("Avis publié !", {
+      description: xpEarned > 0 ? `+${xpEarned} XP gagnés` : "Merci pour ton partage !"
+    });
 
     setSuccess(true);
     // On attend un peu pour l'animation avant de fermer
@@ -114,7 +128,9 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>C'est comment ?</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>{placeName}</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
+              {placeName}
+            </div>
           </div>
           <button 
             onClick={onClose} 

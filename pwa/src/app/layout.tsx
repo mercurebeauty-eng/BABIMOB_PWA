@@ -61,13 +61,22 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+import { NotificationProvider } from '@/components/providers/NotificationProvider';
+import { XPProvider } from '@/components/providers/XPProvider';
+import { HelpProvider } from '@/components/providers/HelpProvider';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${dmSans.variable} ${syne.variable} ${archivoBlack.variable} ${lexend.variable}`}>
       <body className="font-sans min-h-screen flex flex-col">
-        {children}
-        <InstallPrompt />
-        <SpeedInsights />
+        <XPProvider>
+          <HelpProvider>
+            {children}
+            <NotificationProvider />
+            <InstallPrompt />
+            <SpeedInsights />
+          </HelpProvider>
+        </XPProvider>
       </body>
     </html>
   );

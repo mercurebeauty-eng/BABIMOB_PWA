@@ -11,6 +11,10 @@ import { getLevel } from '@/lib/levels';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
+import { useXP } from '@/components/providers/XPProvider';
+import { createClient } from '@/lib/supabase/client';
+import { BottomNav } from '@/components/ui/BottomNav';
+
 type Badge = { badge_key: string; awarded_at: string };
 type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
 type Props = {
@@ -29,6 +33,9 @@ type Props = {
   followersCount?: number;
   crew?: any;
   collectiveQuest?: any;
+  favorites: any[];
+  recentPosts: any[];
+  recentTarifs: any[];
   children?: React.ReactNode;
 };
 
@@ -70,7 +77,6 @@ const ABIDJAN_COMMUNES = [
   'Songon', 'Treichville', 'Yopougon'
 ];
 
-
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 1) return "à l'instant";
@@ -78,6 +84,7 @@ function timeAgo(iso: string): string {
   if (mins < 1440) return `il y a ${Math.floor(mins / 60)}h`;
   return `il y a ${Math.floor(mins / 1440)}j`;
 }
+
 
 // ── Crew / Proches & Famille — Babi network ──────────────────
 function CrewCard({ following, followersCount }: { following: FollowProfile[]; followersCount: number }) {
@@ -177,9 +184,9 @@ function CrewCard({ following, followersCount }: { following: FollowProfile[]; f
 const PALETTE = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
 
 // ── Tab : Passeport ──────────────────────────────────────────
-function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount, crew, collectiveQuest }: {
+function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, streak, showWeekly, setShowWeekly, dailyMissions, setShowAlbum, following, followersCount, crew, collectiveQuest, favorites }: {
   badges: Badge[]; checkinsDetail: any[]; totalPoints: number; checkinCount: number; streak: number; showWeekly: boolean; setShowWeekly: (v: boolean) => void; dailyMissions: any[]; setShowAlbum: (s: boolean) => void;
-  following: FollowProfile[]; followersCount: number; crew: any; collectiveQuest: any;
+  following: FollowProfile[]; followersCount: number; crew: any; collectiveQuest: any; favorites: any[];
 }) {
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   const todayIndex = (new Date().getDay() + 6) % 7; // 0=Mon, 6=Sun
@@ -210,7 +217,9 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
           </div>
 
           <div style={{ flex: 1, paddingTop: 4 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.8, marginBottom: 2 }}>SÉRIE EN COURS</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>
+              <Ic.Bolt s={12} fill /> SÉRIE EN COURS
+            </div>
             <div className="font-display" style={{ fontSize: 22, lineHeight: 1.1, marginBottom: 4 }}>{streak} jours sur Babi</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Reviens demain pour <span style={{ color: '#fff' }}>+50 XP bonus</span></div>
           </div>
@@ -279,9 +288,10 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
         })}
       </div>
 
-      {/* Album de badges */}
       <div onClick={() => setShowAlbum(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, cursor: 'pointer' }}>
-        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>Album de badges</h3>
+        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>
+          Album de badges
+        </h3>
         <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)' }}>
           {badges.length} / {Object.keys(BADGE_META).length} →
         </div>
@@ -298,6 +308,36 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
             </div>
           );
         })}
+      </div>
+
+      {/* Favoris */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>Favoris</h3>
+        <Link href="/app/compte/favoris" style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)', textDecoration: 'none' }}>
+          Gérer →
+        </Link>
+      </div>
+
+      <div className="no-scrollbar" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, marginBottom: 24 }}>
+        {favorites.length === 0 ? (
+          <div style={{ padding: '24px 16px', borderRadius: 20, background: 'var(--cream-2)', border: '1px dashed var(--line)', flex: 1, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+            Enregistre tes lieux et lignes habituels pour les retrouver ici.
+          </div>
+        ) : (
+          favorites.map((fav) => (
+            <div key={fav.id} className="press" style={{ flexShrink: 0, width: 140, padding: 16, borderRadius: 20, background: 'var(--cream-2)', border: '1px solid var(--line)', position: 'relative' }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>
+                {fav.kind === 'place' ? '📍' : fav.kind === 'stop' ? '🚏' : '🚌'}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {fav.label}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>
+                {fav.kind === 'place' ? 'Lieu' : fav.kind === 'stop' ? 'Arrêt' : 'Ligne'}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Proches & Famille (Optionnel si on veut garder la fonctionnalité réelle) */}
@@ -468,13 +508,24 @@ function TabClassement({
 }
 
 export default function CompteClient({
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, children
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
   const [streak, setStreak] = useState(initialStreak);
   const [showWeekly, setShowWeekly] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
+  const [activities, setActivities] = useState<any[]>(() => {
+    const combined = [
+      ...checkinsDetail.map(c => ({ ...c, type: 'checkin' })),
+      ...recentPosts.map(p => ({ ...p, type: 'post' })),
+      ...recentTarifs.map(t => ({ ...t, type: 'tarif' }))
+    ];
+    return combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  });
+  const { addXP } = useXP();
+  const supabase = createClient();
+  const [heatMode, setHeatMode] = useState(false);
 
   // Dynamic calculation of conquest
   const communeCounts: Record<string, number> = {};
@@ -492,15 +543,47 @@ export default function CompteClient({
   // Daily Bonus XP Logic
   useEffect(() => {
     const claimBonus = async () => {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
       const { data } = await supabase.rpc('claim_daily_bonus');
       if (data?.success) {
         setPoints(p => p + 50);
+        addXP(50); // Feedback visuel !
         if (data.streak_count) setStreak(data.streak_count);
       }
     };
     claimBonus();
+
+    // Live Activity Listener
+    const channel = supabase
+      .channel('profile-activities')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'checkins'
+      }, (payload) => {
+        setActivities(prev => [{ ...payload.new, type: 'checkin' }, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setPoints(p => p + (payload.new.points_earned || 10));
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'gbairai_posts'
+      }, (payload) => {
+        setActivities(prev => [{ ...payload.new, type: 'post' }, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setPoints(p => p + 30);
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'tarif_confirmations'
+      }, (payload) => {
+        setActivities(prev => [{ ...payload.new, type: 'tarif' }, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setPoints(p => p + 25);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const TABS = [
@@ -618,7 +701,7 @@ export default function CompteClient({
         {tab === 'passeport' && (
           <TabPasseport
             badges={badges}
-            checkinsDetail={checkinsDetail}
+            checkinsDetail={activities}
             totalPoints={points}
             checkinCount={checkinCount}
             streak={streak}
@@ -630,17 +713,18 @@ export default function CompteClient({
             followersCount={followersCount}
             crew={crew}
             collectiveQuest={collectiveQuest}
+            favorites={favorites}
           />
         )}
         {tab === 'territoire' && (
           <TabTerritoire 
             commune={commune} 
-            checkinsDetail={checkinsDetail}
+            checkinsDetail={activities}
             heatmapNode={
               <Map 
                 center={[5.35, -4.02]} 
                 zoom={11} 
-                hotspots={checkinsDetail.filter(c => c.lat && c.lon).map(c => ({ id: c.id, lat: c.lat!, lon: c.lon!, intensity: 10 }))}
+                hotspots={activities.filter(c => c.lat && c.lon).map(c => ({ id: c.id, lat: c.lat!, lon: c.lon!, intensity: 10 }))}
                 className="w-full h-full"
               />
             } 
@@ -710,6 +794,11 @@ export default function CompteClient({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)} 
+        heatMode={heatMode} 
+      />
     </div>
   );
 }
@@ -725,14 +814,36 @@ function ActivityLog({ checkinsDetail, crew: realCrew, collectiveQuest: realQues
 
   const daysLeft = quest.ends_at ? Math.max(0, Math.ceil((new Date(quest.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
 
-  const activities = checkinsDetail.slice(0, 10).map((c, i) => ({
-    id: c.id || i,
-    type: 'Check-in',
-    title: 'Check-in',
-    subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · ${timeAgo(c.created_at)}`,
-    points: c.points_earned || 15,
-    icon: <Ic.Pin s={18} fill />
-  }));
+  const activities = checkinsDetail.slice(0, 15).map((c, i) => {
+    if (c.type === 'checkin') {
+      return {
+        id: c.id || i,
+        type: 'Check-in',
+        title: 'Check-in',
+        subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · ${timeAgo(c.created_at)}`,
+        points: c.points_earned || 15,
+        icon: <Ic.Pin s={18} fill />
+      };
+    } else if (c.type === 'post') {
+      return {
+        id: c.id || i,
+        type: 'Gbairai',
+        title: 'Post Gbairai',
+        subtitle: `${c.commune || 'Abidjan'} · ${c.content?.slice(0, 30)}... · ${timeAgo(c.created_at)}`,
+        points: 30,
+        icon: <Ic.Chat s={18} />
+      };
+    } else {
+      return {
+        id: c.id || i,
+        type: 'Tarif',
+        title: 'Tarif confirmé',
+        subtitle: `${c.stop_name_depart} → ${c.stop_name_arrivee} · ${c.prix}F · ${timeAgo(c.created_at)}`,
+        points: 25,
+        icon: <Ic.Bolt s={18} />
+      };
+    }
+  });
 
   return (
     <div style={{ marginTop: 20 }}>

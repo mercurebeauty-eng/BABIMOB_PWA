@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
-import SidebarMenu from '@/components/SidebarMenu';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
@@ -23,6 +22,18 @@ import { useItinerary } from '@/hooks/useItinerary';
 import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
+import { BottomNav } from '@/components/ui/BottomNav';
+
+type RecentItem = {
+  id: string;
+  name: string;
+  type: 'line' | 'stop' | 'place';
+  commune?: string;
+  color?: string;
+  lat?: number;
+  lon?: number;
+  logo?: string;
+};
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -55,7 +66,6 @@ function AppPageContent() {
 
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
@@ -65,20 +75,30 @@ function AppPageContent() {
     if (typeof window === 'undefined') return null;
     try { return JSON.parse(localStorage.getItem('babimob_lastDest') ?? 'null'); } catch { return null; }
   });
-  const [recentLines, setRecentLines] = useState<any[]>([]);
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = JSON.parse(localStorage.getItem('babimob_recentLines') || '[]');
-        setRecentLines(saved);
+        const saved = JSON.parse(localStorage.getItem('babimob_recent_history') || '[]');
+        setRecentItems(saved);
       } catch (e) {
         console.error("Erreur lecture recents:", e);
       }
     }
   }, []);
 
+  const addToRecent = useCallback((item: RecentItem) => {
+    setRecentItems((prev) => {
+      const filtered = prev.filter((i) => i.id !== item.id);
+      const next = [item, ...filtered].slice(0, 8);
+      localStorage.setItem('babimob_recent_history', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const { heatMode, setHeatMode, hotspots } = useHotspots();
+  const [nearbyIndex, setNearbyIndex] = useState(0);
   const { activeItinerary, setActiveItinerary } = useItinerary();
 
   const { logReach } = useReachTracking();
@@ -106,11 +126,11 @@ function AppPageContent() {
     clear: clearSearch,
   } = useStopSearch();
 
-  const handleGetDirections = useCallback((poi: POI) => {
+  const handleGetDirections = useCallback((target: { name: string; lat: number; lon: number }) => {
     router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
-      stop_name: poi.name,
-      stop_lat: poi.lat,
-      stop_lon: poi.lon,
+      stop_name: target.name,
+      stop_lat: target.lat,
+      stop_lon: target.lon,
     }))}`);
   }, [router]);
 
@@ -125,10 +145,19 @@ function AppPageContent() {
     locateMe();
   }, [locateMe]);
 
-  const SNAP = { mini: 60, peek: 120, half: 400, full: 620 } as const;
+  const SNAP = { mini: 0, peek: 240, half: 450, full: 680 } as const;
   type SheetState = keyof typeof SNAP;
 
   const heightMV = useMotionValue<number>(SNAP.mini);
+
+  // Auto-hide sheet if no content
+  useEffect(() => {
+    if (!selected && !selectedPoi && !activeItinerary) {
+      setSheet('mini');
+    } else if (sheet === 'mini') {
+      setSheet('peek');
+    }
+  }, [selected, selectedPoi, activeItinerary]);
 
   // Sync programmatic state changes → spring animation
   useEffect(() => {
@@ -188,11 +217,17 @@ function AppPageContent() {
     : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
 
   const handleSelectStop = useCallback((stop: Stop) => {
+    addToRecent({ 
+      id: stop.stop_id, 
+      name: stop.stop_name, 
+      type: 'stop', 
+      commune: stop.commune ?? undefined,
+      lat: stop.stop_lat,
+      lon: stop.stop_lon
+    });
     setSelected(stop);
     setSheet('half');
-    setSearchOpen(false);
-    clearSearch();
-  }, [clearSearch]);
+  }, [addToRecent]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
@@ -231,8 +266,6 @@ function AppPageContent() {
   const TICKER: [string, string, string][] =
     tickerCheckins.length > 0 ? tickerCheckins : TICKER_FALLBACK;
 
-  // Suppression de la constante RECENT hardcodée au profit du state recentLines
-
   const selectedDistanceM = selected && userLoc
     ? haversineM(userLoc[0], userLoc[1], selected.stop_lat, selected.stop_lon)
     : null;
@@ -268,9 +301,19 @@ function AppPageContent() {
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => {
           if (poi.place_id) {
+            addToRecent({
+              id: poi.id,
+              name: poi.name,
+              type: 'place',
+              commune: poi.commune ?? undefined,
+              lat: poi.lat,
+              lon: poi.lon
+            });
             router.push(`/app/place/${poi.place_id}`);
           } else {
-            setSelectedPoi(poi); setSelected(null); setSheet('half');
+            setSelectedPoi(poi); 
+            setSelected(null); 
+            setSheet('half');
           }
         }}
         onMapReady={handleMapReady}
@@ -285,38 +328,12 @@ function AppPageContent() {
         broadcasts={broadcasts}
       />
 
-      {/* ── Top Floating Bar ── */}
-      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 10 }}>
-        <button
-          onClick={() => setIsMenuOpen(true)}
-          className="press"
-          style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <Ic.Menu s={20} />
-        </button>
-
-        <button
-          onClick={openSearch}
-          className="press"
-          style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}
-        >
-          <Ic.Search s={18} />
-          <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Mobeur ?"}</span>
-          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5 }}>IA</span>
-        </button>
-
-        <Link
-          href="/app/compte"
-          className="press"
-          style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none', position: 'relative' }}
-        >
-          {profile?.display_name?.slice(0, 2).toUpperCase() || 'MK'}
-          {profile && (
-            <div style={{ position: 'absolute', bottom: -4, right: -4, background: 'var(--ink)', color: '#fff', fontSize: 9, fontWeight: 900, width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
-              {getLevel(profile.total_points || 0).level}
-            </div>
-          )}
-        </Link>
+      {/* ── Top Floating Badge (Minimalist) ── */}
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, zIndex: 10 }}>
+        <div style={{ background: 'var(--cream)', padding: '6px 12px', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>
+          <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
+          LIVE · 247 MOBEURS
+        </div>
       </div>
 
       {/* ── FAB Stack (Right) ── */}
@@ -355,218 +372,200 @@ function AppPageContent() {
         </div>
       </div>
 
-      {/* ── Sidebar Menu ── */}
-      <SidebarMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        profile={profile} 
-      />
+      {/* ── PlusBubble is now inside BottomNav ── */}
 
-      {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
-      <motion.div
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: heightMV, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-      >
-        {/* Poignée — drag + clic */}
-        <div
-          onPointerDown={onHandlePointerDown}
-          onClick={cycleSheet}
-          style={{ cursor: 'grab', paddingTop: 4, flexShrink: 0, touchAction: 'none', userSelect: 'none' }}
-        >
-          <div className="sheet-handle" />
-        </div>
-
-        {/* Contenu scrollable unique */}
-        <div
-          className="no-scrollbar"
-          style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}
-        >
-          {selectedPoi ? (
-            /* ── POI PREVIEW ── */
-            <div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, background: 'var(--cream)', border: '1px solid var(--line)' }}>
-                    {selectedPoi.logo_emoji || '📍'}
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selectedPoi.name}</h2>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>{selectedPoi.commune || 'Abidjan'}</div>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedPoi(null)} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
-                  <Ic.X s={20} />
-                </button>
+      {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
+      <AnimatePresence>
+        {!selected && !selectedPoi && !activeItinerary && (
+          <motion.div 
+            initial={{ y: 20, opacity: 0, scale: 0.9 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.9 }}
+            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}
+          >
+            {/* Recherche & Swipe */}
+            <motion.button 
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              onDragEnd={(_, info) => {
+                  setHeatMode(!heatMode);
+              }}
+              onClick={openSearch}
+              className="press"
+              style={{ 
+                pointerEvents: 'auto',
+                height: 36, 
+                padding: '0 18px',
+                borderRadius: 18, 
+                border: 'none', 
+                background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)', 
+                color: heatMode ? '#fff' : 'var(--ink)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                boxShadow: heatMode ? '0 8px 20px rgba(242,108,26,0.3)' : '0 4px 12px rgba(0,0,0,0.08)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                cursor: 'pointer',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                transform: heatMode ? 'scale(1.05)' : 'scale(1)'
+              }}
+            >
+              <Ic.Search s={16} />
+              <span style={{ fontSize: 13, fontWeight: 800 }}>{heatMode ? 'Heatmap active' : 'Recherche'}</span>
+              
+              <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.8 }} />
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.3 }} />
               </div>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-                <PoiCheckInButton placeId={selectedPoi.id} placeName={selectedPoi.name} commune={selectedPoi.commune} lat={selectedPoi.lat} lon={selectedPoi.lon} />
-                <button onClick={() => handleGetDirections(selectedPoi)} style={{ background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '16px 0', borderRadius: 16, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.3)' }}>S'y rendre</button>
-              </div>
-
-              {selectedPoi.description && <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 24 }}>{selectedPoi.description}</p>}
-
-              <Link href={`/app/place/${selectedPoi.id}`} style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 800, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: 1, padding: 16, background: 'color-mix(in oklab, var(--blue) 8%, transparent)', borderRadius: 16, textDecoration: 'none' }}>Profil Complet →</Link>
+      {/* ── FLOATING INFO POD (ANTIGRAVITY STACK STYLE) ── */}
+      <AnimatePresence>
+        {(selected || selectedPoi || activeItinerary) && (
+          <motion.div
+            initial={{ y: 100, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 100, opacity: 0, scale: 0.95 }}
+            style={{ 
+              position: 'absolute', 
+              bottom: 100, 
+              left: 16, 
+              right: 16, 
+              zIndex: 600, 
+              maxHeight: '65vh',
+              background: 'rgba(255, 255, 255, 0.7)',
+              backdropFilter: 'blur(24px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+              borderRadius: 32,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{ width: '100%', padding: '12px 0', display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.1 }} />
             </div>
 
-          ) : activeItinerary ? (
-            /* ── ITINERARY ── */
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-                <h2 style={{ fontSize: 21, fontWeight: 900, color: 'var(--ink)', margin: 0 }}>Ton trajet</h2>
-                <button onClick={() => setActiveItinerary(null)} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                {activeItinerary.legs.map((leg, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: 24 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 16, background: 'var(--cream)', border: '2px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                      {leg.mode === 'WALK' ? '🚶' : '🚐'}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{leg.mode === 'WALK' ? 'Marcher' : `Ligne ${leg.route?.shortName || ''}`}</div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>Vers {leg.to.name}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          ) : selected ? (
-            /* ── STOP DETAIL ── */
-            <div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px' }}>
+              {selectedPoi ? (
                 <div>
-                  <h2 style={{ fontSize: 21, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selected.stop_name}</h2>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>{selected.commune}</div>
-                  {!isNearbyStop && selectedDistanceM !== null && (
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange)', marginTop: 6 }}>
-                      {formatDistance(selectedDistanceM)} de toi
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div style={{ width: 50, height: 50, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, background: 'var(--cream)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        {selectedPoi.logo_emoji || '📍'}
+                      </div>
+                      <div>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selectedPoi.name}</h2>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{selectedPoi.commune || 'Abidjan'}</div>
+                      </div>
                     </div>
-                  )}
-                </div>
-                <button onClick={clearSelection} style={{ padding: 8, background: 'var(--cream)', borderRadius: 12, border: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Ic.X s={20} /></button>
-              </div>
-              {isNearbyStop ? (
-                <button onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)} style={{ width: '100%', background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '20px 0', borderRadius: 24, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>
-                  Voir les lignes & tarifs
-                </button>
-              ) : (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => router.push(`/app/arret/${encodeURIComponent(selected.stop_id)}`)} style={{ flex: 1, background: 'var(--cream)', color: 'var(--ink)', fontWeight: 800, padding: '18px 0', borderRadius: 20, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, border: '1.5px solid var(--line)', cursor: 'pointer' }}>
-                    Détail arrêt
-                  </button>
-                  <button onClick={() => handleDescendIci(selected)} style={{ flex: 1, background: 'var(--orange)', color: '#fff', fontWeight: 800, padding: '18px 0', borderRadius: 20, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(242,108,26,0.4)' }}>
-                    Je descends ici 🎯
-                  </button>
-                </div>
-              )}
-            </div>
-
-          ) : (
-            /* ── DEFAULT — NEARBY ── */
-            <>
-              {/* Près de toi */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <h3 className="font-display" style={{ fontSize: 22, margin: 0, color: 'var(--ink)' }}>Près de toi</h3>
-                {headerLabel && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: 0.5 }}>
-                    {headerLabel}
-                  </span>
-                )}
-              </div>
-
-              {/* Transport cards */}
-              <div className="no-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
-                {nearbyTransport.map((card) => (
-                  <div
-                    key={card.kind}
-                    className={card.available ? 'press' : ''}
-                    onClick={() => {
-                      if (card.available && card.stop) {
-                        handleSelectStop({ stop_id: card.stop.stop_id, stop_name: card.stop.stop_name, stop_lat: card.stop.stop_lat, stop_lon: card.stop.stop_lon, commune: card.stop.commune ?? null });
-                      }
-                    }}
-                    style={{ minWidth: 140, padding: 12, borderRadius: 14, background: 'var(--cream)', border: '1px solid var(--line)', flexShrink: 0, cursor: card.available ? 'pointer' : 'default', opacity: card.available ? 1 : 0.55 }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Vehicle kind={card.kind} size={32} />
-                      {card.available && card.stop && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: card.color }} />
-                          <span style={{ fontSize: 11, fontWeight: 800, color: card.color, letterSpacing: 0.3 }}>{formatDistance(card.stop.distance_m)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: card.available ? 'var(--ink)' : 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {card.available && card.stop 
-                        ? card.stop.stop_name 
-                        : card.kind === 'saloni' ? 'Bientôt dispo' : 'Non desservi'}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{card.label}</div>
+                    <button onClick={() => setSelectedPoi(null)} style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <Ic.X s={16} />
+                    </button>
                   </div>
-                ))}
-              </div>
 
-              {/* Boussole banner */}
-              <div onClick={() => router.push('/app/boussole')} className="press" style={{ padding: 16, borderRadius: 18, marginBottom: 14, background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
-                <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 54, height: 54, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Ic.Compass s={28} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                    <PoiCheckInButton placeId={selectedPoi.id} placeName={selectedPoi.name} commune={selectedPoi.commune} lat={selectedPoi.lat} lon={selectedPoi.lon} />
+                    <button onClick={() => handleGetDirections(selectedPoi)} style={{ height: 44, background: 'var(--orange)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(242,108,26,0.2)' }}>S'y rendre</button>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.85, letterSpacing: 0.6 }}>BOUSSOLE BABI</div>
-                    <div className="font-display" style={{ fontSize: 18, marginTop: 2 }}>
-                      {nearbyStops[0] 
-                        ? <>L'arrêt le plus proche<br />est à {formatDistance(nearbyStops[0].distance_m)}, pointe →</>
-                        : <>Le prochain Gbaka<br />est proche, pointe →</>
-                      }
-                    </div>
-                  </div>
-                  <Ic.Arrow s={22} />
+
+                  {selectedPoi.description && <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 16 }}>{selectedPoi.description}</p>}
+                  
+                  <Link href={`/app/place/${selectedPoi.id}`} style={{ display: 'block', textAlign: 'center', fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 1, padding: '12px', background: 'rgba(0,0,0,0.05)', borderRadius: 12, textDecoration: 'none' }}>Voir le profil complet</Link>
                 </div>
-              </div>
 
-              {/* Récents */}
-              {recentLines.length > 0 && (
-                <>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, margin: '8px 4px 8px' }}>LIGNES RÉCENTES</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                    {recentLines.map((r, i) => (
-                      <Link key={i} href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--cream)', border: '1px solid var(--line)', cursor: 'pointer', textDecoration: 'none' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}`, flexShrink: 0 }}>
-                          <Vehicle kind={r.type || 'gbaka'} size={20} />
+              ) : activeItinerary ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Ton trajet</h2>
+                    <button onClick={() => setActiveItinerary(null)} style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <Ic.X s={16} />
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {activeItinerary.legs.map((leg, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: 16 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                          {leg.mode === 'WALK' ? '🚶' : '🚌'}
                         </div>
-                        <div style={{ flex: 1, fontSize: 13 }}>
-                          <div style={{ fontWeight: 800, color: 'var(--ink)' }}>{r.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginTop: 1 }}>{r.type || 'Transport'}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{leg.route?.shortName ? `Ligne ${leg.route.shortName}` : 'Marche'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Vers {leg.to.name}</div>
                         </div>
-                        <Ic.Arrow s={16} />
-                      </Link>
+                      </div>
                     ))}
                   </div>
-                </>
-              )}
+                </div>
 
-              {/* Community pulse */}
-              <div onClick={() => router.push('/app/gbairai')} className="press" style={{ padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 8 }}>
-                <div style={{ display: 'flex' }}>
-                  {(['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C'] as const).map((c, i) => (
-                    <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, fontSize: 11, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {['K', 'A', 'M', 'D'][i]}
+              ) : selected ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{selected.commune || 'Abidjan'}</div>
+                      <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>{selected.stop_name}</h2>
                     </div>
-                  ))}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={clearSelection} style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <Ic.X s={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 20, padding: 16, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>Prochains passages</div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                        EN DIRECT
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {nearbyTransport.filter(t => t.available).slice(0, 3).map((t, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: t.color || 'var(--ink)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900 }}>
+                            {t.kind.substring(0, 1).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{t.label}</div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.routeName || 'Ligne disponible'}</div>
+                          </div>
+                          {t.stop && (
+                            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)' }}>
+                              {formatDistance(t.stop.distance_m)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button 
+                      onClick={() => handleDescendIci(selected)}
+                      style={{ flex: 1, height: 44, background: 'var(--ink)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    >
+                      <Ic.Map s={16} /> J'y suis
+                    </button>
+                    <button 
+                      onClick={() => handleGetDirections({ name: selected.stop_name, lat: selected.stop_lat, lon: selected.stop_lon })}
+                      style={{ width: 44, height: 44, background: 'var(--cream)', color: 'var(--ink)', borderRadius: 14, border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Ic.Route s={20} />
+                    </button>
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Mobeurs sont en ligne</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Lance ton Gbairai</div>
-                </div>
-                <Ic.Arrow s={18} />
-              </div>
-            </>
-          )}
-        </div>
-      </motion.div>
+              ) : null}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Search Overlay ── */}
       <AnimatePresence>
@@ -644,15 +643,38 @@ function AppPageContent() {
             </div>
 
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 32px' }}>
+              {/* Résultats de recherche */}
               {results.length > 0 && (
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '14px 4px 10px' }}>
                   Résultats
                 </div>
               )}
               {results.map((r, i) => (
                 <button
                   key={i}
-                  onClick={() => handleSelectStop(r)}
+                  onClick={() => {
+                    addToRecent({
+                      id: r.id,
+                      name: r.name,
+                      type: r.type,
+                      commune: r.commune ?? undefined,
+                      lat: r.lat,
+                      lon: r.lon,
+                      logo: r.logo
+                    });
+                    if (r.type === 'stop') {
+                      handleSelectStop({
+                        stop_id: r.id,
+                        stop_name: r.name,
+                        stop_lat: r.lat,
+                        stop_lon: r.lon,
+                        commune: r.commune ?? null
+                      });
+                    } else {
+                      router.push(`/app/place/${r.id}`);
+                    }
+                    closeSearch();
+                  }}
                   className="press"
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 12,
@@ -661,79 +683,95 @@ function AppPageContent() {
                     marginBottom: 8, textAlign: 'left', cursor: 'pointer',
                   }}
                 >
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)', flexShrink: 0 }}>
-                    <Ic.Pin s={18} />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'stop' ? 'var(--orange-pale)' : 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: 'none' }}>
+                    {r.type === 'stop' ? <Ic.Bus s={18} /> : (r.logo ? <span style={{ fontSize: 18 }}>{r.logo}</span> : <Ic.Pin s={18} />)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.stop_name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{r.commune}</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{r.commune || (r.type === 'stop' ? 'Arrêt' : 'Lieu')}</div>
                   </div>
                   <Ic.Arrow s={16} />
                 </button>
               ))}
 
-              {!query && (
+              {/* Historique récent */}
+              {!query && recentItems.length > 0 && (
                 <>
-                  {recentLines.length > 0 ? (
-                    <>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
-                        Lignes récentes
-                      </div>
-                      {recentLines.map((r, i) => (
-                        <Link
-                          key={i}
-                          href={`/app/ligne/${encodeURIComponent(r.id)}?dir=0`}
-                          className="press"
-                          style={{
-                            background: 'var(--cream)', padding: 12, borderRadius: 14,
-                            border: '1px solid var(--line)',
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            marginBottom: 8, textDecoration: 'none',
-                          }}
-                        >
-                          <div style={{ width: 40, height: 40, borderRadius: 12, background: `#${r.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: `#${r.color}`, flexShrink: 0 }}>
-                            <Vehicle kind={r.type || 'gbaka'} size={22} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{r.type || 'Transport'}</div>
-                          </div>
-                          <Ic.Arrow s={16} />
-                        </Link>
-                      ))}
-                    </>
-                  ) : (
-                    <div
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '20px 4px 10px' }}>
+                    Récentes
+                  </div>
+                  {recentItems.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (r.type === 'stop') {
+                          handleSelectStop({
+                            stop_id: r.id,
+                            stop_name: r.name,
+                            stop_lat: r.lat!,
+                            stop_lon: r.lon!,
+                            commune: r.commune ?? null
+                          });
+                        } else {
+                          router.push(`/app/place/${r.id}`);
+                        }
+                        closeSearch();
+                      }}
+                      className="press"
                       style={{
-                        marginTop: 24, padding: '32px 20px',
-                        borderRadius: 18,
-                        background: 'var(--cream)',
-                        border: '1.5px dashed var(--line-strong)',
-                        textAlign: 'center',
-                        color: 'var(--muted)',
+                        width: '100%', background: 'var(--cream)', padding: 12, borderRadius: 14,
+                        border: '1px solid var(--line)',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        marginBottom: 8, textAlign: 'left', cursor: 'pointer',
                       }}
                     >
-                      <div
-                        style={{
-                          width: 56, height: 56, margin: '0 auto 12px',
-                          borderRadius: 18, background: 'var(--orange-pale)',
-                          color: 'var(--orange)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        <Ic.Search s={26} />
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'stop' ? 'var(--orange-pale)' : 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: 'none' }}>
+                        {r.type === 'stop' ? <Ic.Bus s={18} /> : (r.logo ? <span style={{ fontSize: 18 }}>{r.logo}</span> : <Ic.Pin s={18} />)}
                       </div>
-                      <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)' }}>
-                        Cherche ton chemin
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                          {r.type === 'stop' ? (r.commune || 'Arrêt') : (r.commune || 'Lieu')}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
-                        Tape un arrêt, un quartier ou une ligne pour démarrer.
-                      </div>
-                    </div>
-                  )}
+                      <Ic.Arrow s={16} />
+                    </button>
+                  ))}
                 </>
               )}
 
+              {/* État vide par défaut */}
+              {!query && recentItems.length === 0 && (
+                <div
+                  style={{
+                    marginTop: 24, padding: '32px 20px',
+                    borderRadius: 18,
+                    background: 'var(--cream)',
+                    border: '1.5px dashed var(--line-strong)',
+                    textAlign: 'center',
+                    color: 'var(--muted)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 56, height: 56, margin: '0 auto 12px',
+                      borderRadius: 18, background: 'var(--orange-pale)',
+                      color: 'var(--orange)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Ic.Search s={26} />
+                  </div>
+                  <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)' }}>
+                    Cherche ton chemin
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
+                    Tape un arrêt, un quartier ou une ligne pour démarrer.
+                  </div>
+                </div>
+              )}
+
+              {/* Aucun résultat */}
               {query && !isSearching && results.length === 0 && (
                 <div
                   style={{
@@ -755,6 +793,17 @@ function AppPageContent() {
         )}
       </AnimatePresence>
 
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)} 
+        heatMode={heatMode}
+        nearbyStopsCount={nearbyStops.length}
+        onCycleNearby={() => {
+          if (nearbyStops.length === 0) return;
+          const next = (nearbyIndex + 1) % Math.min(nearbyStops.length, 5);
+          setNearbyIndex(next);
+          handleSelectStop(nearbyStops[next]);
+        }}
+      />
     </div>
   );
 }

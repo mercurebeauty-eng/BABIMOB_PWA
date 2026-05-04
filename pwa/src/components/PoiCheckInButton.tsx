@@ -6,6 +6,8 @@ import { haversineM } from '@/lib/geo';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from '@/components/ui/Ic';
+import { toast } from 'sonner';
+import { useXP } from '@/components/providers/XPProvider';
 
 type Props = {
   placeId: string;
@@ -21,6 +23,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
   const supabase = createClient();
   const [status, setStatus] = useState<'checking' | 'idle' | 'loading' | 'done' | 'already' | 'error'>('checking');
   const [recentCount, setRecentCount] = useState<number | null>(null);
+  const { addXP } = useXP();
 
   useEffect(() => {
     async function checkAlready() {
@@ -106,6 +109,11 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
        if (error) { setStatus('error'); return; }
 
        await supabase.rpc('award_xp', { p_xp: xpAmount });
+       addXP(xpAmount);
+        
+       toast.success("Check-in réussi !", {
+         description: `Tu as gagné ${xpAmount} XP à ${placeName}`
+       });
 
        setRecentCount((prev) => (prev ?? 0) + 1);
        setStatus('done');
@@ -201,8 +209,10 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
       
       {/* Subtle hint */}
       {status === 'idle' && (
-        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Gagne +{xpAmount} XP en validant ta présence
+        <div style={{ textAlign: 'center', marginTop: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase' }}>
+            Check-in à proximité
+          </div>
         </div>
       )}
     </div>

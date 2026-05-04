@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
 import { pickWax } from '@/lib/waxPattern';
+import { BottomNav } from '@/components/ui/BottomNav';
 import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew } from './page';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
@@ -165,11 +166,18 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
       }}>
         <div className={topWax} style={{ position: 'absolute', inset: 0, opacity: 0.12 }} />
         <div style={{ position: 'absolute', top: 16, left: 16, background: 'var(--orange)', color: '#fff', padding: '4px 12px', borderRadius: 8, fontSize: 18, fontWeight: 900 }}>#1</div>
-        {top.checkin_count > 0 && (
-          <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            🔥 {top.checkin_count} {top.checkin_count > 1 ? 'BABIS Y SONT' : 'BABI Y EST'}
+        <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 6 }}>
+          {top.is_new && (
+            <div style={{ background: '#0EA85B', color: '#fff', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)' }}>
+              ✨ NOUVEAU
+            </div>
+          )}
+          <div style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {top.checkin_count > 0
+              ? `🔥 ${top.checkin_count} ${top.checkin_count > 1 ? 'BABIS Y SONT' : 'BABI Y EST'}`
+              : '🔥 PREMIER À ARRIVER ?'}
           </div>
-        )}
+        </div>
 
         <h3 className="font-display" style={{ fontSize: 32, margin: 0 }}>{top.place_name}</h3>
         <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8, marginTop: 4 }}>
@@ -181,9 +189,6 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
           )}
           {top.price_range && (
             <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>{top.price_range}</div>
-          )}
-          {top.is_new && (
-            <div style={{ background: 'var(--green)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>NOUVEAU</div>
           )}
         </div>
       </Link>
@@ -284,6 +289,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
+  const [heatMode, setHeatMode] = useState(false);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
@@ -494,6 +500,11 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
           onClose={() => setViewingStoryIndex(null)}
         />
       )}
+
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)} 
+        heatMode={heatMode} 
+      />
     </div>
   );
 }
