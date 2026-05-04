@@ -114,13 +114,15 @@ async function fetchOSMPlaces(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
+      const body = new URLSearchParams();
+      body.append('data', query);
+
       const res = await fetch(server, { 
         method: 'POST', 
-        body: query,
+        body: body,
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded' // Parfois mieux supporté pour POST Overpass
         }
       });
       
