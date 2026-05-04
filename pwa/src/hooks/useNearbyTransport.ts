@@ -35,7 +35,7 @@ function detectKind(agencyId: string): VehicleKind | null {
 }
 
 const PLACEHOLDER: TransportCard[] = KINDS.map(kind => ({
-  kind, ...META[kind], stop: null, routeName: null, available: false,
+  kind, ...META[kind], stop: null, routeName: null, routeId: null, available: false,
 }));
 
 type LigneRow = { route_id: string; route_long_name: string; agency_id: string };
