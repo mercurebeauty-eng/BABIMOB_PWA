@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,7 +60,8 @@ export default function AdminLayout({ children }: Props) {
 
   // SI ADMIN -> ON MONTRE LE DASHBOARD
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#0D0B0A', overflow: 'hidden', color: '#fff' }}>
+    <Suspense fallback={<div>Loading...</div>}>
+      <div style={{ display: 'flex', height: '100vh', background: '#0D0B0A', overflow: 'hidden', color: '#fff' }}>
       
       {/* SIDEBAR - DESKTOP */}
       <aside style={{ 
@@ -194,6 +195,7 @@ export default function AdminLayout({ children }: Props) {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         ::selection { background: var(--orange); color: #fff; }
       `}</style>
-    </div>
+      </div>
+    </Suspense>
   );
 }

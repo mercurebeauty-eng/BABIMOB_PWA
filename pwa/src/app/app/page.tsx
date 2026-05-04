@@ -25,6 +25,7 @@ import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
 import PlusBubble from '@/components/ui/PlusBubble';
 import { HelpTip } from '@/components/ui/HelpTip';
+import { useDataStore } from '@/context/DataStoreContext';
 
 type RecentItem = {
   id: string;
@@ -79,6 +80,7 @@ function AppPageContent() {
     try { return JSON.parse(localStorage.getItem('babimob_lastDest') ?? 'null'); } catch { return null; }
   });
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+  const [nearbyIndex, setNearbyIndex] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -100,26 +102,27 @@ function AppPageContent() {
     });
   }, []);
 
-  const { heatMode, setHeatMode, hotspots } = useHotspots();
-  const [nearbyIndex, setNearbyIndex] = useState(0);
-  const { activeItinerary, setActiveItinerary } = useItinerary();
-
-  const { logReach } = useReachTracking();
-  const { profile, broadcasts, explorers, communityFeed, trendingPlaces } = useCommunityData({ logReach });
-  const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady } = useMapPois({ logReach });
-  const {
+  const { 
+    pois, 
+    poiCheckins, 
+    livePois, 
+    liveTickerFeed, 
+    handleMapReady,
     userLoc,
     userHeading,
     nearbyStops,
-    setNearbyStops,
     loading: geoLoading,
-    error: geoError,
     locateMe,
-  } = useGeoLocation({
-    onPositionAcquired: () => setSelected(null),
-    onLocate: () => setSheet('half'),
-  });
-  const nearbyTransport = useNearbyTransport(nearbyStops);
+    heatMode,
+    setHeatMode,
+    hotspots,
+    profile,
+    broadcasts,
+    explorers,
+    activeItinerary,
+    setActiveItinerary,
+    nearbyTransport,
+  } = useDataStore();
 
   const {
     query,
@@ -352,7 +355,7 @@ function AppPageContent() {
         onMapReady={handleMapReady}
         userLocation={userLoc}
         userHeading={userHeading}
-        legs={activeItinerary?.legs?.map((l) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.route?.color })) || null}
+        legs={activeItinerary?.legs?.map((l: any) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.routeColor }))}
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}
         pois={pois}
@@ -414,7 +417,7 @@ function AppPageContent() {
             exit={{ y: 20, opacity: 0, scale: 0.9 }}
             style={{ 
               position: 'absolute', 
-              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
               left: 0, 
               right: 0, 
               zIndex: 8500,
@@ -617,7 +620,7 @@ function AppPageContent() {
                     </button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {activeItinerary.legs.map((leg, idx) => (
+                    {activeItinerary.legs.map((leg: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', gap: 16 }}>
                         <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
                           {leg.mode === 'WALK' ? '🚶' : '🚌'}

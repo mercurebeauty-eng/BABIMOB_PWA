@@ -459,37 +459,52 @@ export default function Map({
   // ── User location marker ───────────────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-
-    if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-      userMarkerRef.current = null;
+    if (!map || !userLocation) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      return;
     }
-
-    if (!userLocation) return;
 
     const hasHeading = userHeading !== null;
     const rotate = hasHeading ? `rotate(${userHeading}deg)` : 'rotate(0deg)';
+    
+    const html = `
+      <div class="bm-user-marker">
+        ${hasHeading ? `<div class="bm-user-heading" style="transform: ${rotate}"></div>` : ''}
+      </div>
+    `;
 
-    const icon = L.divIcon({
-      className: 'bm-user-marker-container',
-      html: `
-        <div class="bm-user-marker">
-          ${hasHeading ? `<div class="bm-user-heading" style="transform: ${rotate}"></div>` : ''}
-        </div>
-      `,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    });
+    if (!userMarkerRef.current) {
+      const icon = L.divIcon({
+        className: 'bm-user-marker-container',
+        html,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
 
-    const marker = L.marker(userLocation, { icon, zIndexOffset: 1000 })
-      .bindPopup('<div class="bm-popup"><strong>Ma position</strong></div>', {
-        className: 'bm-popup-wrapper',
-        offset: [0, -4],
-      })
-      .addTo(map);
+      const marker = L.marker(userLocation, { icon, zIndexOffset: 1000 })
+        .bindPopup('<div class="bm-popup"><strong>Ma position</strong></div>', {
+          className: 'bm-popup-wrapper',
+          offset: [0, -4],
+        })
+        .addTo(map);
 
-    userMarkerRef.current = marker;
+      userMarkerRef.current = marker;
+    } else {
+      // Mise à jour fluide de la position et de l'icône
+      userMarkerRef.current.setLatLng(userLocation);
+      const icon = userMarkerRef.current.getIcon() as L.DivIcon;
+      if (icon.options.html !== html) {
+        userMarkerRef.current.setIcon(L.divIcon({
+          className: 'bm-user-marker-container',
+          html,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        }));
+      }
+    }
   }, [userLocation, userHeading]);
 
   // ── Multi-leg itinerary ───────────────────────────────────────────────────
