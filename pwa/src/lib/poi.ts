@@ -93,14 +93,13 @@ async function fetchOSMPlaces(
   if (radiusM < 10) return [];
 
   const query = `
-    [out:json][timeout:30];
+    [out:json][timeout:15];
     (
-      nwr["shop"](around:${Math.round(radiusM)},${centerLat},${centerLon});
-      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy|bank|atm|school|place_of_worship|hospital|clinic|police|post_office|townhall"](around:${Math.round(radiusM)},${centerLat},${centerLon});
-      nwr["tourism"~"hotel|attraction|museum|viewpoint"](around:${Math.round(radiusM)},${centerLat},${centerLon});
-      nwr["leisure"~"park|playground|sports_centre"](around:${Math.round(radiusM)},${centerLat},${centerLon});
+      nwr["shop"~"supermarket|convenience|clothes|boutique|beauty|hairdresser|bakery"](around:${Math.round(radiusM)},${centerLat},${centerLon});
+      nwr["amenity"~"restaurant|cafe|bar|fast_food|pharmacy|bank|atm|school|hospital|clinic"](around:${Math.round(radiusM)},${centerLat},${centerLon});
+      nwr["tourism"~"hotel|attraction"](around:${Math.round(radiusM)},${centerLat},${centerLon});
     );
-    out center 150;
+    out center 100;
   `;
 
   try {
