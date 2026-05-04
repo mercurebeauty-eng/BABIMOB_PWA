@@ -58,6 +58,30 @@ const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'va
 
 // ── Components ──
 
+// Catégories de C'comment (hors tarif, qui n'est pas un signal de pouls)
+const CATEGORY_META: Record<string, { emoji: string; label: string }> = {
+  trafic:   { emoji: '🚦', label: 'Trafic' },
+  incident: { emoji: '⚠️', label: 'Incident' },
+  travaux:  { emoji: '🚧', label: 'Travaux' },
+  ambiance: { emoji: '✨', label: 'Ambiance' },
+};
+
+function pulseHeadline(pulse: CommunePulse[]): string {
+  const rouge = pulse.find(p => p.status === 'rouge');
+  if (rouge && rouge.top_category) {
+    const meta = CATEGORY_META[rouge.top_category];
+    if (rouge.top_category === 'trafic')   return `${rouge.commune} bouchonne.`;
+    if (rouge.top_category === 'incident') return `Incident à ${rouge.commune}.`;
+    if (rouge.top_category === 'travaux')  return `Travaux à ${rouge.commune}.`;
+    if (rouge.top_category === 'ambiance') return `${rouge.commune} chauffe.`;
+    return `${rouge.commune} ${meta?.label.toLowerCase() ?? 'bouge'}.`;
+  }
+  if (rouge) return `${rouge.commune} bouchonne.`;
+  const orange = pulse.find(p => p.status === 'orange');
+  if (orange) return 'Abidjan s’éveille.';
+  return 'Abidjan respire.';
+}
+
 function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
   if (rooms.length === 0) return null;
   return (
@@ -292,15 +316,31 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                     POULS · MAINTENANT
                   </div>
                   <div className="font-display" style={{ fontSize: 24, marginTop: 6, lineHeight: 1.05 }}>
-                    {pulse.find(p => p.status === 'rouge') ? `${pulse.find(p => p.status === 'rouge')!.commune} bouchonne.` : 'Abidjan respire.'}
+                    {pulseHeadline(pulse)}
+                  </div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.85, marginTop: 4, letterSpacing: 0.2 }}>
+                    Basé sur les C&apos;comment actifs des arrêts · hors tarif
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    {pulse.slice(0, 3).map((p, i) => (
-                      <div key={i} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.2)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.7, letterSpacing: 0.4 }}>{p.commune.toUpperCase()}</div>
-                        <div style={{ fontSize: 13, fontWeight: 900, color: STATUS_COLORS[p.status], marginTop: 2, textTransform: 'capitalize' }}>{p.status}</div>
-                      </div>
-                    ))}
+                    {pulse.slice(0, 3).map((p, i) => {
+                      const cat = p.top_category ? CATEGORY_META[p.top_category] : null;
+                      return (
+                        <div key={i} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.7, letterSpacing: 0.4 }}>{p.commune.toUpperCase()}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
+                            {cat && <span style={{ fontSize: 13 }}>{cat.emoji}</span>}
+                            <span style={{ fontSize: 13, fontWeight: 900, color: STATUS_COLORS[p.status], textTransform: 'capitalize' }}>
+                              {cat ? cat.label.toLowerCase() : p.status}
+                            </span>
+                          </div>
+                          {p.report_count > 0 && (
+                            <div style={{ position: 'absolute', top: 4, right: 6, fontSize: 9, fontWeight: 900, color: '#fff', opacity: 0.9 }}>
+                              {p.report_count}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

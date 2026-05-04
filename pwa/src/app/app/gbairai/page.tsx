@@ -43,11 +43,15 @@ export type HotSpot = {
   lon: number;
 };
 
+export type ReportCategory = 'trafic' | 'incident' | 'travaux' | 'ambiance';
+
 export type CommunePulse = {
   commune: string;
   report_count: number;
   checkin_count: number;
   status: 'vert' | 'orange' | 'rouge';
+  /** Catégorie dominante des C'comment actifs sur la commune (hors tarif). */
+  top_category: ReportCategory | null;
 };
 
 export default async function GbairaiPage() {
@@ -107,18 +111,40 @@ export default async function GbairaiPage() {
     .eq('is_public', true)
     .not('place_id', 'is', null);
 
-  // 4. Pulse de la ville — basé sur alertes Gbairai + check-ins par commune (24h)
+  // 4. Pulse de la ville — basé sur les C'comment des arrêts (stop_reports)
+  //    sauf catégorie "tarif" (qui est purement informatif, pas un signal de pouls).
+  //    On ne garde que les reports encore actifs (expires_at > now).
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: alertsRaw } = await supabase
-    .from('gbairai_posts')
-    .select('commune')
-    .eq('post_type', 'alerte')
-    .eq('is_active', true)
-    .gte('created_at', oneDayAgo);
+  const nowIso = new Date().toISOString();
+  const { data: reportsRaw } = await supabase
+    .from('stop_reports')
+    .select('stop_id, category, expires_at')
+    .gte('created_at', oneDayAgo)
+    .neq('category', 'tarif')
+    .gt('expires_at', nowIso);
 
-  const communeAlerts = new Map<string, number>();
-  (alertsRaw ?? []).forEach(a => {
-    if (a.commune) communeAlerts.set(a.commune, (communeAlerts.get(a.commune) ?? 0) + 1);
+  // Résoudre la commune via gtfs_stops (pas de FK garantie ⇒ 2-step query)
+  const reportedStopIds = Array.from(new Set((reportsRaw ?? []).map(r => r.stop_id))).filter(Boolean);
+  let stopToCommune = new Map<string, string | null>();
+  if (reportedStopIds.length > 0) {
+    const { data: stopsMeta } = await supabase
+      .from('gtfs_stops')
+      .select('stop_id, commune')
+      .in('stop_id', reportedStopIds);
+    stopToCommune = new Map((stopsMeta ?? []).map(s => [s.stop_id, s.commune]));
+  }
+
+  const communeReports = new Map<string, number>();
+  // commune → { category → count }
+  const communeCats = new Map<string, Map<ReportCategory, number>>();
+  (reportsRaw ?? []).forEach(r => {
+    const com = stopToCommune.get(r.stop_id);
+    if (!com) return;
+    communeReports.set(com, (communeReports.get(com) ?? 0) + 1);
+    const cat = r.category as ReportCategory;
+    const inner = communeCats.get(com) ?? new Map<ReportCategory, number>();
+    inner.set(cat, (inner.get(cat) ?? 0) + 1);
+    communeCats.set(com, inner);
   });
 
   const communeCheckins = new Map<string, number>();
@@ -129,12 +155,22 @@ export default async function GbairaiPage() {
   const MAIN_COMMUNES = ['Cocody', 'Plateau', 'Yopougon', 'Adjamé', 'Marcory', 'Treichville'];
   const pulse: CommunePulse[] = MAIN_COMMUNES.map(commune => {
     const cc = communeCheckins.get(commune) ?? 0;
-    const reportCount = communeAlerts.get(commune) ?? 0;
+    const reportCount = communeReports.get(commune) ?? 0;
+    const cats = communeCats.get(commune);
+    let topCategory: ReportCategory | null = null;
+    if (cats && cats.size > 0) {
+      let best = -1;
+      cats.forEach((n, cat) => { if (n > best) { best = n; topCategory = cat; } });
+    }
+    // Pouls basé sur les C'comment actifs des arrêts (hors tarif) :
+    // - 2+ signalements ⇒ rouge (ça chauffe)
+    // - 1 signalement OU forte densité d'activité ⇒ orange
+    // - sinon ⇒ vert (Abidjan respire)
     const status: 'vert' | 'orange' | 'rouge' =
       reportCount >= 2 ? 'rouge'
       : reportCount >= 1 || cc > 5 ? 'orange'
       : 'vert';
-    return { commune, report_count: reportCount, checkin_count: cc, status };
+    return { commune, report_count: reportCount, checkin_count: cc, status, top_category: topCategory };
   });
 
   // 5. Fetch Followers (pour filtrage stories)
