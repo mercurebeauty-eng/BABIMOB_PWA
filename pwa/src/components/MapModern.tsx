@@ -57,8 +57,8 @@ export default function MapModern({
 }) {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState({
-    longitude: center[0],
-    latitude: center[1],
+    longitude: center[1],
+    latitude: center[0],
     zoom: zoom,
     pitch: 0,
     bearing: 0
@@ -76,8 +76,8 @@ export default function MapModern({
     if (center) {
       setViewState(prev => ({
         ...prev,
-        longitude: center[0],
-        latitude: center[1]
+        longitude: center[1],
+        latitude: center[0]
       }));
     }
   }, [center[0], center[1]]);
@@ -86,7 +86,7 @@ export default function MapModern({
   useEffect(() => {
     if (recenterSignal && userLocation) {
       mapRef.current?.flyTo({
-        center: [userLocation[0], userLocation[1]],
+        center: [userLocation[1], userLocation[0]],
         zoom: 15,
         duration: 2000
       });
@@ -142,7 +142,7 @@ export default function MapModern({
   }), []);
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height: '100%', background: 'var(--cream)' }}>
       <Map
         ref={mapRef}
         {...viewState}
@@ -150,6 +150,8 @@ export default function MapModern({
         mapStyle={satellite ? (satelliteStyle as any) : MAP_STYLE_VECTOR}
         maxZoom={20}
         hash={false}
+        onError={(e) => console.error('MapLibre Error:', e)}
+        style={{ width: '100%', height: '100%' }}
       >
         {/* ITINÉRAIRES (TRACÉS VECTORIELS) */}
         {legs.length > 0 && (
@@ -244,7 +246,7 @@ export default function MapModern({
 
         {/* MARQUEUR UTILISATEUR */}
         {userLocation && (
-          <Marker longitude={userLocation[0]} latitude={userLocation[1]} anchor="center">
+          <Marker longitude={userLocation[1]} latitude={userLocation[0]} anchor="center">
             <div className="relative flex items-center justify-center">
               {/* Halo pulsant */}
               <div className="absolute w-8 h-8 bg-blue-500/30 rounded-full animate-ping" />
