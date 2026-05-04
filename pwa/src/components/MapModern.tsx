@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import Map, { Source, Layer, Marker, NavigationControl, useControl, MapRef } from 'react-map-gl/maplibre';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl/maplibre';
 import { POI } from '@/lib/poi';
 import { Stop } from '@/lib/types';
 

@@ -1,9 +1,11 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic';
+
+import dynamic_next from 'next/dynamic';
 import { useState } from 'react';
 
-const MapModern = dynamic(() => import('@/components/MapModern'), { ssr: false });
+const MapModern = dynamic_next(() => import('@/components/MapModern'), { ssr: false });
 
 export default function TestMapPage() {
   const [satellite, setSatellite] = useState(false);
