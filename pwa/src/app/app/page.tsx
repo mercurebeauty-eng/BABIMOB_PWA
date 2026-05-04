@@ -396,9 +396,7 @@ function AppPageContent() {
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               onDragEnd={(_, info) => {
-                if (Math.abs(info.offset.x) > 50) {
-                  onToggleHeatmap();
-                }
+                  setHeatMode(!heatMode);
               }}
               onClick={openSearch}
               className="press"
