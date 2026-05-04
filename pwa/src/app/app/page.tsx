@@ -432,26 +432,36 @@ function AppPageContent() {
             initial={{ y: 100, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.95 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 400 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                setSelected(null);
+                setSelectedPoi(null);
+                setActiveItinerary(null);
+              }
+            }}
             style={{ 
               position: 'absolute', 
               bottom: 100, 
               left: 16, 
               right: 16, 
-              zIndex: 600, 
+              zIndex: 1000, 
               maxHeight: '65vh',
-              background: 'rgba(255, 255, 255, 0.7)',
-              backdropFilter: 'blur(24px) saturate(200%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+              background: 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(30px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(30px) saturate(200%)',
               borderRadius: 32,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
               border: '1px solid rgba(255,255,255,0.4)',
-              overflow: 'hidden',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              touchAction: 'none'
             }}
           >
-            <div style={{ width: '100%', padding: '12px 0', display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.1 }} />
+            <div style={{ width: '100%', padding: '10px 0', display: 'flex', justifyContent: 'center', cursor: 'grab' }}>
+              <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.15 }} />
             </div>
 
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px' }}>

@@ -44,14 +44,20 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             style={{
               position: 'fixed',
-              inset: 0,
-              zIndex: 8000,
-              background: 'rgba(0,0,0,0.1)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 7900, // Juste en dessous du menu
+              background: 'rgba(0,0,0,0.15)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               pointerEvents: 'auto'
             }}
           />
