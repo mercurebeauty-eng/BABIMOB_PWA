@@ -26,6 +26,7 @@ import { BottomNav } from '@/components/ui/BottomNav';
 import PlusBubble from '@/components/ui/PlusBubble';
 import { HelpTip } from '@/components/ui/HelpTip';
 import { useDataStore } from '@/context/DataStoreContext';
+import { createClient } from '@/lib/supabase/client';
 
 type RecentItem = {
   id: string;
@@ -81,6 +82,8 @@ function AppPageContent() {
   });
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
   const [nearbyIndex, setNearbyIndex] = useState(0);
+  const [placeReviews, setPlaceReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -172,6 +175,28 @@ function AppPageContent() {
       }
     }
   }, [pois, handleDiscover]);
+
+  // Real reviews loader
+  useEffect(() => {
+    if (!selectedPoi) {
+      setPlaceReviews([]);
+      return;
+    }
+    const poiId = selectedPoi.id;
+    const supabase = createClient();
+    async function load() {
+      setLoadingReviews(true);
+      const { data } = await supabase
+        .from('place_advice')
+        .select('*, profile:profiles(display_name, avatar_emoji)')
+        .eq('place_id', poiId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      if (data) setPlaceReviews(data);
+      setLoadingReviews(false);
+    }
+    load();
+  }, [selectedPoi]);
 
   const handleLocateMe = useCallback(() => {
     setRecenterSignal(s => s + 1);
@@ -477,17 +502,17 @@ function AppPageContent() {
             exit={{ y: 100, opacity: 0, scale: 0.95 }}
             style={{ 
               position: 'absolute', 
-              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
-              left: 16, 
-              right: 16, 
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+              left: 12, 
+              right: 12, 
               zIndex: 8000, 
               height: heightMV,
-              background: 'rgba(255, 255, 255, 0.75)',
-              backdropFilter: 'blur(40px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              background: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(40px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(200%)',
               borderRadius: 32,
-              border: '1px solid rgba(255,255,255,0.5)',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.4)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -499,7 +524,7 @@ function AppPageContent() {
               onPointerDown={onHandlePointerDown}
               style={{ 
                 width: '100%', 
-                padding: '12px 0 16px', 
+                padding: '10px 0 14px', 
                 display: 'flex', 
                 flexDirection: 'column',
                 alignItems: 'center', 
@@ -510,7 +535,7 @@ function AppPageContent() {
                 borderTopRightRadius: 32
               }}
             >
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.1, marginBottom: 12 }} />
+              <div style={{ width: 40, height: 5, borderRadius: 2.5, background: 'var(--ink)', opacity: 0.15, marginBottom: 8 }} />
               
               {(selectedPoi || selected) && (
                 <div style={{ padding: '0 24px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -599,32 +624,46 @@ function AppPageContent() {
                     </div>
                   )}
 
-                  {/* Avis Simulés */}
+                  {/* Avis Réels de la communauté */}
                   <div style={{ padding: '0 4px' }}>
                     <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>COMMUNAUTÉ</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                       {[
-                         { user: 'Kouassi', note: 5, text: 'Super accueil et service rapide !' },
-                         { user: 'Marie', note: 4, text: 'Très bon rapport qualité/prix.' }
-                       ].map((rev, i) => (
-                         <div key={i} style={{ 
-                           background: 'rgba(255,255,255,0.4)', 
-                           padding: '14px', 
-                           borderRadius: 20,
-                           border: '1px solid rgba(0,0,0,0.03)',
-                           boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                         }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
-                             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{rev.user}</span>
-                             <div style={{ display: 'flex', gap: 1 }}>
-                               {[...Array(5)].map((_, idx) => (
-                                 <span key={idx} style={{ fontSize: 10, opacity: idx < rev.note ? 1 : 0.2 }}>⭐</span>
-                               ))}
-                             </div>
-                           </div>
-                           <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.4, opacity: 0.85 }}>{rev.text}</p>
-                         </div>
-                       ))}
+                       {loadingReviews ? (
+                         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic', fontSize: 13 }}>Chargement des avis...</div>
+                       ) : placeReviews.length > 0 ? (
+                         placeReviews.map((rev, i) => (
+                          <div key={rev.id || i} style={{ 
+                            background: 'rgba(255,255,255,0.45)', 
+                            padding: '16px', 
+                            borderRadius: 24,
+                            border: '1px solid rgba(0,0,0,0.03)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                          }}>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <div style={{ width: 36, height: 36, borderRadius: 12, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                                {rev.profile?.avatar_emoji || '🧭'}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{rev.profile?.display_name || 'Explorateur'}</span>
+                                  <div style={{ display: 'flex', gap: 1 }}>
+                                    {[...Array(5)].map((_, idx) => (
+                                      <span key={idx} style={{ fontSize: 10, filter: idx < (rev.rating || 5) ? 'grayscale(0)' : 'grayscale(1)', opacity: idx < (rev.rating || 5) ? 1 : 0.2 }}>⭐</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.5 }}>{rev.content}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                       ) : (
+                        <div style={{ background: 'rgba(0,0,0,0.02)', padding: '24px', borderRadius: 24, textAlign: 'center', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                          <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Aucun avis pour l'instant</div>
+                          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>Soyez le premier à partager votre expérience sur ce lieu !</p>
+                        </div>
+                       )}
                     </div>
                   </div>
                 </div>
@@ -654,17 +693,6 @@ function AppPageContent() {
 
               ) : selected ? (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{selected.commune || 'Abidjan'}</div>
-                      <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>{selected.stop_name}</h2>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={clearSelection} style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                        <Ic.X s={16} />
-                      </button>
-                    </div>
-                  </div>
 
                   <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 20, padding: 16, marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>

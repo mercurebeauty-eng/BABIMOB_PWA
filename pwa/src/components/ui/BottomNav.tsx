@@ -1,28 +1,12 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Ic } from './Ic';
-import PlusBubble from './PlusBubble';
 
-const NAV_ITEMS = [
-  { id: 'home', label: 'Carte', icon: Ic.Map, path: '/app', color: 'var(--orange)' },
-  { id: 'gbairai', label: 'Gbairai', icon: Ic.Chat, path: '/app/gbairai', color: 'var(--blue)' },
-  { id: 'compte', label: 'Profil', icon: Ic.Users, path: '/app/compte', color: 'var(--ink)' },
-];
-
-export function BottomNav({ 
-  onToggleHeatmap, 
-  heatMode,
-  nearbyStopsCount = 0,
-  onCycleNearby,
-  onDiscover,
-  isAdmin,
-  isPlusOpen,
-  onTogglePlus
-}: { 
+interface BottomNavProps {
   onToggleHeatmap: () => void;
   heatMode: boolean;
   nearbyStopsCount?: number;
@@ -31,143 +15,160 @@ export function BottomNav({
   isAdmin?: boolean;
   isPlusOpen?: boolean;
   onTogglePlus?: () => void;
-}) {
+}
+
+export function BottomNav({
+  nearbyStopsCount = 0,
+  onCycleNearby,
+  onDiscover,
+  isPlusOpen,
+  onTogglePlus,
+  heatMode
+}: BottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const NAV_ITEMS = [
+    { 
+      id: 'transport', 
+      label: 'Transport', 
+      icon: Ic.Bus, 
+      action: onCycleNearby,
+      badge: nearbyStopsCount > 0 ? nearbyStopsCount : null,
+      active: false // Dynamic highlight based on badge
+    },
+    { 
+      id: 'home', 
+      label: 'Carte', 
+      icon: Ic.Map, 
+      path: '/app',
+      active: pathname === '/app'
+    },
+    { 
+      id: 'gbairai', 
+      label: 'Gbairai', 
+      icon: Ic.Chat, 
+      path: '/app/gbairai',
+      active: pathname === '/app/gbairai'
+    },
+    { 
+      id: 'compte', 
+      label: 'Profil', 
+      icon: Ic.Users, 
+      path: '/app/compte',
+      active: pathname === '/app/compte'
+    },
+    { 
+      id: 'plus', 
+      label: 'Plus', 
+      icon: Ic.Menu, 
+      action: onTogglePlus,
+      active: isPlusOpen
+    }
+  ];
 
   return (
     <div style={{
       position: 'fixed',
-      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
       left: 0,
       right: 0,
       zIndex: 9000,
       display: 'flex',
       justifyContent: 'center',
       pointerEvents: 'none',
+      padding: '0 16px'
     }}>
-
-
-      <motion.nav 
-        initial={{ y: 100, opacity: 0 }}
+      <motion.nav
+        initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         style={{
-          background: 'rgba(255, 255, 255, 0.45)',
-          backdropFilter: 'blur(30px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
-          borderRadius: 32,
-          padding: '10px',
+          background: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(30px) saturate(210%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(210%)',
+          borderRadius: 28,
+          padding: '6px',
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.4)',
+          gap: 4,
+          boxShadow: '0 20px 50px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.4)',
           pointerEvents: 'auto',
-          border: '1px solid rgba(0,0,0,0.05)',
+          border: '1px solid rgba(255,255,255,0.5)',
+          maxWidth: '400px',
+          width: '100%',
+          justifyContent: 'space-around'
         }}
       >
-        {/* Nearby Stops / Près de toi Icon (App Style) */}
-        {nearbyStopsCount > 0 && (
-          <button
-            onClick={onCycleNearby}
-            className="press"
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 16,
-              background: 'linear-gradient(135deg, #FF9500, #FF5E00)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-              position: 'relative',
-              boxShadow: '0 4px 12px rgba(255,149,0,0.3)'
-            }}
-          >
-            <Ic.Bus s={24} />
-            <div style={{
-              position: 'absolute',
-              top: -5,
-              right: -5,
-              background: 'var(--ink)',
-              color: '#fff',
-              fontSize: 10,
-              fontWeight: 900,
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid rgba(255,255,255,0.8)'
-            }}>
-              {nearbyStopsCount}
-            </div>
-          </button>
-        )}
-
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.path;
           const Icon = item.icon;
-
+          const isTransportAlert = item.id === 'transport' && item.badge;
+          
           return (
-            <Link
-              key={item.id}
-              href={item.path}
-              className="press"
-              style={{
-                width: 54,
-                height: 54,
-                borderRadius: 16,
-                background: isActive ? '#fff' : 'rgba(255,255,255,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: isActive ? item.color : 'rgba(0,0,0,0.6)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
-                textDecoration: 'none'
-              }}
-            >
-              <Icon s={24} fill={isActive} />
-            </Link>
+            <div key={item.id} style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={(e) => {
+                  if (item.path) {
+                    router.push(item.path);
+                  } else if (item.action) {
+                    item.action();
+                  }
+                }}
+                className="press"
+                style={{
+                  width: '100%',
+                  height: 52,
+                  borderRadius: 22,
+                  background: item.active ? 'var(--orange)' : (isTransportAlert ? 'rgba(255, 149, 0, 0.15)' : 'transparent'),
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: item.active ? '#fff' : (isTransportAlert ? 'var(--orange)' : 'var(--ink)'),
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  gap: 2,
+                  opacity: (item.id === 'plus' && isPlusOpen) ? 1 : (item.active ? 1 : 0.7)
+                }}
+              >
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon s={22} fill={item.active} />
+                  
+                  {item.badge && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      style={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -10,
+                        background: 'var(--orange)',
+                        color: '#fff',
+                        fontSize: 9,
+                        fontWeight: 900,
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        border: '2px solid #fff',
+                        boxShadow: '0 2px 6px rgba(242,108,26,0.3)'
+                      }}
+                      className="pulse"
+                    >
+                      {item.badge}
+                    </motion.span>
+                  )}
+                </div>
+                <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.2, opacity: 0.8 }}>
+                  {item.label}
+                </span>
+              </button>
+            </div>
           );
         })}
-
-        {/* Separator like iPad Dock */}
-        <div style={{
-          width: 1.5,
-          height: 32,
-          background: 'rgba(0,0,0,0.1)',
-          margin: '0 4px',
-          borderRadius: 1
-        }} />
-
-        <div style={{ position: 'relative' }}>
-          {/* Plus Button */}
-          <button
-            onClick={onTogglePlus}
-            className="press"
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 16,
-              background: isPlusOpen ? 'var(--ink)' : 'rgba(255,255,255,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: isPlusOpen ? '#fff' : 'rgba(0,0,0,0.6)',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-            }}
-          >
-            <Ic.Menu s={24} />
-          </button>
-        </div>
-
       </motion.nav>
     </div>
   );
