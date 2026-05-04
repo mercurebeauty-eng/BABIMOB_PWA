@@ -102,12 +102,12 @@ async function fetchOSMPlaces(
   centerLat: number, centerLon: number, radiusM: number,
   minLat: number, maxLat: number, minLon: number, maxLon: number
 ): Promise<POI[]> {
-  // 1. Vérifier si on a déjà ces données en cache (rayon de 500m de tolérance ou bounds inclus)
+  // 1. Vérifier si on a déjà exactement ces données en cache (5 minutes)
   const now = Date.now();
   const cached = osmCache.find(entry => 
-    entry.bounds.minLat <= minLat && entry.bounds.maxLat >= maxLat &&
-    entry.bounds.minLon <= minLon && entry.bounds.maxLon >= maxLon &&
-    (now - entry.timestamp) < 300000 // 5 minutes de cache
+    Math.abs(entry.bounds.minLat - minLat) < 0.001 &&
+    Math.abs(entry.bounds.maxLat - maxLat) < 0.001 &&
+    (now - entry.timestamp) < 300000 
   );
 
   if (cached) {
@@ -125,7 +125,7 @@ async function fetchOSMPlaces(
       nwr["amenity"~"restaurant|cafe|bar|fast_food|pharmacy|bank|atm|school|hospital|clinic"](around:${Math.round(radiusM)},${centerLat},${centerLon});
       nwr["tourism"~"hotel|attraction"](around:${Math.round(radiusM)},${centerLat},${centerLon});
     );
-    out center 100;
+    out center 200;
   `;
 
   try {

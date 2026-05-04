@@ -332,9 +332,9 @@ export default function Map({
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
 
       // Progressive zoom visibility — Apple Maps Style
-      // < 12: Elite only · 12-14: Elite + Pro · >= 14: all
+      // < 12: Elite only · 12-13: Elite + Pro · >= 13: all
       if (currentZoom < 12 && !isElite) return;
-      if (currentZoom < 14 && !isElite && !isPro) return;
+      if (currentZoom < 13 && !isElite && !isPro) return;
 
       const emoji = p.logo_emoji ?? '🏢';
       const bgColor = p.cover_color ?? '#6B7280';
@@ -351,7 +351,7 @@ export default function Map({
       // Labels at high zoom or for selected/elite
       const showLabel = isElite || isSelected || currentZoom >= 16;
       // Show emoji always if zoom is high enough, or if it's a partner
-      const showEmoji = isElite || isPro || currentZoom >= 14.5;
+      const showEmoji = isElite || isPro || currentZoom >= 13.5;
 
       let extraClass = isElite
         ? 'bm-poi-circle-elite bm-poi-elite-pulse'
