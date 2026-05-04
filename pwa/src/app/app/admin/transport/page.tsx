@@ -14,6 +14,12 @@ export default function AdminTransportPage() {
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  
+  // Form states
+  const [routeForm, setRouteForm] = useState({ route_id: '', agency_id: '', route_short_name: '', route_long_name: '', route_color: 'F26C1A', route_text_color: 'FFFFFF', route_type: 3 });
+  const [agencyForm, setAgencyForm] = useState({ agency_id: '', agency_name: '', agency_url: '', agency_timezone: 'Africa/Abidjan' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -29,6 +35,37 @@ export default function AdminTransportPage() {
   };
 
   useEffect(() => { fetchData(); }, [supabase]);
+
+  const handleRouteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = editingItem 
+      ? await supabase.from('gtfs_routes').update(routeForm).eq('route_id', editingItem.route_id)
+      : await supabase.from('gtfs_routes').insert(routeForm);
+    
+    if (error) alert(error.message);
+    else { setShowAdd(false); fetchData(); }
+  };
+
+  const handleAgencySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.from('gtfs_agencies').insert(agencyForm);
+    if (error) alert(error.message);
+    else { setShowAdd(false); fetchData(); }
+  };
+
+  const startEditRoute = (route: any) => {
+    setEditingItem(route);
+    setRouteForm({
+      route_id: route.route_id,
+      agency_id: route.agency_id || '',
+      route_short_name: route.route_short_name || '',
+      route_long_name: route.route_long_name || '',
+      route_color: route.route_color || 'F26C1A',
+      route_text_color: route.route_text_color || 'FFFFFF',
+      route_type: route.route_type || 3
+    });
+    setShowAdd(true);
+  };
 
   const filteredRoutes = routes.filter(r => 
     r.route_short_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,11 +86,47 @@ export default function AdminTransportPage() {
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Contrôle total des agences, lignes et arrêts du réseau BABIMOB.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-           <button className="press" style={tabBtnStyle(activeTab === 'agencies')} onClick={() => setActiveTab('agencies')}>AGENCES</button>
-           <button className="press" style={tabBtnStyle(activeTab === 'lines')} onClick={() => setActiveTab('lines')}>LIGNES</button>
-           <button className="press" style={tabBtnStyle(activeTab === 'stops')} onClick={() => setActiveTab('stops')}>ARRÊTS</button>
+           <button className="press" style={tabBtnStyle(activeTab === 'agencies')} onClick={() => { setActiveTab('agencies'); setShowAdd(false); }}>AGENCES</button>
+           <button className="press" style={tabBtnStyle(activeTab === 'lines')} onClick={() => { setActiveTab('lines'); setShowAdd(false); }}>LIGNES</button>
+           <button className="press" style={tabBtnStyle(activeTab === 'stops')} onClick={() => { setActiveTab('stops'); setShowAdd(false); }}>ARRÊTS</button>
         </div>
       </div>
+
+      {/* ADD ACTION */}
+      <div style={{ marginBottom: 32 }}>
+        <button 
+          onClick={() => { setShowAdd(!showAdd); setEditingItem(null); }}
+          className="press"
+          style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 24px', borderRadius: 16, fontSize: 12, fontWeight: 900, cursor: 'pointer' }}
+        >
+          {showAdd ? 'ANNULER' : activeTab === 'lines' ? '+ CRÉER UNE LIGNE' : activeTab === 'agencies' ? '+ AJOUTER UNE AGENCE' : 'GÉRER ARRÊTS'}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {showAdd && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ background: 'rgba(255,255,255,0.03)', padding: 32, borderRadius: 28, marginBottom: 40, border: '1px solid rgba(255,255,255,0.05)' }}>
+            {activeTab === 'lines' ? (
+              <form onSubmit={handleRouteSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
+                <input placeholder="ID Ligne (ex: L82)" style={inputStyle} value={routeForm.route_id} onChange={e => setRouteForm({...routeForm, route_id: e.target.value})} disabled={!!editingItem} />
+                <input placeholder="Code (ex: 82)" style={inputStyle} value={routeForm.route_short_name} onChange={e => setRouteForm({...routeForm, route_short_name: e.target.value})} />
+                <select style={inputStyle} value={routeForm.agency_id} onChange={e => setRouteForm({...routeForm, agency_id: e.target.value})}>
+                  <option value="">Choisir Agence</option>
+                  {agencies.map(a => <option key={a.agency_id} value={a.agency_id}>{a.agency_name}</option>)}
+                </select>
+                <input placeholder="Couleur (HEX)" style={inputStyle} value={routeForm.route_color} onChange={e => setRouteForm({...routeForm, route_color: e.target.value})} />
+                <button type="submit" style={{ background: 'var(--orange)', color: '#fff', border: 'none', borderRadius: 16, fontWeight: 900 }}>{editingItem ? 'MODIFIER' : 'CRÉER'}</button>
+              </form>
+            ) : activeTab === 'agencies' ? (
+              <form onSubmit={handleAgencySubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
+                <input placeholder="ID Agence (ex: SOTRA)" style={inputStyle} value={agencyForm.agency_id} onChange={e => setAgencyForm({...agencyForm, agency_id: e.target.value})} />
+                <input placeholder="Nom Agence" style={inputStyle} value={agencyForm.agency_name} onChange={e => setAgencyForm({...agencyForm, agency_name: e.target.value})} />
+                <button type="submit" style={{ background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 16, fontWeight: 900 }}>CRÉER AGENCE</button>
+              </form>
+            ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* QUICK STATS / INFO */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginBottom: 40 }}>
@@ -126,7 +199,7 @@ export default function AdminTransportPage() {
                       <div style={{ fontWeight: 900, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.route_long_name || 'Ligne sans nom'}</div>
                       <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: 4 }}>{r.agency_id || 'SOTRA'} • {r.route_type === 3 ? 'BUS' : 'AUTRE'}</div>
                     </div>
-                    <button className="press" style={actionBtnStyle}><Ic.Settings s={16} /></button>
+                    <button className="press" onClick={() => startEditRoute(r)} style={actionBtnStyle}><Ic.Settings s={16} /></button>
                   </motion.div>
                 ))}
               </div>

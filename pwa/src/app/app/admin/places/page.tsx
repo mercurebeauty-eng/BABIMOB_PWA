@@ -12,6 +12,9 @@ export default function AdminPlacesPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [showOfferAdd, setShowOfferAdd] = useState(false);
+  const [offerForm, setOfferForm] = useState({ title: '', description: '', discount_pct: 10, valid_until: '' });
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -88,7 +91,7 @@ export default function AdminPlacesPage() {
     });
   };
 
-  const startEdit = (place: any) => {
+  const startEdit = async (place: any) => {
     setEditingId(place.id);
     setFormData({
       name: place.name, 
@@ -107,7 +110,35 @@ export default function AdminPlacesPage() {
       instagram: place.instagram || '',
       verified: place.verified || false
     });
+    
+    // Fetch offers
+    const { data: offerData } = await supabase.from('place_offers').select('*').eq('place_id', place.id).order('created_at', { ascending: false });
+    setOffers(offerData || []);
     setShowAdd(true);
+  };
+
+  const handleAddOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    const { error } = await supabase.from('place_offers').insert({
+      ...offerForm,
+      place_id: editingId,
+      valid_from: new Date().toISOString().split('T')[0]
+    });
+    if (error) alert(error.message);
+    else {
+      setOfferForm({ title: '', description: '', discount_pct: 10, valid_until: '' });
+      setShowOfferAdd(false);
+      // Refresh offers
+      const { data } = await supabase.from('place_offers').select('*').eq('place_id', editingId).order('created_at', { ascending: false });
+      setOffers(data || []);
+    }
+  };
+
+  const deleteOffer = async (id: string) => {
+    const { error } = await supabase.from('place_offers').delete().eq('id', id);
+    if (error) alert(error.message);
+    else setOffers(offers.filter(o => o.id !== id));
   };
 
   return (
@@ -158,7 +189,7 @@ export default function AdminPlacesPage() {
                     <input required placeholder="ex: Maquis Le Dôme" style={inputStyle} 
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                   </div>
-
+192: 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Logo Emoji</label>
@@ -178,7 +209,7 @@ export default function AdminPlacesPage() {
                     </div>
                   </div>
                 </div>
-
+212: 
                 {/* SECTION: LOCATION */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <h3 style={{ fontSize: 11, fontWeight: 900, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: 2 }}>Géolocalisation</h3>
@@ -188,7 +219,7 @@ export default function AdminPlacesPage() {
                     <input placeholder="ex: Cocody" style={inputStyle} 
                       value={formData.commune} onChange={e => setFormData({...formData, commune: e.target.value})} />
                   </div>
-
+222: 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Latitude</label>
@@ -202,7 +233,7 @@ export default function AdminPlacesPage() {
                     </div>
                   </div>
                 </div>
-
+236: 
                 {/* SECTION: MARKETING */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <h3 style={{ fontSize: 11, fontWeight: 900, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 2 }}>Marketing & Sponsoring</h3>
@@ -216,17 +247,53 @@ export default function AdminPlacesPage() {
                       <option value="elite">Elite (Top Map + Shine)</option>
                     </select>
                   </div>
-
+250: 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.02)', padding: 14, borderRadius: 16 }}>
                     <input type="checkbox" checked={formData.verified} onChange={e => setFormData({...formData, verified: e.target.checked})} style={{ width: 18, height: 18 }} />
                     <label style={{ fontSize: 13, fontWeight: 800 }}>Établissement vérifié ✅</label>
                   </div>
                 </div>
-
+256: 
               </div>
-
+259: 
               <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', marginBottom: 32 }} />
-
+261: 
+              {/* SECTION: OFFERS (ONLY IF EDITING) */}
+              {editingId && (
+                <div style={{ marginBottom: 40, background: 'rgba(0,0,0,0.2)', padding: 32, borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 2 }}>Promotions & Bonus</h3>
+                    <button type="button" onClick={() => setShowOfferAdd(!showOfferAdd)} style={{ background: 'var(--orange)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 12, fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
+                      {showOfferAdd ? 'ANNULER' : '+ AJOUTER'}
+                    </button>
+                  </div>
+270: 
+                  {showOfferAdd && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                       <input placeholder="Titre (ex: -20% Menu Midi)" style={inputStyle} value={offerForm.title} onChange={e => setOfferForm({...offerForm, title: e.target.value})} />
+                       <input type="number" placeholder="% de réduction" style={inputStyle} value={offerForm.discount_pct} onChange={e => setOfferForm({...offerForm, discount_pct: parseInt(e.target.value)})} />
+                       <input type="date" style={inputStyle} value={offerForm.valid_until} onChange={e => setOfferForm({...offerForm, valid_until: e.target.value})} />
+                       <button type="button" onClick={handleAddOffer} style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 16, fontWeight: 900 }}>VALIDER OFFRE</button>
+                    </div>
+                  )}
+279: 
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {offers.length > 0 ? offers.map(offer => (
+                      <div key={offer.id} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(255,255,255,0.03)', padding: '12px 20px', borderRadius: 16 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--orange-pale)', color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>%{offer.discount_pct}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800 }}>{offer.title}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>Jusqu'au {offer.valid_until || 'Indéterminé'}</div>
+                        </div>
+                        <button type="button" onClick={() => deleteOffer(offer.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Ic.X s={18} /></button>
+                      </div>
+                    )) : (
+                      <div style={{ textAlign: 'center', opacity: 0.3, fontSize: 12, padding: 20 }}>Aucune promotion active.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+296: 
               <button type="submit" className="press" style={{ 
                 width: '100%', background: '#fff', color: '#000', border: 'none', 
                 padding: '20px', borderRadius: 20, fontWeight: 900, cursor: 'pointer',
@@ -238,7 +305,7 @@ export default function AdminPlacesPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
+308: 
       {/* FILTERS BAR */}
       <div style={{ 
         background: 'rgba(255,255,255,0.02)', padding: 14, borderRadius: 24, marginBottom: 32,
@@ -263,7 +330,7 @@ export default function AdminPlacesPage() {
           <option value="fun">🎮 Loisirs</option>
         </select>
       </div>
-
+333: 
       {/* PLACES GRID */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '100px 0', opacity: 0.5 }}>Chargement des données...</div>
@@ -294,14 +361,14 @@ export default function AdminPlacesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 900, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase' }}>{p.commune || 'Abidjan'}</div>
-                  {p.verified && <span style={{ fontSize: 10 }}>✅</span>}
+                   <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase' }}>{p.commune || 'Abidjan'}</div>
+                   {p.verified && <span style={{ fontSize: 10 }}>✅</span>}
                 </div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 8, fontWeight: 800 }}>
                   {p.category.toUpperCase()} • {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
                 </div>
               </div>
-
+371: 
               <button 
                 onClick={() => startEdit(p)} 
                 className="press"

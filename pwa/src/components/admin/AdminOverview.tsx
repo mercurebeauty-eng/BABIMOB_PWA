@@ -13,20 +13,27 @@ export default function AdminOverview() {
     checkins: 0,
     reviews: 0
   });
+  const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadStats() {
+    async function loadData() {
       const [
         { count: userCount },
         { count: placeCount },
         { count: checkinCount },
-        { count: reviewCount }
+        { count: reviewCount },
+        { data: recentCheckins },
+        { data: recentUsers },
+        { data: recentReviews }
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('places').select('*', { count: 'exact', head: true }),
         supabase.from('checkins').select('*', { count: 'exact', head: true }),
-        supabase.from('place_advice').select('*', { count: 'exact', head: true })
+        supabase.from('place_advice').select('*', { count: 'exact', head: true }),
+        supabase.from('checkins').select('*').order('created_at', { ascending: false }).limit(3),
+        supabase.from('profiles').select('*').order('updated_at', { ascending: false }).limit(3),
+        supabase.from('place_advice').select('*').order('created_at', { ascending: false }).limit(2)
       ]);
 
       setStats({
@@ -35,10 +42,28 @@ export default function AdminOverview() {
         checkins: checkinCount || 0,
         reviews: reviewCount || 0
       });
+
+      // Format activities
+      const acts: any[] = [];
+      recentUsers?.forEach(u => acts.push({ text: `Nouveau Babi : ${u.display_name}`, time: u.updated_at, type: 'user' }));
+      recentCheckins?.forEach(c => acts.push({ text: `Check-in : ${c.place_name}`, time: c.created_at, type: 'checkin' }));
+      recentReviews?.forEach(r => acts.push({ text: `Nouvel avis #${r.id.slice(0,4)}`, time: r.created_at, type: 'review' }));
+      
+      setActivities(acts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5));
       setLoading(false);
     }
-    loadStats();
+    loadData();
   }, [supabase]);
+
+  const getTimeAgo = (date: string) => {
+    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    return Math.floor(hours / 24) + 'j';
+  };
 
   const cards = [
     { label: 'Utilisateurs', value: stats.users, icon: '👥', color: 'var(--blue)', trend: '+12%', sub: 'Explorateurs actifs' },
@@ -132,20 +157,17 @@ export default function AdminOverview() {
         <div style={{ ...panelStyle, background: 'rgba(255,255,255,0.02)' }}>
           <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 32 }}>Activités Live</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            {[
-              { text: 'Nouveau Babi : @Yoro_82', time: 'Il y a 2m' },
-              { text: 'Check-in : Maquis Le Dôme', time: 'Il y a 15m' },
-              { text: 'Alerte Trafic : Pont HKB', time: 'Il y a 24m' },
-              { text: 'Promotion : -20% Cap Sud', time: 'Il y a 1h' },
-            ].map((act, i) => (
+            {activities.length > 0 ? activities.map((act, i) => (
               <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                <div style={{ width: 4, height: 24, borderRadius: 2, background: 'var(--orange)' }} />
+                <div style={{ width: 4, height: 24, borderRadius: 2, background: act.type === 'user' ? 'var(--blue)' : 'var(--orange)' }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 800 }}>{act.text}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 900, textTransform: 'uppercase', marginTop: 4 }}>{act.time}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 900, textTransform: 'uppercase', marginTop: 4 }}>Il y a {getTimeAgo(act.time)}</div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div style={{ opacity: 0.3, fontSize: 13 }}>Aucune activité récente.</div>
+            )}
           </div>
         </div>
 

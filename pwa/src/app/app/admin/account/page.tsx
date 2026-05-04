@@ -32,30 +32,38 @@ export default function AdminAccountPage() {
   return (
     <AdminLayout>
       <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, marginBottom: 8 }}>Mon Accès</h1>
-        <p style={{ fontSize: 16, color: 'var(--muted)', fontWeight: 600 }}>Gère tes identifiants et la sécurité du cockpit.</p>
+        <h1 className="font-display" style={{ fontSize: 40, marginBottom: 8, letterSpacing: -1 }}>Mon Accès</h1>
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Gère tes identifiants et la sécurité du cockpit.</p>
       </div>
 
       <div style={{ maxWidth: 500 }}>
         
-        <div style={{ background: '#fff', padding: 32, borderRadius: 32, border: '1px solid var(--line)', marginBottom: 24 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 24 }}>Profil Admin</h3>
+        <div style={{ 
+          background: 'rgba(255,255,255,0.02)', padding: 32, borderRadius: 32, 
+          border: '1px solid rgba(255,255,255,0.05)', marginBottom: 24,
+          backdropFilter: 'blur(20px)'
+        }}>
+          <h3 style={{ fontSize: 14, fontWeight: 900, marginBottom: 24, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Profil Admin</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-             <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>👑</div>
+             <div style={{ 
+               width: 64, height: 64, borderRadius: 20, 
+               background: 'var(--orange)', display: 'flex', alignItems: 'center', 
+               justifyContent: 'center', fontSize: 32, boxShadow: '0 10px 30px rgba(242,108,26,0.3)'
+             }}>👑</div>
              <div>
                 <div style={{ fontSize: 18, fontWeight: 900 }}>{user?.email}</div>
-                <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', marginTop: 4 }}>Administrateur Racine</div>
+                <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', marginTop: 4 }}>Administrateur Racine</div>
              </div>
           </div>
           
           <div style={{ marginBottom: 24 }}>
-            <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 12, display: 'block' }}>Nouveau mot de passe</label>
+            <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 12, display: 'block' }}>Nouveau mot de passe</label>
             <input 
               type="password" 
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
               placeholder="••••••••"
-              style={{ width: '100%', background: 'var(--cream-2)', border: 'none', padding: '16px', borderRadius: 16, outline: 'none', fontWeight: 700 }}
+              style={inputStyle}
             />
           </div>
 
@@ -64,20 +72,21 @@ export default function AdminAccountPage() {
             disabled={loading || !newPassword}
             className="press"
             style={{ 
-              width: '100%', background: 'var(--ink)', color: '#fff', border: 'none', 
+              width: '100%', background: '#fff', color: '#000', border: 'none', 
               padding: '20px', borderRadius: 20, fontWeight: 900, cursor: 'pointer',
-              opacity: loading || !newPassword ? 0.5 : 1
+              opacity: loading || !newPassword ? 0.5 : 1,
+              fontSize: 14, letterSpacing: 1
             }}
           >
-            {loading ? 'Mise à jour...' : 'CHANGER LE MOT DE PASSE'}
+            {loading ? 'MISE À JOUR...' : 'CHANGER LE MOT DE PASSE'}
           </button>
         </div>
 
-        <div style={{ background: 'var(--orange-pale)', padding: 24, borderRadius: 24, color: 'var(--orange)' }}>
+        <div style={{ background: 'rgba(242,108,26,0.1)', padding: 24, borderRadius: 24, color: 'var(--orange)', border: '1px solid rgba(242,108,26,0.2)' }}>
            <div style={{ display: 'flex', gap: 14 }}>
               <Ic.Alert s={24} />
               <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.5 }}>
-                Attention : Le changement de mot de passe est immédiat. Assure-toi de le noter en lieu sûr.
+                Attention : Le changement de mot de passe est immédiat. Assure-toi de le noter en lieu sûr pour garder le contrôle de Babimob.
               </div>
            </div>
         </div>
@@ -86,3 +95,16 @@ export default function AdminAccountPage() {
     </AdminLayout>
   );
 }
+
+const inputStyle = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.05)',
+  padding: '16px',
+  borderRadius: 16,
+  outline: 'none',
+  fontWeight: 700,
+  color: '#fff',
+  fontSize: 14,
+  transition: 'all 0.2s'
+};
