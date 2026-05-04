@@ -821,7 +821,14 @@ function AppPageContent() {
         isPlusOpen={isPlusOpen}
         onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
       />
-      <PlusBubble isOpen={isPlusOpen} onToggle={() => setIsPlusOpen(!isPlusOpen)} />
+      <PlusBubble 
+        isOpen={isPlusOpen} 
+        onClose={() => setIsPlusOpen(false)}
+        onToggleHeatmap={() => setHeatMode(!heatMode)}
+        onDiscover={handleDiscover}
+        heatMode={heatMode}
+        isAdmin={profile?.role === 'admin'}
+      />
       <HelpTip />
 
     </div>
