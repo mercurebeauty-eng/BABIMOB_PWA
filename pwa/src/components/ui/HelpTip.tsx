@@ -60,19 +60,20 @@ export function HelpTip({ title, content }: HelpTipProps) {
 
             {/* Volet d'aide (Bottom Sheet) */}
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              initial={{ y: '100%', x: '-50%' }}
+              animate={{ y: 0, x: '-50%' }}
+              exit={{ y: '100%', x: '-50%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               style={{
                 position: 'fixed',
-                left: 0,
-                right: 0,
+                left: '50%',
                 bottom: 0,
+                width: '100%',
+                maxWidth: 500, // Limite sur desktop
                 background: 'var(--cream)',
                 padding: '24px 24px calc(env(safe-area-inset-bottom, 20px) + 24px)',
                 borderRadius: '24px 24px 0 0',
-                boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
+                boxShadow: '0 -10px 40px rgba(0,0,0,0.2)',
                 zIndex: 11001,
                 display: 'flex',
                 flexDirection: 'column',
