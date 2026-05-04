@@ -11,13 +11,19 @@ interface HelpTipProps {
 
 export function HelpTip({ title, content }: HelpTipProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
 
   return (
-    <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 6, position: 'relative' }}>
+    <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 6 }}>
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          setCoords({
+            top: rect.top,
+            left: rect.left + rect.width / 2
+          });
           setIsOpen(!isOpen);
         }}
         aria-label={`Aide pour ${title}`}
@@ -46,35 +52,35 @@ export function HelpTip({ title, content }: HelpTipProps) {
             {/* Backdrop transparent pour fermer au clic ailleurs */}
             <div 
               onClick={() => setIsOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 1999 }}
+              style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
             />
             
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 5, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              exit={{ opacity: 0, y: 5, scale: 0.95 }}
               style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                marginBottom: 10,
-                width: 200,
+                position: 'fixed',
+                top: coords.top - 12,
+                left: coords.left,
+                transform: 'translate(-50%, -100%)',
+                width: 220,
                 background: 'var(--ink)',
                 color: 'var(--cream)',
-                padding: 12,
-                borderRadius: 12,
-                boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
-                zIndex: 2000,
-                fontSize: 11,
+                padding: 14,
+                borderRadius: 16,
+                boxShadow: '0 15px 40px rgba(0,0,0,0.4)',
+                zIndex: 9999,
+                fontSize: 12,
                 lineHeight: 1.5,
-                border: '1px solid var(--line)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                pointerEvents: 'auto'
               }}
             >
-              <div style={{ fontWeight: 800, color: 'var(--orange)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <div style={{ fontWeight: 900, color: 'var(--orange)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>
                 {title}
               </div>
-              <div style={{ opacity: 0.8 }}>
+              <div style={{ opacity: 0.9 }}>
                 {content}
               </div>
               {/* Triangle */}
@@ -82,10 +88,10 @@ export function HelpTip({ title, content }: HelpTipProps) {
                 position: 'absolute',
                 top: '100%',
                 left: '50%',
-                marginLeft: -6,
-                borderWidth: 6,
+                marginLeft: -8,
+                borderWidth: 8,
                 borderStyle: 'solid',
-                borderColor: 'var(--line) transparent transparent transparent'
+                borderColor: 'var(--ink) transparent transparent transparent'
               }} />
             </motion.div>
           </>
