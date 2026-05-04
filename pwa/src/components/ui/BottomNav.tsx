@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Ic } from './Ic';
-import PlusBubble from './PlusBubble';
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Carte', icon: Ic.Map, path: '/app', color: 'var(--orange)' },
@@ -13,26 +12,36 @@ const NAV_ITEMS = [
   { id: 'compte', label: 'Profil', icon: Ic.Users, path: '/app/compte', color: 'var(--ink)' },
 ];
 
-export function BottomNav({ 
-  onToggleHeatmap, 
+type NearbyStop = { stop_id: string; stop_name: string; distance_m: number };
+
+export function BottomNav({
+  onToggleHeatmap,
   heatMode,
-  nearbyStopsCount = 0,
-  onCycleNearby,
+  nearbyStop,
+  onNearbyStopClick,
   onDiscover,
   isAdmin,
   isPlusOpen,
   onTogglePlus
-}: { 
+}: {
   onToggleHeatmap: () => void;
   heatMode: boolean;
-  nearbyStopsCount?: number;
-  onCycleNearby?: () => void;
+  nearbyStop?: NearbyStop | null;
+  onNearbyStopClick?: () => void;
   onDiscover?: () => void;
   isAdmin?: boolean;
   isPlusOpen?: boolean;
   onTogglePlus?: () => void;
 }) {
   const pathname = usePathname();
+
+  const stopName = nearbyStop?.stop_name ?? '';
+  const shortName = stopName.length > 11 ? stopName.slice(0, 10) + '…' : stopName;
+  const distLabel = nearbyStop
+    ? nearbyStop.distance_m < 1000
+      ? `${Math.round(nearbyStop.distance_m)} m`
+      : `${(nearbyStop.distance_m / 1000).toFixed(1)} km`
+    : '';
 
   return (
     <div style={{
@@ -46,8 +55,7 @@ export function BottomNav({
       pointerEvents: 'none',
     }}>
 
-
-      <motion.nav 
+      <motion.nav
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         style={{
@@ -64,44 +72,30 @@ export function BottomNav({
           border: '1px solid rgba(0,0,0,0.05)',
         }}
       >
-        {/* Nearby Stops / Près de toi Icon (App Style) */}
-        {nearbyStopsCount > 0 && (
+        {/* Arret proche — visible uniquement si géolocalisation active */}
+        {nearbyStop && (
           <button
-            onClick={onCycleNearby}
+            onClick={onNearbyStopClick}
             className="press"
             style={{
-              width: 54,
               height: 54,
+              padding: '0 14px 0 10px',
               borderRadius: 16,
               background: 'linear-gradient(135deg, #FF9500, #FF5E00)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: 8,
               color: '#fff',
               border: 'none',
               cursor: 'pointer',
-              position: 'relative',
-              boxShadow: '0 4px 12px rgba(255,149,0,0.3)'
+              boxShadow: '0 4px 12px rgba(255,149,0,0.3)',
+              minWidth: 54,
             }}
           >
-            <Ic.Bus s={24} />
-            <div style={{
-              position: 'absolute',
-              top: -5,
-              right: -5,
-              background: 'var(--ink)',
-              color: '#fff',
-              fontSize: 10,
-              fontWeight: 900,
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid rgba(255,255,255,0.8)'
-            }}>
-              {nearbyStopsCount}
+            <Ic.Bus s={20} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+              <span style={{ fontSize: 11, fontWeight: 900, lineHeight: 1, whiteSpace: 'nowrap' }}>{shortName}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.85, lineHeight: 1 }}>{distLabel}</span>
             </div>
           </button>
         )}

@@ -9,22 +9,11 @@ import type { POI } from '@/lib/poi';
 import { useRouter } from 'next/navigation';
 import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
-import Vehicle from '@/components/ui/Vehicle';
-import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { useReachTracking } from '@/hooks/useReachTracking';
-import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
-import { useCommunityData } from '@/hooks/useCommunityData';
-import { useMapPois } from '@/hooks/useMapPois';
-import { useHotspots } from '@/hooks/useHotspots';
-import { useItinerary } from '@/hooks/useItinerary';
-import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
-import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
 import PlusBubble from '@/components/ui/PlusBubble';
-import { HelpTip } from '@/components/ui/HelpTip';
 import { useDataStore } from '@/context/DataStoreContext';
 
 type RecentItem = {
@@ -80,7 +69,6 @@ function AppPageContent() {
     try { return JSON.parse(localStorage.getItem('babimob_lastDest') ?? 'null'); } catch { return null; }
   });
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
-  const [nearbyIndex, setNearbyIndex] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -539,22 +527,34 @@ function AppPageContent() {
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 120px' }}>
               {selectedPoi ? (
                 <div>
-                  <Link 
-                    href={`/app/place/${encodeURIComponent(selectedPoi.id)}`} 
-                    style={{ 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                      height: 52, background: 'var(--orange)', color: '#fff', 
-                      fontWeight: 900, borderRadius: 18, fontSize: 13, 
-                      textTransform: 'uppercase', letterSpacing: 1.2, 
-                      textDecoration: 'none', boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
-                      marginBottom: 24,
-                      transition: 'transform 0.2s ease'
-                    }}
-                    className="press"
-                  >
-                    Voir le profil complet
-                    <Ic.Arrow s={18} />
-                  </Link>
+                  {selectedPoi.place_id ? (
+                    <Link
+                      href={`/app/place/${encodeURIComponent(selectedPoi.place_id)}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                        height: 52, background: 'var(--orange)', color: '#fff',
+                        fontWeight: 900, borderRadius: 18, fontSize: 13,
+                        textTransform: 'uppercase', letterSpacing: 1.2,
+                        textDecoration: 'none', boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
+                        marginBottom: 24,
+                        transition: 'transform 0.2s ease'
+                      }}
+                      className="press"
+                    >
+                      Voir le profil complet
+                      <Ic.Arrow s={18} />
+                    </Link>
+                  ) : (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      height: 52, background: 'rgba(0,0,0,0.04)', color: 'var(--muted)',
+                      fontWeight: 700, borderRadius: 18, fontSize: 12,
+                      padding: '0 18px', marginBottom: 24,
+                    }}>
+                      <span style={{ fontSize: 16 }}>{selectedPoi.logo_emoji}</span>
+                      Lieu OpenStreetMap · {selectedPoi.subcategory || selectedPoi.category}
+                    </div>
+                  )}
 
                   {/* Infos Promo / Campagne */}
                   {selectedPoi.has_campaign && (
@@ -806,15 +806,13 @@ function AppPageContent() {
         )}
       </AnimatePresence>
 
-      <BottomNav 
+      <BottomNav
         onToggleHeatmap={() => setHeatMode(!heatMode)}
         heatMode={heatMode}
-        nearbyStopsCount={nearbyStops.length}
-        onCycleNearby={() => {
-          if (nearbyStops.length > 0) {
-            setNearbyIndex(i => (i + 1) % nearbyStops.length);
-            handleSelectStop(nearbyStops[(nearbyIndex + 1) % nearbyStops.length]);
-          }
+        nearbyStop={nearbyStops[0] ?? null}
+        onNearbyStopClick={() => {
+          const stop = nearbyStops[0];
+          if (stop) router.push(`/app/arret/${encodeURIComponent(stop.stop_id)}`);
         }}
         onDiscover={handleDiscover}
         isAdmin={profile?.role === 'admin'}

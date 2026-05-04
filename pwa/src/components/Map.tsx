@@ -337,11 +337,14 @@ export default function Map({
     pois.forEach((p) => {
       const isElite = p.sponsor_tier === 'elite';
       const isPro = p.sponsor_tier === 'pro' || p.has_campaign;
+      const isOSM = p.source === 'osm';
 
-      // Progressive zoom visibility — Apple Maps Style
-      // < 12: Elite only · 12-13: Elite + Pro · >= 13: all
-      if (currentZoom < 12 && !isElite) return;
-      if (currentZoom < 13 && !isElite && !isPro) return;
+      // Supabase places (manually entered) are always visible.
+      // OSM places use progressive zoom: < 12 elite only, 12–13 elite+pro, ≥ 13 all.
+      if (isOSM) {
+        if (currentZoom < 12 && !isElite) return;
+        if (currentZoom < 13 && !isElite && !isPro) return;
+      }
 
       const emoji = p.logo_emoji ?? '🏢';
       const bgColor = p.cover_color ?? '#6B7280';
@@ -378,7 +381,7 @@ export default function Map({
       const html = `
         <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
           ${presenceHtml}
-          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px;height:${circleSize}px;background:${bgColor};border:2px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;border-radius:50%;">
+          <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px;height:${circleSize}px;background:${bgColor};border:${isOSM ? '1.5px dashed rgba(255,255,255,0.8)' : '2px solid #fff'};box-shadow:0 4px 12px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;border-radius:50%;opacity:${isOSM ? '0.85' : '1'};">
             ${showEmoji ? `<span class="bm-poi-emoji" style="font-size:${emojiSize}px;line-height:1;">${emoji}</span>` : ''}
           </div>
           ${showLabel ? `<span class="bm-poi-label-under ${labelClass} ${stateClass}">${p.name}</span>` : ''}
