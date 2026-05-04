@@ -6,7 +6,7 @@ import { Ic } from '@/components/ui/Ic';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useXP } from '@/components/providers/XPProvider';
-import { HelpTip } from './ui/HelpTip';
+import { Ic } from './ui/Ic';
 
 type ReviewTag = 'incroyable' | 'cosy' | 'bien' | 'moyen' | 'ennuyeux' | 'bruyant' | 'cher';
 
@@ -130,9 +130,7 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>C'est comment ?</div>
             <div style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
-              {placeName} 
-              <HelpTip title="C'est comment ?" content="Donne ton avis honnête pour aider les autres Babis. Les 5 premiers avis du mois te rapportent 10 XP chacun !" />
-
+              {placeName}
             </div>
           </div>
           <button 

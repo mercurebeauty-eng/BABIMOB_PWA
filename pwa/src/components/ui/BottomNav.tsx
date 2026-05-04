@@ -31,9 +31,9 @@ export function BottomNav({ onMenuClick }: { onMenuClick: () => void }) {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         style={{
-          background: 'rgba(255, 255, 255, 0.75)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          background: 'rgba(255, 255, 255, 0.55)',
+          backdropFilter: 'blur(24px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
           borderRadius: 24,
           padding: '8px 12px',
           display: 'flex',

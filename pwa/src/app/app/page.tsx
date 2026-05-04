@@ -23,7 +23,6 @@ import { useItinerary } from '@/hooks/useItinerary';
 import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
-import { HelpTip } from '@/components/ui/HelpTip';
 import { BottomNav } from '@/components/ui/BottomNav';
 
 const Map = dynamic(() => import('@/components/Map'), {
@@ -127,7 +126,7 @@ function AppPageContent() {
     locateMe();
   }, [locateMe]);
 
-  const SNAP = { mini: 60, peek: 120, half: 400, full: 620 } as const;
+  const SNAP = { mini: 140, peek: 240, half: 450, full: 680 } as const;
   type SheetState = keyof typeof SNAP;
 
   const heightMV = useMotionValue<number>(SNAP.mini);
@@ -287,45 +286,12 @@ function AppPageContent() {
         broadcasts={broadcasts}
       />
 
-      {/* ── Top Floating Bar ── */}
-      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, right: 16, display: 'flex', gap: 10, zIndex: 10 }}>
-        <button
-          onClick={() => setIsMenuOpen(true)}
-          className="press"
-          style={{ width: 44, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--ink)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <Ic.Menu s={20} />
-        </button>
-
-        <button
-          onClick={openSearch}
-          className="press"
-          style={{ flex: 1, height: 44, borderRadius: 14, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}
-        >
-          <Ic.Search s={18} />
-          <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Mobeur ?"}</span>
-          <span 
-            onClick={(e) => { e.stopPropagation(); }}
-            style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}
-          >
-            <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-            247 EN LIGNE
-            <HelpTip title="Communauté Live" content="Il y a actuellement 247 Mobeurs connectés qui partagent leurs trajets et signalent les aléas de la route à Abidjan." />
-          </span>
-        </button>
-
-        <Link
-          href="/app/compte"
-          className="press"
-          style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--orange)', color: '#fff', boxShadow: '0 4px 14px rgba(242,108,26,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, textDecoration: 'none', position: 'relative' }}
-        >
-          {profile?.display_name?.slice(0, 2).toUpperCase() || 'MK'}
-          {profile && (
-            <div style={{ position: 'absolute', bottom: -4, right: -4, background: 'var(--ink)', color: '#fff', fontSize: 9, fontWeight: 900, width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--cream)' }}>
-              {getLevel(profile.total_points || 0).level}
-            </div>
-          )}
-        </Link>
+      {/* ── Top Floating Badge (Minimalist) ── */}
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, zIndex: 10 }}>
+        <div style={{ background: 'var(--cream)', padding: '6px 12px', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>
+          <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
+          LIVE · 247 MOBEURS
+        </div>
       </div>
 
       {/* ── FAB Stack (Right) ── */}
@@ -372,9 +338,9 @@ function AppPageContent() {
         profile={profile} 
       />
 
-      {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
+      {/* ── BOTTOM SHEET – DRAG (OPUS 4.6 ANCHORED STYLE) ── */}
       <motion.div
-        style={{ position: 'absolute', left: 8, right: 8, bottom: 84, height: heightMV, background: 'var(--cream-2)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: heightMV, background: 'var(--cream-2)', borderRadius: '32px 32px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.1)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}
       >
         {/* Poignée — drag + clic */}
         <div
@@ -388,8 +354,21 @@ function AppPageContent() {
         {/* Contenu scrollable unique */}
         <div
           className="no-scrollbar"
-          style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}
+          style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 140px' }}
         >
+          {!selectedPoi && !activeItinerary && !selected && (
+            /* ── PERSISTENT SEARCH BAR IN SHEET (OPUS 4.6) ── */
+            <div style={{ marginBottom: 20 }}>
+              <button
+                onClick={openSearch}
+                className="press"
+                style={{ width: '100%', height: 54, borderRadius: 18, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', textAlign: 'left', border: '1.5px solid var(--line)' }}
+              >
+                <Ic.Search s={20} />
+                <span>Où vas-tu, Mobeur ?</span>
+              </button>
+            </div>
+          )}
           {selectedPoi ? (
             /* ── POI PREVIEW ── */
             <div>

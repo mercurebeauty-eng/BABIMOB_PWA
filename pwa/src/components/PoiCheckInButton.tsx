@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from '@/components/ui/Ic';
 import { toast } from 'sonner';
 import { useXP } from '@/components/providers/XPProvider';
-import { HelpTip } from './ui/HelpTip';
 
 type Props = {
   placeId: string;
@@ -210,9 +209,10 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
       
       {/* Subtle hint */}
       {status === 'idle' && (
-        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Gagne +{xpAmount} XP en validant ta présence
-          <HelpTip title="Check-in" content="Le check-in prouve ta présence physique sur un lieu grâce au GPS. Cela te rapporte de l'XP et aide la communauté à savoir quels lieux sont fréquentés." />
+        <div style={{ textAlign: 'center', marginTop: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase' }}>
+            Check-in à proximité
+          </div>
         </div>
       )}
     </div>
