@@ -51,7 +51,6 @@ export function HelpTip({ title, content }: HelpTipProps) {
           borderRadius: '50%',
           border: '1.5px solid var(--muted)',
           background: 'transparent',
-          color: 'var(--muted)',
           fontSize: 11,
           fontWeight: '900',
           display: 'flex',
