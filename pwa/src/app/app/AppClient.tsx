@@ -806,7 +806,21 @@ function AppPageContent() {
         )}
       </AnimatePresence>
 
-      <BottomNav />
+      <BottomNav 
+        onToggleHeatmap={() => setHeatMode(!heatMode)}
+        heatMode={heatMode}
+        nearbyStopsCount={nearbyStops.length}
+        onCycleNearby={() => {
+          if (nearbyStops.length > 0) {
+            setNearbyIndex(i => (i + 1) % nearbyStops.length);
+            handleSelectStop(nearbyStops[(nearbyIndex + 1) % nearbyStops.length]);
+          }
+        }}
+        onDiscover={handleDiscover}
+        isAdmin={profile?.role === 'admin'}
+        isPlusOpen={isPlusOpen}
+        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+      />
       <PlusBubble isOpen={isPlusOpen} onToggle={() => setIsPlusOpen(!isPlusOpen)} />
       <HelpTip />
 
