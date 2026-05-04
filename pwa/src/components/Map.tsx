@@ -313,17 +313,24 @@ export default function Map({
   const prevPoisRef = useRef<string>('');
   const prevLiveRef = useRef<string>('');
   const prevSelPoiRef = useRef<string | null>(null);
+  const prevZoomRef = useRef<number>(-1);
 
   useEffect(() => {
     const layer = poisLayerRef.current;
     if (!layer) return;
 
     const poisFingerprint = pois.map(p => p.id).sort().join(',');
-    if (poisFingerprint === prevPoisRef.current && livePois.join(',') === prevLiveRef.current && selectedPoiId === prevSelPoiRef.current) return;
-    
+    if (
+      poisFingerprint === prevPoisRef.current &&
+      livePois.join(',') === prevLiveRef.current &&
+      selectedPoiId === prevSelPoiRef.current &&
+      currentZoom === prevZoomRef.current
+    ) return;
+
     prevPoisRef.current = poisFingerprint;
     prevLiveRef.current = livePois.join(',');
     prevSelPoiRef.current = selectedPoiId;
+    prevZoomRef.current = currentZoom;
 
     layer.clearLayers();
 

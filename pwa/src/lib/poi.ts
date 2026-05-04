@@ -104,10 +104,12 @@ async function fetchOSMPlaces(
 ): Promise<POI[]> {
   // 1. Vérifier si on a déjà exactement ces données en cache (5 minutes)
   const now = Date.now();
-  const cached = osmCache.find(entry => 
+  const cached = osmCache.find(entry =>
     Math.abs(entry.bounds.minLat - minLat) < 0.001 &&
     Math.abs(entry.bounds.maxLat - maxLat) < 0.001 &&
-    (now - entry.timestamp) < 300000 
+    Math.abs(entry.bounds.minLon - minLon) < 0.001 &&
+    Math.abs(entry.bounds.maxLon - maxLon) < 0.001 &&
+    (now - entry.timestamp) < 300000
   );
 
   if (cached) {
