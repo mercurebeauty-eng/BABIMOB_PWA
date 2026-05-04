@@ -38,12 +38,7 @@ export function BottomNav({
       justifyContent: 'center',
       pointerEvents: 'none',
     }}>
-      <PlusBubble 
-        isOpen={isPlusOpen} 
-        onClose={() => setIsPlusOpen(false)} 
-        onToggleHeatmap={onToggleHeatmap}
-        heatMode={heatMode}
-      />
+
 
       <motion.nav 
         initial={{ y: 100, opacity: 0 }}
@@ -142,26 +137,35 @@ export function BottomNav({
           borderRadius: 1
         }} />
 
-        {/* Plus Button */}
-        <button
-          onClick={() => setIsPlusOpen(!isPlusOpen)}
-          className="press"
-          style={{
-            width: 54,
-            height: 54,
-            borderRadius: 16,
-            background: isPlusOpen ? 'var(--ink)' : 'rgba(255,255,255,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: isPlusOpen ? '#fff' : 'rgba(0,0,0,0.6)',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          <Ic.Menu s={24} />
-        </button>
+        <div style={{ position: 'relative' }}>
+          {/* Plus Button */}
+          <button
+            onClick={() => setIsPlusOpen(!isPlusOpen)}
+            className="press"
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 16,
+              background: isPlusOpen ? 'var(--ink)' : 'rgba(255,255,255,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: isPlusOpen ? '#fff' : 'rgba(0,0,0,0.6)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <Ic.Menu s={24} />
+          </button>
+
+          <PlusBubble 
+            isOpen={isPlusOpen} 
+            onClose={() => setIsPlusOpen(false)} 
+            onToggleHeatmap={onToggleHeatmap}
+            heatMode={heatMode}
+          />
+        </div>
       </motion.nav>
     </div>
   );

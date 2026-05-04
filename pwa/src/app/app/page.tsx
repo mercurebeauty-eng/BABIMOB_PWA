@@ -548,13 +548,19 @@ function AppPageContent() {
 
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button 
-                      onClick={() => handleDescendIci(selected)}
+                      onClick={() => {
+                        handleDescendIci(selected);
+                        router.push(`/app/arret/${selected.stop_id}`);
+                      }}
                       style={{ flex: 1, height: 44, background: 'var(--ink)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                     >
                       <Ic.Map s={16} /> J'y suis
                     </button>
                     <button 
-                      onClick={() => handleGetDirections({ name: selected.stop_name, lat: selected.stop_lat, lon: selected.stop_lon })}
+                      onClick={() => {
+                        // On redirige vers la page des lignes, idéalement avec un contexte
+                        router.push(`/app/ligne`);
+                      }}
                       style={{ width: 44, height: 44, background: 'var(--cream)', color: 'var(--ink)', borderRadius: 14, border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
                       <Ic.Route s={20} />
