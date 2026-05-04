@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
