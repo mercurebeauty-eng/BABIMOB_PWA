@@ -17,12 +17,14 @@ export function BottomNav({
   heatMode,
   nearbyStopsCount = 0,
   onCycleNearby,
+  onDiscover,
   isAdmin
 }: { 
   onToggleHeatmap: () => void;
   heatMode: boolean;
   nearbyStopsCount?: number;
   onCycleNearby?: () => void;
+  onDiscover?: () => void;
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
@@ -165,6 +167,7 @@ export function BottomNav({
             isOpen={isPlusOpen} 
             onClose={() => setIsPlusOpen(false)} 
             onToggleHeatmap={onToggleHeatmap}
+            onDiscover={onDiscover}
             heatMode={heatMode}
             isAdmin={isAdmin}
           />

@@ -141,6 +141,33 @@ function AppPageContent() {
   const locateMeRef = useRef(locateMe);
   useEffect(() => { locateMeRef.current(); }, []);
 
+  const handleDiscover = useCallback(() => {
+    if (pois.length === 0) return;
+    // Priorité aux lieux sponsorisés (partenariats)
+    const partners = pois.filter(p => p.is_sponsored || p.sponsor_tier);
+    // 70% de chance d'afficher un partenaire s'il y en a, sinon un lieu au hasard
+    const pool = (partners.length > 0 && Math.random() > 0.3) ? partners : pois;
+    const randomPoi = pool[Math.floor(Math.random() * pool.length)];
+    
+    setSelected(null);
+    setActiveItinerary(null);
+    setSelectedPoi(randomPoi);
+    setSheet('half');
+  }, [pois]);
+
+  // Gestion du paramètre ?discover=1
+  useEffect(() => {
+    if (typeof window !== 'undefined' && pois.length > 0) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('discover')) {
+        handleDiscover();
+        // Nettoyer l'URL
+        url.searchParams.delete('discover');
+        window.history.replaceState({}, '', url.pathname + url.search);
+      }
+    }
+  }, [pois, handleDiscover]);
+
   const handleLocateMe = useCallback(() => {
     setRecenterSignal(s => s + 1);
     locateMe();
@@ -210,8 +237,10 @@ function AppPageContent() {
 
   const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
+    : selectedPoi
+    ? [selectedPoi.lat, selectedPoi.lon]
     : userLoc ?? ABIDJAN_CENTER;
-  const zoom = selected ? 16 : userLoc ? 15 : 12;
+  const zoom = (selected || selectedPoi) ? 16 : userLoc ? 15 : 12;
 
   const mapStops: Stop[] = selected
     ? [selected]
@@ -249,6 +278,7 @@ function AppPageContent() {
 
   const openSearch = () => setSearchOpen(true);
   const closeSearch = () => { setSearchOpen(false); clearSearch(); };
+
 
   const TICKER_FALLBACK: [string, string, string][] = [
     ['Cocody', 'fluide', 'var(--green)'],
@@ -836,6 +866,7 @@ function AppPageContent() {
           setNearbyIndex(next);
           handleSelectStop(nearbyStops[next]);
         }}
+        onDiscover={handleDiscover}
         isAdmin={profile?.is_admin}
       />
     </div>

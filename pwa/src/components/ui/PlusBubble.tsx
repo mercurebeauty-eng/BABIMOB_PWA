@@ -10,11 +10,12 @@ interface PlusBubbleProps {
   isOpen: boolean;
   onClose: () => void;
   onToggleHeatmap: () => void;
+  onDiscover?: () => void;
   heatMode: boolean;
   isAdmin?: boolean;
 }
 
-export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode, isAdmin }: PlusBubbleProps) {
+export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscover, heatMode, isAdmin }: PlusBubbleProps) {
   const router = useRouter();
 
   const menuItems = [
@@ -24,6 +25,13 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode,
       action: onToggleHeatmap, 
       color: heatMode ? 'var(--orange)' : 'var(--muted)',
       help: { title: 'Heatmap', content: 'Affiche l\'affluence en temps réel sur la carte. Plus c\'est orange, plus il y a de mouvement !' }
+    },
+    { 
+      icon: <Ic.Search s={20} />, 
+      label: 'Découvrir', 
+      action: onDiscover || (() => router.push('/app?discover=1')), 
+      color: 'var(--green)',
+      help: { title: 'Découvrir', content: 'Laissez le hasard choisir votre prochaine destination parmi nos lieux préférés.' }
     },
     { 
       icon: <Ic.Route s={20} />, 
