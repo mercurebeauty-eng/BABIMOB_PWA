@@ -515,8 +515,7 @@ export default function CompteClient({
   displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
 }: Props) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { profile: contextProfile } = useXP();
-  const profileForMenu = contextProfile || { display_name: displayName, avatar_emoji: avatarEmoji, total_points: totalPoints };
+  const profileForMenu = { display_name: displayName, avatar_emoji: avatarEmoji, total_points: totalPoints };
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
   const [streak, setStreak] = useState(initialStreak);
