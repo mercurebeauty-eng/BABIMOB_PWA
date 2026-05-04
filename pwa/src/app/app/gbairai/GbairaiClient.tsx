@@ -226,6 +226,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;

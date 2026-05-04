@@ -11,6 +11,8 @@ import { getLevel } from '@/lib/levels';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
+import { useXP } from '@/components/providers/XPProvider';
+import { HelpTip } from '@/components/ui/HelpTip';
 import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
 import SidebarMenu from '@/components/SidebarMenu';
@@ -84,31 +86,6 @@ function timeAgo(iso: string): string {
   if (mins < 1440) return `il y a ${Math.floor(mins / 60)}h`;
   return `il y a ${Math.floor(mins / 1440)}j`;
 }
-
-export default function CompteClient({
-  displayName,
-  avatarEmoji,
-  totalPoints,
-  checkinCount,
-  badges,
-  checkinsDetail,
-  commune,
-  streakCount,
-  lastBonusAt,
-  topExplorers,
-  dailyMissions,
-  following = [],
-  followersCount = 0,
-  crew,
-  collectiveQuest,
-  favorites,
-  recentPosts,
-  recentTarifs,
-  children
-}: Props) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { profile: contextProfile } = useXP();
-  const profileForMenu = contextProfile || { display_name: displayName, avatar_emoji: avatarEmoji, total_points: totalPoints };
 
 
 // ── Crew / Proches & Famille — Babi network ──────────────────
@@ -537,6 +514,9 @@ function TabClassement({
 export default function CompteClient({
   displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
 }: Props) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { profile: contextProfile } = useXP();
+  const profileForMenu = contextProfile || { display_name: displayName, avatar_emoji: avatarEmoji, total_points: totalPoints };
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
   const [streak, setStreak] = useState(initialStreak);
