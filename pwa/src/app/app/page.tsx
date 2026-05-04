@@ -374,16 +374,6 @@ function AppPageContent() {
 
       {/* ── PlusBubble is now inside BottomNav ── */}
 
-      {/* ── Nearby Stops Bubble (Floating) ── */}
-      {!selected && !selectedPoi && !activeItinerary && (
-        <NearbyStopsBubble 
-          stops={nearbyStops} 
-          onSelect={(stop) => {
-            // Optionnel: recentrer ou autre action
-          }} 
-        />
-      )}
-
       {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
       <AnimatePresence>
         {!selected && !selectedPoi && !activeItinerary && (
