@@ -11,14 +11,16 @@ interface HelpTipProps {
 
 export function HelpTip({ title, content }: HelpTipProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [coords, setCoords] = useState({ top: 0, left: 0, bottom: 0 });
 
-  // Calcul de la position horizontale sécurisée
-  const tooltipWidth = 220;
+  // Dimensions et marges
+  const tooltipWidth = Math.min(260, screenWidth - 24);
   const margin = 12;
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
   
-  // On contraint le centre du tooltip pour qu'il reste à l'intérieur
+  // Vérifier s'il y a de la place en haut (besoin d'environ 120px)
+  const showBelow = coords.top < 150;
+  
+  // On contraint le centre du tooltip pour qu'il reste à l'intérieur horizontalement
   const safeLeft = Math.max(
     tooltipWidth / 2 + margin, 
     Math.min(screenWidth - tooltipWidth / 2 - margin, coords.left)
@@ -36,25 +38,31 @@ export function HelpTip({ title, content }: HelpTipProps) {
           const rect = e.currentTarget.getBoundingClientRect();
           setCoords({
             top: rect.top,
+            bottom: rect.bottom,
             left: rect.left + rect.width / 2
           });
           setIsOpen(!isOpen);
         }}
         aria-label={`Aide pour ${title}`}
         style={{
-          width: 18,
-          height: 18,
+          width: 20,
+          height: 20,
           borderRadius: '50%',
-          border: '1px solid var(--muted)',
+          border: '1.5px solid var(--muted)',
           background: 'transparent',
           color: 'var(--muted)',
-          fontSize: 10,
-          fontWeight: 'bold',
+          fontSize: 11,
+          fontWeight: '900',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
           padding: 0,
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: isOpen ? 1 : 0.6,
+          boxShadow: isOpen ? '0 0 0 4px color-mix(in oklab, var(--orange) 20%, transparent)' : 'none',
+          borderColor: isOpen ? 'var(--orange)' : 'var(--muted)',
+          color: isOpen ? 'var(--orange)' : 'var(--muted)',
         }}
       >
         ?
@@ -65,46 +73,49 @@ export function HelpTip({ title, content }: HelpTipProps) {
           <>
             <div 
               onClick={() => setIsOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+              style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.02)', backdropFilter: 'blur(1px)' }}
             />
             
             <motion.div
-              initial={{ opacity: 0, y: 5, scale: 0.95 }}
+              initial={{ opacity: 0, y: showBelow ? -10 : 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 5, scale: 0.95 }}
+              exit={{ opacity: 0, y: showBelow ? -10 : 10, scale: 0.95 }}
               style={{
                 position: 'fixed',
-                top: coords.top - 12,
+                top: showBelow ? (coords.bottom + 12) : (coords.top - 12),
                 left: safeLeft,
-                transform: 'translate(-50%, -100%)',
+                transform: showBelow ? 'translateX(-50%)' : 'translate(-50%, -100%)',
                 width: tooltipWidth,
                 background: 'var(--ink)',
                 color: 'var(--cream)',
-                padding: 14,
-                borderRadius: 16,
-                boxShadow: '0 15px 40px rgba(0,0,0,0.4)',
+                padding: '16px 18px',
+                borderRadius: 20,
+                boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
                 zIndex: 9999,
-                fontSize: 12,
-                lineHeight: 1.5,
-                border: '1px solid rgba(255,255,255,0.1)',
+                fontSize: 13,
+                lineHeight: 1.6,
                 pointerEvents: 'auto'
               }}
             >
-              <div style={{ fontWeight: 900, color: 'var(--orange)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>
+              <div style={{ fontWeight: 950, color: 'var(--orange)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontSize: 10 }}>
                 {title}
               </div>
-              <div style={{ opacity: 0.9 }}>
+              <div style={{ opacity: 0.95, fontWeight: 500 }}>
                 {content}
               </div>
-              {/* Triangle avec offset dynamique */}
+              
+              {/* Triangle avec orientation et offset dynamiques */}
               <div style={{
                 position: 'absolute',
-                top: '100%',
+                [showBelow ? 'bottom' : 'top']: '100%',
                 left: `calc(50% + ${arrowOffset}px)`,
-                marginLeft: -8,
-                borderWidth: 8,
+                marginLeft: -10,
+                borderWidth: 10,
                 borderStyle: 'solid',
-                borderColor: 'var(--ink) transparent transparent transparent'
+                borderColor: showBelow 
+                  ? 'transparent transparent var(--ink) transparent' 
+                  : 'var(--ink) transparent transparent transparent',
+                transform: showBelow ? 'translateY(-200%) translateY(-12px)' : 'none'
               }} />
             </motion.div>
           </>
