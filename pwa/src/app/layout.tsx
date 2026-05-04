@@ -63,16 +63,19 @@ export const viewport: Viewport = {
 
 import { NotificationProvider } from '@/components/providers/NotificationProvider';
 import { XPProvider } from '@/components/providers/XPProvider';
+import { HelpProvider } from '@/components/providers/HelpProvider';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${dmSans.variable} ${syne.variable} ${archivoBlack.variable} ${lexend.variable}`}>
       <body className="font-sans min-h-screen flex flex-col">
         <XPProvider>
-          {children}
-          <NotificationProvider />
-          <InstallPrompt />
-          <SpeedInsights />
+          <HelpProvider>
+            {children}
+            <NotificationProvider />
+            <InstallPrompt />
+            <SpeedInsights />
+          </HelpProvider>
         </XPProvider>
       </body>
     </html>

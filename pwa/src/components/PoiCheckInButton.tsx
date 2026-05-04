@@ -212,7 +212,7 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
       {status === 'idle' && (
         <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Gagne +{xpAmount} XP en validant ta présence
-
+          <HelpTip title="Check-in" content="Le check-in prouve ta présence physique sur un lieu grâce au GPS. Cela te rapporte de l'XP et aide la communauté à savoir quels lieux sont fréquentés." />
         </div>
       )}
     </div>
