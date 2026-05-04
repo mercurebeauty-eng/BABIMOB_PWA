@@ -12,6 +12,7 @@ import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
+import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useStopSearch } from '@/hooks/useStopSearch';
 import { useCommunityData } from '@/hooks/useCommunityData';
