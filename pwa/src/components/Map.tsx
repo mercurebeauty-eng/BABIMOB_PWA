@@ -369,7 +369,7 @@ export default function Map({
         : '';
 
       const html = `
-        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}" style="transform:translate(-50%,-50%);">
+        <div class="bm-poi-container ${isSelected ? 'bm-poi-container-selected' : ''}">
           ${presenceHtml}
           <div class="bm-poi-circle ${extraClass}" style="width:${circleSize}px;height:${circleSize}px;background:${bgColor};border:2px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;border-radius:50%;">
             ${showEmoji ? `<span class="bm-poi-emoji" style="font-size:${emojiSize}px;line-height:1;">${emoji}</span>` : ''}
@@ -381,8 +381,8 @@ export default function Map({
       const icon = L.divIcon({
         className: '',
         html,
-        iconSize: [0, 0],
-        iconAnchor: [0, 0],
+        iconSize: [circleSize, circleSize],
+        iconAnchor: [circleSize / 2, circleSize / 2],
       });
 
       const marker = L.marker([p.lat, p.lon], {
