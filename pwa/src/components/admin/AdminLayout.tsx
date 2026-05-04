@@ -13,11 +13,11 @@ type Props = {
 };
 
 const MENU_ITEMS = [
-  { id: 'overview', label: 'Dashboard', icon: '📊', path: '/app/admin' },
-  { id: 'places', label: 'Lieux', icon: '🏢', path: '/app/admin/places' },
+  { id: 'overview', label: 'Overview', icon: '📊', path: '/app/admin' },
+  { id: 'places', label: 'Lieux & Marketing', icon: '🏢', path: '/app/admin/places' },
+  { id: 'transport', label: 'Réseau Transport', icon: '🚌', path: '/app/admin/transport' },
   { id: 'users', label: 'Communauté', icon: '👥', path: '/app/admin/users' },
-  { id: 'transport', label: 'Transport', icon: '🚌', path: '/app/admin/transport' },
-  { id: 'account', label: 'Mon Accès', icon: '🔐', path: '/app/admin/account' },
+  { id: 'account', label: 'Sécurité', icon: '🔐', path: '/app/admin/account' },
 ];
 
 export default function AdminLayout({ children }: Props) {
@@ -60,63 +60,75 @@ export default function AdminLayout({ children }: Props) {
 
   // SI ADMIN -> ON MONTRE LE DASHBOARD
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--cream)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#0D0B0A', overflow: 'hidden', color: '#fff' }}>
       
       {/* SIDEBAR - DESKTOP */}
       <aside style={{ 
-        width: 280, background: 'var(--ink)', display: 'flex', flexDirection: 'column', 
-        padding: '40px 20px', color: '#fff', position: 'relative', zIndex: 10,
-        boxShadow: '10px 0 30px rgba(0,0,0,0.1)'
+        width: 300, background: '#14110F', display: 'flex', flexDirection: 'column', 
+        padding: '40px 24px', color: '#fff', position: 'relative', zIndex: 10,
+        borderRight: '1px solid rgba(255,255,255,0.05)',
+        boxShadow: '20px 0 50px rgba(0,0,0,0.2)'
       }} className="hide-mobile">
-        <div style={{ marginBottom: 60, padding: '0 10px' }}>
-          <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: -1 }}>BABIMOB <span style={{ color: 'var(--orange)' }}>ADMIN</span></div>
-          <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 2, marginTop: 4 }}>Control Center v2.0</div>
+        <div style={{ marginBottom: 50, padding: '0 8px' }}>
+          <div className="font-display" style={{ fontSize: 26, letterSpacing: -1, color: '#fff' }}>BABIMOB <span style={{ color: 'var(--orange)' }}>CORE</span></div>
+          <div style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 3, marginTop: 6 }}>OS v3.0 • PREMIUM ADMIN</div>
         </div>
 
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {MENU_ITEMS.map(item => (
             <Link key={item.id} href={item.path} style={{ textDecoration: 'none' }}>
               <motion.div
-                whileHover={{ x: 5 }}
+                whileHover={{ x: 4, background: 'rgba(255,255,255,0.03)' }}
                 whileTap={{ scale: 0.98 }}
                 style={{
-                  padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 14,
-                  background: pathname === item.path ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  color: pathname === item.path ? 'var(--orange)' : 'rgba(255,255,255,0.6)',
-                  fontSize: 14, fontWeight: 800, transition: 'all 0.2s'
+                  padding: '14px 18px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 14,
+                  background: pathname === item.path ? 'rgba(242, 108, 26, 0.12)' : 'transparent',
+                  color: pathname === item.path ? 'var(--orange)' : 'rgba(255,255,255,0.5)',
+                  fontSize: 14, fontWeight: 800, transition: 'all 0.2s',
+                  border: pathname === item.path ? '1px solid rgba(242, 108, 26, 0.2)' : '1px solid transparent'
                 }}
               >
-                <span style={{ fontSize: 20, filter: pathname === item.path ? 'none' : 'grayscale(1)' }}>{item.icon}</span>
+                <span style={{ fontSize: 20, filter: pathname === item.path ? 'none' : 'grayscale(1) opacity(0.5)' }}>{item.icon}</span>
                 {item.label}
-                {pathname === item.path && <motion.div layoutId="active" style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />}
+                {pathname === item.path && (
+                  <motion.div layoutId="active_pill" style={{ marginLeft: 'auto', width: 4, height: 16, borderRadius: 2, background: 'var(--orange)', boxShadow: '0 0 10px var(--orange)' }} />
+                )}
               </motion.div>
             </Link>
           ))}
         </nav>
 
         <div style={{ 
-          marginTop: 'auto', padding: 20, background: 'rgba(255,255,255,0.05)', 
-          borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)' 
+          marginTop: 'auto', padding: 24, background: 'rgba(255,255,255,0.02)', 
+          borderRadius: 28, border: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex', flexDirection: 'column', gap: 16
         }}>
-           <div style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 12 }}>Serveur Status</div>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👑</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 900 }}>Administrateur</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 800 }}>Session active</div>
+              </div>
+           </div>
+           <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
-              <div style={{ fontSize: 12, fontWeight: 800 }}>Opérationnel</div>
+              <div className="shimmer" style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+              <div style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>Système Optimal</div>
            </div>
         </div>
       </aside>
 
       {/* MOBILE HEADER */}
       <div style={{ 
-        position: 'fixed', top: 0, left: 0, right: 0, height: 70, 
-        background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)',
+        position: 'fixed', top: 0, left: 0, right: 0, height: 72, 
+        background: 'rgba(13, 11, 10, 0.8)', backdropFilter: 'blur(20px)',
         zIndex: 50, display: 'flex', alignItems: 'center', padding: '0 20px',
-        borderBottom: '1px solid var(--line)'
+        borderBottom: '1px solid rgba(255,255,255,0.05)'
       }} className="show-mobile">
-        <button onClick={() => setIsOpen(true)} style={{ background: 'none', border: 'none', padding: 10, cursor: 'pointer' }}>
-          <Ic.Menu s={24} color="var(--ink)" />
+        <button onClick={() => setIsOpen(true)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: 10, borderRadius: 12, cursor: 'pointer' }}>
+          <Ic.Menu s={22} color="#fff" />
         </button>
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 900 }}>ADMIN</div>
+        <div className="font-display" style={{ flex: 1, textAlign: 'center', fontSize: 18, letterSpacing: -0.5 }}>ADMIN</div>
         <div style={{ width: 44 }} />
       </div>
 
@@ -124,27 +136,34 @@ export default function AdminLayout({ children }: Props) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
             style={{ 
-              position: 'fixed', inset: 0, zIndex: 100, background: 'var(--ink)',
-              padding: '60px 30px'
+              position: 'fixed', inset: 0, zIindex: 100, background: '#0D0B0A',
+              padding: '80px 32px'
             }}
           >
-            <button onClick={() => setIsOpen(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: '#fff' }}>
-              <Ic.X s={32} />
+            <button onClick={() => setIsOpen(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', padding: 12, borderRadius: '50%' }}>
+              <Ic.X s={24} />
             </button>
             <div style={{ marginBottom: 60 }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#fff' }}>BABIMOB <span style={{ color: 'var(--orange)' }}>ADMIN</span></div>
+              <div className="font-display" style={{ fontSize: 32, color: '#fff' }}>BABIMOB <span style={{ color: 'var(--orange)' }}>CORE</span></div>
             </div>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {MENU_ITEMS.map(item => (
                 <Link key={item.id} href={item.path} onClick={() => setIsOpen(false)} style={{ textDecoration: 'none' }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: pathname === item.path ? 'var(--orange)' : '#fff', display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <span>{item.icon}</span> {item.label}
-                  </div>
+                  <motion.div 
+                    whileTap={{ scale: 0.95 }}
+                    style={{ 
+                      padding: '20px 24px', borderRadius: 20, background: 'rgba(255,255,255,0.03)',
+                      fontSize: 20, fontWeight: 900, color: pathname === item.path ? 'var(--orange)' : '#fff', 
+                      display: 'flex', alignItems: 'center', gap: 18,
+                      border: pathname === item.path ? '1px solid var(--orange)' : '1px solid rgba(255,255,255,0.05)'
+                    }}
+                  >
+                    <span style={{ fontSize: 24 }}>{item.icon}</span> {item.label}
+                  </motion.div>
                 </Link>
               ))}
             </nav>
@@ -155,10 +174,11 @@ export default function AdminLayout({ children }: Props) {
       {/* MAIN CONTENT AREA */}
       <main style={{ 
         flex: 1, height: '100vh', overflowY: 'auto', 
-        padding: '40px 40px 100px', 
-        position: 'relative'
+        padding: '50px 60px 100px', 
+        position: 'relative',
+        background: 'radial-gradient(circle at top right, rgba(242,108,26,0.05), transparent 400px)'
       }} className="admin-content">
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1300, margin: '0 auto' }}>
           {children}
         </div>
       </main>
@@ -172,6 +192,7 @@ export default function AdminLayout({ children }: Props) {
           .show-mobile { display: none !important; }
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        ::selection { background: var(--orange); color: #fff; }
       `}</style>
     </div>
   );
