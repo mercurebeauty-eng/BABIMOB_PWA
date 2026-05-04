@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
+import { toast } from 'sonner';
+import { useXP } from '@/components/providers/XPProvider';
 
 const POST_TYPES = [
   { id: 'vibe', label: 'Vibe', emoji: '💬', color: 'var(--blue)' },
@@ -32,6 +34,7 @@ export default function PostComposer({ userId, displayName, avatarEmoji, commune
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { addXP } = useXP();
 
   // Tarif fields
   const [tarifFrom, setTarifFrom] = useState('');
@@ -75,7 +78,12 @@ export default function PostComposer({ userId, displayName, avatarEmoji, commune
     setLoading(false);
     if (err) {
       setError(err.message);
+      toast.error("Échec de la publication");
     } else {
+      addXP(30); // Bonus standard pour un post
+      toast.success("Publié sur le Gbairai !", {
+        description: "+30 XP gagnés"
+      });
       onClose();
     }
   }

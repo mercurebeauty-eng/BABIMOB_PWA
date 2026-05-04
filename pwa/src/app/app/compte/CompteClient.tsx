@@ -514,6 +514,7 @@ export default function CompteClient({
   const [streak, setStreak] = useState(initialStreak);
   const [showWeekly, setShowWeekly] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
+  const [activities, setActivities] = useState<any[]>(checkinsDetail);
   const { addXP } = useXP();
 
   // Dynamic calculation of conquest
@@ -542,6 +543,23 @@ export default function CompteClient({
       }
     };
     claimBonus();
+
+    // Live Activity Listener
+    const channel = supabase
+      .channel('profile-activities')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'checkins'
+      }, (payload) => {
+        setActivities(prev => [payload.new, ...prev]);
+        setPoints(p => p + (payload.new.points_earned || 10));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const TABS = [
@@ -659,7 +677,7 @@ export default function CompteClient({
         {tab === 'passeport' && (
           <TabPasseport
             badges={badges}
-            checkinsDetail={checkinsDetail}
+            checkinsDetail={activities}
             totalPoints={points}
             checkinCount={checkinCount}
             streak={streak}
@@ -677,12 +695,12 @@ export default function CompteClient({
         {tab === 'territoire' && (
           <TabTerritoire 
             commune={commune} 
-            checkinsDetail={checkinsDetail}
+            checkinsDetail={activities}
             heatmapNode={
               <Map 
                 center={[5.35, -4.02]} 
                 zoom={11} 
-                hotspots={checkinsDetail.filter(c => c.lat && c.lon).map(c => ({ id: c.id, lat: c.lat!, lon: c.lon!, intensity: 10 }))}
+                hotspots={activities.filter(c => c.lat && c.lon).map(c => ({ id: c.id, lat: c.lat!, lon: c.lon!, intensity: 10 }))}
                 className="w-full h-full"
               />
             } 
