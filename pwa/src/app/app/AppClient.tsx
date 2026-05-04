@@ -537,27 +537,44 @@ function AppPageContent() {
             >
               <div style={{ width: 40, height: 5, borderRadius: 2.5, background: 'var(--ink)', opacity: 0.15, marginBottom: 8 }} />
               
-              {(selectedPoi || selected) && (
+              {(selectedPoi || selected || activeItinerary) && (
                 <div style={{ padding: '0 24px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-                         {selectedPoi ? (selectedPoi.logo_emoji || '📍') : '🚌'}
+                         {selectedPoi ? (selectedPoi.logo_emoji || '📍') : activeItinerary ? '🗺️' : '🚌'}
                       </div>
                       <div>
                         <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
-                          {selectedPoi ? selectedPoi.name : selected?.stop_name}
+                          {selectedPoi ? selectedPoi.name : activeItinerary ? 'Ton trajet' : selected?.stop_name}
                         </h2>
                         <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>
-                          {selectedPoi ? (selectedPoi.commune || 'Abidjan') : (selected?.commune || 'Abidjan')}
+                          {selectedPoi ? (selectedPoi.commune || 'Abidjan') : activeItinerary ? 'Itinéraire optimisé' : (selected?.commune || 'Abidjan')}
                         </div>
                       </div>
                    </div>
-                   <button 
-                     onClick={() => { setSelectedPoi(null); setSelected(null); }} 
-                     style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.04)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                   >
-                     <Ic.X s={14} />
-                   </button>
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation();
+                        setSelectedPoi(null); 
+                        setSelected(null); 
+                        if (typeof setActiveItinerary === 'function') setActiveItinerary(null);
+                      }} 
+                      style={{ 
+                        width: 36, 
+                        height: 36, 
+                        borderRadius: 12, 
+                        border: 'none', 
+                        background: 'rgba(0,0,0,0.06)', 
+                        color: 'var(--ink)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        cursor: 'pointer',
+                        zIndex: 10
+                      }}
+                    >
+                      <Ic.X s={18} />
+                    </button>
                 </div>
               )}
             </div>
@@ -669,13 +686,7 @@ function AppPageContent() {
                 </div>
 
               ) : activeItinerary ? (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Ton trajet</h2>
-                    <button onClick={() => setActiveItinerary(null)} style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                      <Ic.X s={16} />
-                    </button>
-                  </div>
+                <div style={{ paddingTop: 8 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {activeItinerary.legs.map((leg: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', gap: 16 }}>
