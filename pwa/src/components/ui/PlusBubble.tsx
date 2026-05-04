@@ -63,10 +63,10 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
               left: 0,
               right: 0,
               bottom: 0,
-              zIndex: 7900, // Juste en dessous du menu
+              zIndex: 9400, 
               background: 'rgba(0,0,0,0.15)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
               pointerEvents: 'auto'
             }}
           />
@@ -78,18 +78,18 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 15px)',
-              right: 0,
-              width: 220,
-              background: 'rgba(255, 255, 255, 0.75)',
-              backdropFilter: 'blur(40px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-              borderRadius: 28,
-              border: '1px solid rgba(255,255,255,0.5)',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.4)',
+              position: 'fixed',
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+              right: 16,
+              width: 240,
+              background: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(40px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+              borderRadius: 32,
+              border: '1px solid rgba(255,255,255,0.6)',
+              boxShadow: '0 30px 60px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.4)',
               padding: '8px',
-              zIndex: 8100,
+              zIndex: 9500,
               display: 'flex',
               flexDirection: 'column',
               pointerEvents: 'auto',

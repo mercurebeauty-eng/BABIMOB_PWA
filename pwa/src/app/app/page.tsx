@@ -490,40 +490,64 @@ function AppPageContent() {
               pointerEvents: 'auto'
             }}
           >
+            {/* Handle & Header (Drag Zone) */}
             <div 
               onPointerDown={onHandlePointerDown}
-              style={{ width: '100%', padding: '10px 0', display: 'flex', justifyContent: 'center', cursor: 'grab', touchAction: 'none' }}>
-              <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.15 }} />
-            </div>
-
-            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px' }}>
-              {selectedPoi ? (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{ width: 50, height: 50, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, background: 'var(--cream)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        {selectedPoi.logo_emoji || '📍'}
+              style={{ 
+                width: '100%', 
+                padding: '12px 0 16px', 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center', 
+                cursor: 'grab', 
+                touchAction: 'none',
+                background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), transparent)',
+                borderTopLeftRadius: 32,
+                borderTopRightRadius: 32
+              }}
+            >
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--ink)', opacity: 0.1, marginBottom: 12 }} />
+              
+              {(selectedPoi || selected) && (
+                <div style={{ padding: '0 24px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
+                        {selectedPoi ? (selectedPoi.logo_emoji || '📍') : '🚌'}
                       </div>
                       <div>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{selectedPoi.name}</h2>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{selectedPoi.commune || 'Abidjan'}</div>
+                        <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
+                          {selectedPoi ? selectedPoi.name : selected?.stop_name}
+                        </h2>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>
+                          {selectedPoi ? (selectedPoi.commune || 'Abidjan') : (selected?.commune || 'Abidjan')}
+                        </div>
                       </div>
-                    </div>
-                    <button onClick={() => setSelectedPoi(null)} style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                      <Ic.X s={16} />
-                    </button>
-                  </div>
+                   </div>
+                   <button 
+                     onClick={() => { setSelectedPoi(null); setSelected(null); }} 
+                     style={{ width: 32, height: 32, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.04)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                   >
+                     <Ic.X s={14} />
+                   </button>
+                </div>
+              )}
+            </div>
 
+            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 120px' }}>
+              {selectedPoi ? (
+                <div>
                   <Link 
                     href={`/app/place/${encodeURIComponent(selectedPoi.id)}`} 
                     style={{ 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      height: 48, background: 'var(--orange)', color: '#fff', 
-                      fontWeight: 800, borderRadius: 16, fontSize: 13, 
-                      textTransform: 'uppercase', letterSpacing: 1, 
-                      textDecoration: 'none', boxShadow: '0 8px 24px rgba(242,108,26,0.25)',
-                      marginBottom: 20
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      height: 52, background: 'var(--orange)', color: '#fff', 
+                      fontWeight: 900, borderRadius: 18, fontSize: 13, 
+                      textTransform: 'uppercase', letterSpacing: 1.2, 
+                      textDecoration: 'none', boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
+                      marginBottom: 24,
+                      transition: 'transform 0.2s ease'
                     }}
+                    className="press"
                   >
                     Voir le profil complet
                     <Ic.Arrow s={18} />
@@ -531,37 +555,53 @@ function AppPageContent() {
 
                   {/* Infos Promo / Campagne */}
                   {selectedPoi.has_campaign && (
-                    <div style={{ background: 'var(--orange-pale)', border: '1.5px solid var(--orange)', borderRadius: 18, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ fontSize: 24 }}>🎁</div>
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1 }}>PROMO EN COURS</div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{selectedPoi.campaign_label || 'Offre spéciale disponible sur place !'}</div>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, var(--orange-pale), #FFF)', 
+                      border: '1.5px solid var(--orange-pale)', 
+                      borderRadius: 20, padding: '16px', marginBottom: 24, 
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      boxShadow: '0 4px 15px rgba(242,108,26,0.06)'
+                    }}>
+                      <div style={{ fontSize: 28 }}>🎁</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 2 }}>EXCLUSIVITÉ BABIMOB</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3 }}>{selectedPoi.campaign_label || 'Offre spéciale disponible sur place !'}</div>
                       </div>
                     </div>
                   )}
 
                   {/* Description si présente */}
                   {selectedPoi.description && (
-                    <div style={{ marginBottom: 20 }}>
-                       <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>À PROPOS</div>
-                       <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>{selectedPoi.description}</p>
+                    <div style={{ marginBottom: 24, padding: '0 4px' }}>
+                       <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>À PROPOS</div>
+                       <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6, margin: 0, opacity: 0.9 }}>{selectedPoi.description}</p>
                     </div>
                   )}
 
                   {/* Avis Simulés */}
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>DERNIERS AVIS</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ padding: '0 4px' }}>
+                    <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>COMMUNAUTÉ</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                        {[
                          { user: 'Kouassi', note: 5, text: 'Super accueil et service rapide !' },
                          { user: 'Marie', note: 4, text: 'Très bon rapport qualité/prix.' }
                        ].map((rev, i) => (
-                         <div key={i} style={{ background: 'rgba(0,0,0,0.03)', padding: '10px 14px', borderRadius: 14 }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>{rev.user}</span>
-                             <span style={{ fontSize: 12 }}>{'⭐'.repeat(rev.note)}</span>
+                         <div key={i} style={{ 
+                           background: 'rgba(255,255,255,0.4)', 
+                           padding: '14px', 
+                           borderRadius: 20,
+                           border: '1px solid rgba(0,0,0,0.03)',
+                           boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                         }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
+                             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{rev.user}</span>
+                             <div style={{ display: 'flex', gap: 1 }}>
+                               {[...Array(5)].map((_, idx) => (
+                                 <span key={idx} style={{ fontSize: 10, opacity: idx < rev.note ? 1 : 0.2 }}>⭐</span>
+                               ))}
+                             </div>
                            </div>
-                           <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: 0, opacity: 0.8 }}>{rev.text}</p>
+                           <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: 0, lineHeight: 1.4, opacity: 0.85 }}>{rev.text}</p>
                          </div>
                        ))}
                     </div>
