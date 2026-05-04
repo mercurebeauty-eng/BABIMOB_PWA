@@ -6,7 +6,6 @@ import { Ic } from '@/components/ui/Ic';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useXP } from '@/components/providers/XPProvider';
-import { Ic } from './ui/Ic';
 
 type ReviewTag = 'incroyable' | 'cosy' | 'bien' | 'moyen' | 'ennuyeux' | 'bruyant' | 'cher';
 
