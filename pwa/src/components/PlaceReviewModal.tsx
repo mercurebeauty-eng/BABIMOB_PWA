@@ -131,7 +131,7 @@ export default function PlaceReviewModal({ placeId, placeName, userId, onClose, 
             <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>C'est comment ?</div>
             <div style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
               {placeName} 
-              <HelpTip title="C'est comment ?" content="Donne ton avis honnête pour aider les autres Babis. Les 5 premiers avis du mois te rapportent 10 XP chacun !" />
+
             </div>
           </div>
           <button 
