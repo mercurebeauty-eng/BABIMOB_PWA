@@ -43,13 +43,14 @@ const Map = NextDynamic(() => import('@/components/MapModern'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <Image src="/icons/icon-192.png" alt="BABIMOB" width={64} height={64} className="rounded-2xl shadow-lg shadow-abidjan-orange/20" />
-        <div className="text-center">
-          <div className="text-base font-black uppercase tracking-[0.2em] text-beige-text">BABIMOB</div>
+      <div className="flex flex-col items-center gap-2">
+        <div className="text-center mb-4">
+          <div className="text-base font-black uppercase tracking-[0.2em] text-orange-600 animate-pulse">BABIMOB</div>
           <div className="text-[10px] font-bold text-beige-muted uppercase tracking-widest mt-0.5">Chargement de la ville…</div>
         </div>
-        <div className="w-8 h-8 border-[3px] border-abidjan-orange/20 border-t-abidjan-orange rounded-full animate-spin" />
+        <div className="w-12 h-0.5 bg-orange-100 overflow-hidden relative rounded-full">
+           <div className="absolute inset-0 bg-orange-600 animate-loading-bar" />
+        </div>
       </div>
     </div>
   ),
