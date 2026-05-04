@@ -24,6 +24,7 @@ import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
 import { HelpTip } from '@/components/ui/HelpTip';
+import { BottomNav } from '@/components/ui/BottomNav';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -303,9 +304,13 @@ function AppPageContent() {
         >
           <Ic.Search s={18} />
           <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Mobeur ?"}</span>
-          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, display: 'flex', alignItems: 'center' }}>
-            IA
-            <HelpTip title="Moteur IA" content="Notre intelligence artificielle analyse le trafic en temps réel et tes habitudes pour te proposer les meilleurs trajets à Abidjan." />
+          <span 
+            onClick={(e) => { e.stopPropagation(); }}
+            style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}
+          >
+            <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
+            247 EN LIGNE
+            <HelpTip title="Communauté Live" content="Il y a actuellement 247 Mobeurs connectés qui partagent leurs trajets et signalent les aléas de la route à Abidjan." />
           </span>
         </button>
 
@@ -369,7 +374,7 @@ function AppPageContent() {
 
       {/* ── BOTTOM SHEET – DRAG (structure unique corrigée) ── */}
       <motion.div
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: heightMV, background: 'var(--cream-2)', borderRadius: '24px 24px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        style={{ position: 'absolute', left: 8, right: 8, bottom: 84, height: heightMV, background: 'var(--cream-2)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}
       >
         {/* Poignée — drag + clic */}
         <div
@@ -552,21 +557,13 @@ function AppPageContent() {
                 </>
               )}
 
-              {/* Community pulse */}
+              {/* Community pulse - simplified since we have BottomNav */}
               <div onClick={() => router.push('/app/gbairai')} className="press" style={{ padding: 16, borderRadius: 18, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 8 }}>
-                <div style={{ display: 'flex' }}>
-                  {(['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C'] as const).map((c, i) => (
-                    <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: '2px solid var(--cream-2)', marginLeft: i === 0 ? 0 : -8, fontSize: 11, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {['K', 'A', 'M', 'D'][i]}
-                    </div>
-                  ))}
-                </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                    247 Mobeurs sont en ligne
-                    <HelpTip title="Mobeurs en ligne" content="Le nombre de personnes utilisant actuellement l'application. La communauté Babimob s'entraide pour partager les infos trafic !" />
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>
+                    Découvrir le Gbairai
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Lance ton Gbairai</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>Infos trafic et discussions en temps réel</div>
                 </div>
                 <Ic.Arrow s={18} />
               </div>
@@ -762,6 +759,7 @@ function AppPageContent() {
         )}
       </AnimatePresence>
 
+      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
     </div>
   );
 }

@@ -11,9 +11,9 @@ import { getLevel } from '@/lib/levels';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
-import { useXP } from '@/components/providers/XPProvider';
-import { HelpTip } from '@/components/ui/HelpTip';
 import { createClient } from '@/lib/supabase/client';
+import { BottomNav } from '@/components/ui/BottomNav';
+import SidebarMenu from '@/components/SidebarMenu';
 
 type Badge = { badge_key: string; awarded_at: string };
 type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
@@ -77,7 +77,6 @@ const ABIDJAN_COMMUNES = [
   'Songon', 'Treichville', 'Yopougon'
 ];
 
-
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 1) return "à l'instant";
@@ -85,6 +84,32 @@ function timeAgo(iso: string): string {
   if (mins < 1440) return `il y a ${Math.floor(mins / 60)}h`;
   return `il y a ${Math.floor(mins / 1440)}j`;
 }
+
+export default function CompteClient({
+  displayName,
+  avatarEmoji,
+  totalPoints,
+  checkinCount,
+  badges,
+  checkinsDetail,
+  commune,
+  streakCount,
+  lastBonusAt,
+  topExplorers,
+  dailyMissions,
+  following = [],
+  followersCount = 0,
+  crew,
+  collectiveQuest,
+  favorites,
+  recentPosts,
+  recentTarifs,
+  children
+}: Props) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { profile: contextProfile } = useXP();
+  const profileForMenu = contextProfile || { display_name: displayName, avatar_emoji: avatarEmoji, total_points: totalPoints };
+
 
 // ── Crew / Proches & Famille — Babi network ──────────────────
 function CrewCard({ following, followersCount }: { following: FollowProfile[]; followersCount: number }) {
@@ -929,6 +954,13 @@ function ActivityLog({ checkinsDetail, crew: realCrew, collectiveQuest: realQues
           </div>
         ))}
       </div>
+
+      <SidebarMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        profile={profileForMenu} 
+      />
+      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
     </div>
   );
 }

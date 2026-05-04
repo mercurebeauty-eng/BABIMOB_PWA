@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
+import { BottomNav } from '@/components/ui/BottomNav';
+import SidebarMenu from '@/components/SidebarMenu';
 import type { GbairaiPost, HotSpot, CommunePulse, Story } from './page';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
@@ -436,6 +438,13 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
           onClose={() => setViewingStoryIndex(null)}
         />
       )}
+
+      <SidebarMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        profile={profile} 
+      />
+      <BottomNav onMenuClick={() => setIsMenuOpen(true)} />
     </div>
   );
 }
