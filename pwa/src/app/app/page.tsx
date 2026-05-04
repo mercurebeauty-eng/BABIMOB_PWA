@@ -362,7 +362,7 @@ function AppPageContent() {
               <button
                 onClick={openSearch}
                 className="press"
-                style={{ width: '100%', height: 54, borderRadius: 18, border: 'none', background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', textAlign: 'left', border: '1.5px solid var(--line)' }}
+                style={{ width: '100%', height: 54, borderRadius: 18, background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', textAlign: 'left', border: '1.5px solid var(--line)' }}
               >
                 <Ic.Search s={20} />
                 <span>Où vas-tu, Mobeur ?</span>
