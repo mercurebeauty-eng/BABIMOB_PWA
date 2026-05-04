@@ -514,14 +514,58 @@ function AppPageContent() {
                     </button>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-                    <PoiCheckInButton placeId={selectedPoi.id} placeName={selectedPoi.name} commune={selectedPoi.commune} lat={selectedPoi.lat} lon={selectedPoi.lon} />
-                    <button onClick={() => handleGetDirections(selectedPoi)} style={{ height: 44, background: 'var(--orange)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(242,108,26,0.2)' }}>S'y rendre</button>
-                  </div>
+                  <Link 
+                    href={`/app/place/${encodeURIComponent(selectedPoi.id)}`} 
+                    style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      height: 48, background: 'var(--orange)', color: '#fff', 
+                      fontWeight: 800, borderRadius: 16, fontSize: 13, 
+                      textTransform: 'uppercase', letterSpacing: 1, 
+                      textDecoration: 'none', boxShadow: '0 8px 24px rgba(242,108,26,0.25)',
+                      marginBottom: 20
+                    }}
+                  >
+                    Voir le profil complet
+                    <Ic.Arrow s={18} />
+                  </Link>
 
-                  {selectedPoi.description && <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 16 }}>{selectedPoi.description}</p>}
-                  
-                  <Link href={`/app/place/${encodeURIComponent(selectedPoi.id)}`} style={{ display: 'block', textAlign: 'center', fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 1, padding: '12px', background: 'rgba(0,0,0,0.05)', borderRadius: 12, textDecoration: 'none' }}>Voir le profil complet</Link>
+                  {/* Infos Promo / Campagne */}
+                  {selectedPoi.has_campaign && (
+                    <div style={{ background: 'var(--orange-pale)', border: '1.5px solid var(--orange)', borderRadius: 18, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ fontSize: 24 }}>🎁</div>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1 }}>PROMO EN COURS</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{selectedPoi.campaign_label || 'Offre spéciale disponible sur place !'}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Description si présente */}
+                  {selectedPoi.description && (
+                    <div style={{ marginBottom: 20 }}>
+                       <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>À PROPOS</div>
+                       <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>{selectedPoi.description}</p>
+                    </div>
+                  )}
+
+                  {/* Avis Simulés */}
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>DERNIERS AVIS</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                       {[
+                         { user: 'Kouassi', note: 5, text: 'Super accueil et service rapide !' },
+                         { user: 'Marie', note: 4, text: 'Très bon rapport qualité/prix.' }
+                       ].map((rev, i) => (
+                         <div key={i} style={{ background: 'rgba(0,0,0,0.03)', padding: '10px 14px', borderRadius: 14 }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)' }}>{rev.user}</span>
+                             <span style={{ fontSize: 12 }}>{'⭐'.repeat(rev.note)}</span>
+                           </div>
+                           <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: 0, opacity: 0.8 }}>{rev.text}</p>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
                 </div>
 
               ) : activeItinerary ? (

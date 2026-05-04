@@ -36,8 +36,9 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
     { 
       icon: <Ic.Route s={20} />, 
       label: 'Escale', 
-      path: '/app/itineraire', 
-      color: 'var(--blue)',
+      disabled: true,
+      badge: 'Bientôt',
+      color: 'var(--muted)',
       help: { title: 'Escale', content: 'Préparez vos trajets avec des arrêts intermédiaires (Fonctionnalité en cours de développement).' }
     },
     ...(isAdmin ? [{ icon: <Ic.Map s={20} />, label: 'Admin', path: '/app/admin', color: 'var(--ink)' }] : []),
@@ -99,11 +100,12 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
               <React.Fragment key={idx}>
                 <button
                   onClick={() => {
+                    if (item.disabled) return;
                     if (item.path) router.push(item.path);
                     if (item.action) item.action();
                     onClose();
                   }}
-                  className="press"
+                  className={item.disabled ? "" : "press"}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -112,13 +114,14 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
                     borderRadius: 18,
                     border: 'none',
                     background: 'transparent',
-                    cursor: 'pointer',
+                    cursor: item.disabled ? 'not-allowed' : 'pointer',
                     width: '100%',
                     textAlign: 'left',
                     transition: 'background 0.2s ease',
+                    opacity: item.disabled ? 0.5 : 1,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ 
                       fontSize: 14, 
                       fontWeight: 700, 
@@ -127,6 +130,11 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
                     }}>
                       {item.label}
                     </span>
+                    {(item as any).badge && (
+                      <span style={{ fontSize: 9, fontWeight: 900, background: 'var(--orange-pale)', color: 'var(--orange)', padding: '2px 6px', borderRadius: 6, textTransform: 'uppercase' }}>
+                        {(item as any).badge}
+                      </span>
+                    )}
                     {item.help && <HelpTip {...item.help} />}
                   </div>
                   <div style={{ 
