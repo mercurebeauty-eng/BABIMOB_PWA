@@ -940,9 +940,6 @@ function ActivityLog({ checkinsDetail, crew: realCrew, collectiveQuest: realQues
           </div>
         ))}
       </div>
-
-        ))}
-      </div>
     </div>
   );
 }
