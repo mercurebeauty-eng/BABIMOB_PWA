@@ -46,7 +46,7 @@ export function HelpTip({ title, content }: HelpTipProps) {
             {/* Backdrop transparent pour fermer au clic ailleurs */}
             <div 
               onClick={() => setIsOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+              style={{ position: 'fixed', inset: 0, zIndex: 1999 }}
             />
             
             <motion.div
@@ -65,7 +65,7 @@ export function HelpTip({ title, content }: HelpTipProps) {
                 padding: 12,
                 borderRadius: 12,
                 boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
-                zIndex: 101,
+                zIndex: 2000,
                 fontSize: 11,
                 lineHeight: 1.5,
                 border: '1px solid var(--line)',

@@ -34,6 +34,8 @@ type Props = {
   crew?: any;
   collectiveQuest?: any;
   favorites: any[];
+  recentPosts: any[];
+  recentTarifs: any[];
   children?: React.ReactNode;
 };
 
@@ -508,14 +510,21 @@ function TabClassement({
 }
 
 export default function CompteClient({
-  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
+  displayName, avatarEmoji, totalPoints, checkinCount, badges, checkinsDetail, recentPosts, recentTarifs, commune, streakCount: initialStreak, lastBonusAt, topExplorers, dailyMissions, following = [], followersCount = 0, crew, collectiveQuest, favorites, children
 }: Props) {
   const [tab, setTab] = useState<'passeport' | 'territoire' | 'tableau'>('passeport');
   const [points, setPoints] = useState(totalPoints);
   const [streak, setStreak] = useState(initialStreak);
   const [showWeekly, setShowWeekly] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
-  const [activities, setActivities] = useState<any[]>(checkinsDetail);
+  const [activities, setActivities] = useState<any[]>(() => {
+    const combined = [
+      ...checkinsDetail.map(c => ({ ...c, type: 'checkin' })),
+      ...recentPosts.map(p => ({ ...p, type: 'post' })),
+      ...recentTarifs.map(t => ({ ...t, type: 'tarif' }))
+    ];
+    return combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  });
   const { addXP } = useXP();
   const supabase = createClient();
 
@@ -552,8 +561,24 @@ export default function CompteClient({
         schema: 'public', 
         table: 'checkins'
       }, (payload) => {
-        setActivities(prev => [payload.new, ...prev]);
+        setActivities(prev => [{ ...payload.new, type: 'checkin' }, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
         setPoints(p => p + (payload.new.points_earned || 10));
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'gbairai_posts'
+      }, (payload) => {
+        setActivities(prev => [{ ...payload.new, type: 'post' }, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setPoints(p => p + 30);
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'tarif_confirmations'
+      }, (payload) => {
+        setActivities(prev => [{ ...payload.new, type: 'tarif' }, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setPoints(p => p + 25);
       })
       .subscribe();
 
@@ -785,14 +810,36 @@ function ActivityLog({ checkinsDetail, crew: realCrew, collectiveQuest: realQues
 
   const daysLeft = quest.ends_at ? Math.max(0, Math.ceil((new Date(quest.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
 
-  const activities = checkinsDetail.slice(0, 10).map((c, i) => ({
-    id: c.id || i,
-    type: 'Check-in',
-    title: 'Check-in',
-    subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · ${timeAgo(c.created_at)}`,
-    points: c.points_earned || 15,
-    icon: <Ic.Pin s={18} fill />
-  }));
+  const activities = checkinsDetail.slice(0, 15).map((c, i) => {
+    if (c.type === 'checkin') {
+      return {
+        id: c.id || i,
+        type: 'Check-in',
+        title: 'Check-in',
+        subtitle: `${c.commune || 'Abidjan'} · ${c.place_name || 'Lieu inconnu'} · ${timeAgo(c.created_at)}`,
+        points: c.points_earned || 15,
+        icon: <Ic.Pin s={18} fill />
+      };
+    } else if (c.type === 'post') {
+      return {
+        id: c.id || i,
+        type: 'Gbairai',
+        title: 'Post Gbairai',
+        subtitle: `${c.commune || 'Abidjan'} · ${c.content?.slice(0, 30)}... · ${timeAgo(c.created_at)}`,
+        points: 30,
+        icon: <Ic.Chat s={18} />
+      };
+    } else {
+      return {
+        id: c.id || i,
+        type: 'Tarif',
+        title: 'Tarif confirmé',
+        subtitle: `${c.stop_name_depart} → ${c.stop_name_arrivee} · ${c.prix}F · ${timeAgo(c.created_at)}`,
+        points: 25,
+        icon: <Ic.Bolt s={18} />
+      };
+    }
+  });
 
   return (
     <div style={{ marginTop: 20 }}>

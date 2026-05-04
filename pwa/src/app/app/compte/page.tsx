@@ -58,11 +58,13 @@ export default async function ComptePage() {
   startOfToday.setHours(0,0,0,0);
   const todayStr = startOfToday.toISOString();
 
-  const [{ count: todayCheckins }, { count: todayPosts }, { count: todayTarifs }, { data: favoritesRaw }] = await Promise.all([
+  const [{ count: todayCheckins }, { count: todayPosts }, { count: todayTarifs }, { data: favoritesRaw }, { data: recentPosts }, { data: recentTarifs }] = await Promise.all([
     supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
     supabase.from('gbairai_posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
     supabase.from('tarif_confirmations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
-    supabase.from('user_favorites').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    supabase.from('user_favorites').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('gbairai_posts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
+    supabase.from('tarif_confirmations').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
   ]);
 
   const favorites = (favoritesRaw ?? []) as any[];
@@ -117,6 +119,8 @@ export default async function ComptePage() {
       checkinCount={checkinCount ?? 0}
       badges={badges ?? []}
       checkinsDetail={checkinsDetail ?? []}
+      recentPosts={recentPosts ?? []}
+      recentTarifs={recentTarifs ?? []}
       commune={commune}
       streakCount={profile?.streak_count ?? 0}
       lastBonusAt={profile?.last_daily_bonus_at || null}
