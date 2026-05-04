@@ -472,7 +472,7 @@ export default function Map({
     const rotate = hasHeading ? `rotate(${userHeading}deg)` : 'rotate(0deg)';
 
     const icon = L.divIcon({
-      className: 'bm-user-marker-parent',
+      className: 'bm-user-marker-container',
       html: `
         <div class="bm-user-marker">
           ${hasHeading ? `<div class="bm-user-heading" style="transform: ${rotate}"></div>` : ''}

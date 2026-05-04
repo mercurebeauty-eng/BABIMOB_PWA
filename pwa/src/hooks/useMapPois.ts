@@ -45,53 +45,64 @@ export function useMapPois({ logReach }: Options) {
     const loadPois = async () => {
       const b = map.getBounds();
       const mod = await import('@/lib/poi');
-      const fetchedPois = await mod.fetchNearbyPOIs(
-        b.getSouth(), b.getNorth(), b.getWest(), b.getEast()
-      );
-      setPois(fetchedPois);
-      if (fetchedPois.length === 0) return;
+      
+      try {
+        const fetchedPois = await mod.fetchNearbyPOIs(
+          b.getSouth(), b.getNorth(), b.getWest(), b.getEast()
+        );
+        
+        // Si on n'a rien trouvé du tout, on garde les anciens POIs pour éviter le vide
+        // Sauf si on est vraiment dans un désert (mais peu probable à Abidjan)
+        if (fetchedPois.length > 0) {
+          setPois(fetchedPois);
+        }
 
-      const placeIds = fetchedPois.map((p) => p.id);
-      const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
+        const placeIds = fetchedPois.length > 0 ? fetchedPois.map((p) => p.id) : pois.map(p => p.id);
+        if (placeIds.length === 0) return;
 
-      const { data: checkinsData } = await supabase
-        .from('checkins')
-        .select('place_id')
-        .in('place_id', placeIds)
-        .gte('created_at', since7d);
+        const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data: checkinsData } = await supabase
+          .from('checkins')
+          .select('place_id')
+          .in('place_id', placeIds)
+          .gte('created_at', since7d);
 
-      if (checkinsData) {
-        const counts: Record<string, number> = {};
-        checkinsData.forEach((c: { place_id: string }) => {
-          counts[c.place_id] = (counts[c.place_id] ?? 0) + 1;
-        });
-        setPoiCheckins(counts);
-      }
+        if (checkinsData) {
+          const counts: Record<string, number> = {};
+          checkinsData.forEach((c: { place_id: string }) => {
+            counts[c.place_id] = (counts[c.place_id] ?? 0) + 1;
+          });
+          setPoiCheckins(counts);
+        }
 
-      const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
-      const { data: liveData } = await supabase
-        .from('checkins')
-        .select('place_id, place_name, profile:profiles(id, display_name, is_public_visits)')
-        .in('place_id', placeIds)
-        .gte('created_at', since3h)
-        .order('created_at', { ascending: false });
+        const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
+        const { data: liveData } = await supabase
+          .from('checkins')
+          .select('place_id, place_name, profile:profiles(id, display_name, is_public_visits)')
+          .in('place_id', placeIds)
+          .gte('created_at', since3h)
+          .order('created_at', { ascending: false });
 
-      if (liveData) {
-        const raw = liveData as unknown as RawLiveCheckin[];
-        setLivePois(Array.from(new Set(raw.map((d) => d.place_id))));
+        if (liveData) {
+          const raw = liveData as unknown as RawLiveCheckin[];
+          setLivePois(Array.from(new Set(raw.map((d) => d.place_id))));
 
-        const filteredTicker: LiveCheckin[] = raw.map((d) => ({
-          ...d,
-          display_name: d.profile?.is_public_visits
-            ? (d.profile.display_name ?? 'Un explorateur')
-            : 'Un explorateur',
-        })).slice(0, 5);
+          const filteredTicker: LiveCheckin[] = raw.map((d) => ({
+            ...d,
+            display_name: d.profile?.is_public_visits
+              ? (d.profile.display_name ?? 'Un explorateur')
+              : 'Un explorateur',
+          })).slice(0, 5);
 
-        setLiveTickerFeed(filteredTicker);
-        filteredTicker.forEach((d) => {
-          const uid = d.profile?.id;
-          if (uid) logReachRef.current(uid, 'ticker');
-        });
+          setLiveTickerFeed(filteredTicker);
+          filteredTicker.forEach((d) => {
+            const uid = d.profile?.id;
+            if (uid) logReachRef.current(uid, 'ticker');
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load POIs:", err);
+        // On ne fait rien, on garde les anciens POIs
       }
     };
 
