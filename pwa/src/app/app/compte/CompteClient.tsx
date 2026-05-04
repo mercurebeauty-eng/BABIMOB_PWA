@@ -13,6 +13,7 @@ const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () 
 
 import { useXP } from '@/components/providers/XPProvider';
 import { HelpTip } from '@/components/ui/HelpTip';
+import { createClient } from '@/lib/supabase/client';
 
 type Badge = { badge_key: string; awarded_at: string };
 type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
