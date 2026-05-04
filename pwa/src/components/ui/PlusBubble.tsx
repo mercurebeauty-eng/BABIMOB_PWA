@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from './Ic';
 import { useRouter } from 'next/navigation';
+import { HelpTip } from './HelpTip';
 
 interface PlusBubbleProps {
   isOpen: boolean;
@@ -17,8 +18,20 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode,
   const router = useRouter();
 
   const menuItems = [
-    { icon: <Ic.Flame s={20} />, label: heatMode ? 'Heatmap: Activée' : 'Heatmap: Désactivée', action: onToggleHeatmap, color: heatMode ? 'var(--orange)' : 'var(--muted)' },
-    { icon: <Ic.Route s={20} />, label: 'Escale', path: '/app/itineraire', color: 'var(--blue)' },
+    { 
+      icon: <Ic.Flame s={20} />, 
+      label: heatMode ? 'Heatmap: Activée' : 'Heatmap: Désactivée', 
+      action: onToggleHeatmap, 
+      color: heatMode ? 'var(--orange)' : 'var(--muted)',
+      help: { title: 'Heatmap', content: 'Affiche l\'affluence en temps réel sur la carte. Plus c\'est orange, plus il y a de mouvement !' }
+    },
+    { 
+      icon: <Ic.Route s={20} />, 
+      label: 'Escale', 
+      path: '/app/itineraire', 
+      color: 'var(--blue)',
+      help: { title: 'Escale', content: 'Préparez vos trajets avec des arrêts intermédiaires (Fonctionnalité en cours de développement).' }
+    },
     ...(isAdmin ? [{ icon: <Ic.Map s={20} />, label: 'Admin', path: '/app/admin', color: 'var(--ink)' }] : []),
   ];
 
@@ -91,14 +104,17 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode,
                     transition: 'background 0.2s ease',
                   }}
                 >
-                  <span style={{ 
-                    fontSize: 14, 
-                    fontWeight: 700, 
-                    color: 'var(--ink)',
-                    letterSpacing: -0.3
-                  }}>
-                    {item.label}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ 
+                      fontSize: 14, 
+                      fontWeight: 700, 
+                      color: 'var(--ink)',
+                      letterSpacing: -0.3
+                    }}>
+                      {item.label}
+                    </span>
+                    {item.help && <HelpTip {...item.help} />}
+                  </div>
                   <div style={{ 
                     color: item.color, 
                     width: 32, 

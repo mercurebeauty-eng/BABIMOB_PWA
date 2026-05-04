@@ -23,6 +23,7 @@ import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
 import { BottomNav } from '@/components/ui/BottomNav';
+import { HelpTip } from '@/components/ui/HelpTip';
 
 type RecentItem = {
   id: string;
@@ -343,7 +344,6 @@ function AppPageContent() {
             { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite, loading: false },
             { icon: <Ic.Locate s={18} />, action: handleLocateMe, active: !!userLoc, loading: geoLoading },
             { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole'), active: false, loading: false },
-            { icon: <Ic.Info s={18} />, action: () => router.push('/app/aide'), active: false, loading: false },
           ] as { icon: React.ReactNode; action: () => void; active: boolean; loading: boolean }[]
         ).map((btn, i) => (
           <button
@@ -784,8 +784,9 @@ function AppPageContent() {
                   >
                     <Ic.Search s={26} />
                   </div>
-                  <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)' }}>
+                  <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)', display: 'flex', alignItems: 'center' }}>
                     Cherche ton chemin
+                    <HelpTip title="Recherche" content="Tapez le nom d'un arrêt, d'une ligne de bus ou d'un lieu (Gbairai, Restaurant...) pour voir les options de transport." />
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
                     Tape un arrêt, un quartier ou une ligne pour démarrer.
