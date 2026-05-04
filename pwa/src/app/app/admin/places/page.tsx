@@ -189,7 +189,7 @@ export default function AdminPlacesPage() {
                     <input required placeholder="ex: Maquis Le Dôme" style={inputStyle} 
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                   </div>
-192: 
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Logo Emoji</label>
@@ -197,19 +197,83 @@ export default function AdminPlacesPage() {
                         value={formData.logo_emoji} onChange={e => setFormData({...formData, logo_emoji: e.target.value})} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Catégorie</label>
-                      <select style={inputStyle} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                        <option value="food">🍽️ Food & Drink</option>
-                        <option value="shop">🛍️ Shopping</option>
-                        <option value="market">🏪 Marché</option>
-                        <option value="fun">🎮 Loisirs</option>
-                        <option value="health">🏥 Santé</option>
-                        <option value="other">✨ Autre</option>
+                      <label htmlFor="category-select" style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Catégorie</label>
+                      <select 
+                        id="category-select"
+                        style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }} 
+                        value={formData.category} 
+                        onChange={e => setFormData({...formData, category: e.target.value})}
+                      >
+                        <optgroup label="Restauration & Vie Nocturne" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="food">🍽️ Restaurant / Maquis</option>
+                          <option value="fastfood">🍔 Fast Food</option>
+                          <option value="cafe">☕ Café / Salon de thé</option>
+                          <option value="bar">🍺 Bar / Lounge</option>
+                          <option value="club">💃 Nightclub</option>
+                          <option value="bakery">🥐 Boulangerie / Pâtisserie</option>
+                        </optgroup>
+                        
+                        <optgroup label="Shopping & Commerce" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="shop">🛍️ Boutique / Mode</option>
+                          <option value="supermarket">🛒 Supermarché</option>
+                          <option value="mall">🏬 Centre Commercial</option>
+                          <option value="market">🏪 Marché local</option>
+                          <option value="beauty">💅 Institut de Beauté / Spa</option>
+                          <option value="hairdresser">💇 Coiffeur</option>
+                        </optgroup>
+
+                        <optgroup label="Services & Finance" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="bank">🏦 Banque</option>
+                          <option value="atm">🏧 Distributeur (ATM)</option>
+                          <option value="hotel">🏨 Hôtel / Hébergement</option>
+                          <option value="laundry">🧺 Pressing / Blanchisserie</option>
+                          <option value="gas">⛽ Station Service</option>
+                          <option value="repair">🛠️ Garage / Réparation</option>
+                        </optgroup>
+
+                        <optgroup label="Santé & Urgences" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="pharmacy">💊 Pharmacie</option>
+                          <option value="hospital">🏥 Hôpital / Clinique</option>
+                          <option value="dentist">🦷 Dentiste</option>
+                          <option value="vet">🐾 Vétérinaire</option>
+                        </optgroup>
+
+                        <optgroup label="Loisirs & Culture" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="fun">🎮 Centre de Loisirs</option>
+                          <option value="cinema">🎬 Cinéma</option>
+                          <option value="museum">🖼️ Musée / Galerie</option>
+                          <option value="park">🌳 Parc / Espace Vert</option>
+                          <option value="stadium">⚽ Stade / Sport</option>
+                          <option value="gym">💪 Salle de Sport</option>
+                          <option value="beach">🏖️ Plage / Resort</option>
+                        </optgroup>
+
+                        <optgroup label="Éducation & Admin" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="school">🎓 École / Lycée</option>
+                          <option value="university">🏛️ Université</option>
+                          <option value="library">📚 Bibliothèque</option>
+                          <option value="admin">🏢 Administration / Mairie</option>
+                          <option value="police">🚓 Commissariat</option>
+                          <option value="post">📮 Bureau de Poste</option>
+                        </optgroup>
+
+                        <optgroup label="Transport" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="station">🚉 Gare / Terminal</option>
+                          <option value="bus_stop">🚏 Arrêt de Bus</option>
+                          <option value="parking">🅿️ Parking</option>
+                          <option value="airport">✈️ Aéroport</option>
+                        </optgroup>
+
+                        <optgroup label="Autre" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="religion">⛪ Lieu de culte</option>
+                          <option value="monument">🗽 Monument</option>
+                          <option value="other">✨ Autre établissement</option>
+                        </optgroup>
                       </select>
                     </div>
                   </div>
                 </div>
-212: 
+
                 {/* SECTION: LOCATION */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <h3 style={{ fontSize: 11, fontWeight: 900, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: 2 }}>Géolocalisation</h3>
@@ -219,7 +283,7 @@ export default function AdminPlacesPage() {
                     <input placeholder="ex: Cocody" style={inputStyle} 
                       value={formData.commune} onChange={e => setFormData({...formData, commune: e.target.value})} />
                   </div>
-222: 
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Latitude</label>
@@ -233,7 +297,7 @@ export default function AdminPlacesPage() {
                     </div>
                   </div>
                 </div>
-236: 
+
                 {/* SECTION: MARKETING */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <h3 style={{ fontSize: 11, fontWeight: 900, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 2 }}>Marketing & Sponsoring</h3>
@@ -247,17 +311,17 @@ export default function AdminPlacesPage() {
                       <option value="elite">Elite (Top Map + Shine)</option>
                     </select>
                   </div>
-250: 
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.02)', padding: 14, borderRadius: 16 }}>
                     <input type="checkbox" checked={formData.verified} onChange={e => setFormData({...formData, verified: e.target.checked})} style={{ width: 18, height: 18 }} />
                     <label style={{ fontSize: 13, fontWeight: 800 }}>Établissement vérifié ✅</label>
                   </div>
                 </div>
-256: 
+
               </div>
-259: 
+
               <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', marginBottom: 32 }} />
-261: 
+
               {/* SECTION: OFFERS (ONLY IF EDITING) */}
               {editingId && (
                 <div style={{ marginBottom: 40, background: 'rgba(0,0,0,0.2)', padding: 32, borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -267,7 +331,7 @@ export default function AdminPlacesPage() {
                       {showOfferAdd ? 'ANNULER' : '+ AJOUTER'}
                     </button>
                   </div>
-270: 
+
                   {showOfferAdd && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                        <input placeholder="Titre (ex: -20% Menu Midi)" style={inputStyle} value={offerForm.title} onChange={e => setOfferForm({...offerForm, title: e.target.value})} />
@@ -276,7 +340,7 @@ export default function AdminPlacesPage() {
                        <button type="button" onClick={handleAddOffer} style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 16, fontWeight: 900 }}>VALIDER OFFRE</button>
                     </div>
                   )}
-279: 
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {offers.length > 0 ? offers.map(offer => (
                       <div key={offer.id} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(255,255,255,0.03)', padding: '12px 20px', borderRadius: 16 }}>
@@ -293,7 +357,7 @@ export default function AdminPlacesPage() {
                   </div>
                 </div>
               )}
-296: 
+
               <button type="submit" className="press" style={{ 
                 width: '100%', background: '#fff', color: '#000', border: 'none', 
                 padding: '20px', borderRadius: 20, fontWeight: 900, cursor: 'pointer',
@@ -305,7 +369,7 @@ export default function AdminPlacesPage() {
           </motion.div>
         )}
       </AnimatePresence>
-308: 
+
       {/* FILTERS BAR */}
       <div style={{ 
         background: 'rgba(255,255,255,0.02)', padding: 14, borderRadius: 24, marginBottom: 32,
@@ -320,17 +384,21 @@ export default function AdminPlacesPage() {
           />
         </div>
         <select 
-          style={{ ...inputStyle, width: 200, background: 'rgba(255,255,255,0.03)' }}
+          style={{ ...inputStyle, width: 220, background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}
           value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
         >
           <option value="all">Toutes catégories</option>
-          <option value="food">🍽️ Food</option>
-          <option value="shop">🛍️ Shop</option>
-          <option value="market">🏪 Marché</option>
+          <option value="food">🍽️ Restauration</option>
+          <option value="shop">🛍️ Shopping</option>
+          <option value="market">🏪 Marchés</option>
           <option value="fun">🎮 Loisirs</option>
+          <option value="health">🏥 Santé</option>
+          <option value="admin">🏢 Administration</option>
+          <option value="transport">🚉 Transport</option>
+          <option value="other">✨ Autres</option>
         </select>
       </div>
-333: 
+
       {/* PLACES GRID */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '100px 0', opacity: 0.5 }}>Chargement des données...</div>
@@ -368,7 +436,7 @@ export default function AdminPlacesPage() {
                   {p.category.toUpperCase()} • {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
                 </div>
               </div>
-371: 
+
               <button 
                 onClick={() => startEdit(p)} 
                 className="press"
