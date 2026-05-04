@@ -12,6 +12,9 @@ export default function AdminPlacesPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [showOfferAdd, setShowOfferAdd] = useState(false);
+  const [offerForm, setOfferForm] = useState({ title: '', description: '', discount_pct: 10, valid_until: '' });
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -88,7 +91,7 @@ export default function AdminPlacesPage() {
     });
   };
 
-  const startEdit = (place: any) => {
+  const startEdit = async (place: any) => {
     setEditingId(place.id);
     setFormData({
       name: place.name, 
@@ -107,7 +110,35 @@ export default function AdminPlacesPage() {
       instagram: place.instagram || '',
       verified: place.verified || false
     });
+    
+    // Fetch offers
+    const { data: offerData } = await supabase.from('place_offers').select('*').eq('place_id', place.id).order('created_at', { ascending: false });
+    setOffers(offerData || []);
     setShowAdd(true);
+  };
+
+  const handleAddOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    const { error } = await supabase.from('place_offers').insert({
+      ...offerForm,
+      place_id: editingId,
+      valid_from: new Date().toISOString().split('T')[0]
+    });
+    if (error) alert(error.message);
+    else {
+      setOfferForm({ title: '', description: '', discount_pct: 10, valid_until: '' });
+      setShowOfferAdd(false);
+      // Refresh offers
+      const { data } = await supabase.from('place_offers').select('*').eq('place_id', editingId).order('created_at', { ascending: false });
+      setOffers(data || []);
+    }
+  };
+
+  const deleteOffer = async (id: string) => {
+    const { error } = await supabase.from('place_offers').delete().eq('id', id);
+    if (error) alert(error.message);
+    else setOffers(offers.filter(o => o.id !== id));
   };
 
   return (
@@ -166,14 +197,78 @@ export default function AdminPlacesPage() {
                         value={formData.logo_emoji} onChange={e => setFormData({...formData, logo_emoji: e.target.value})} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Catégorie</label>
-                      <select style={inputStyle} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                        <option value="food">🍽️ Food & Drink</option>
-                        <option value="shop">🛍️ Shopping</option>
-                        <option value="market">🏪 Marché</option>
-                        <option value="fun">🎮 Loisirs</option>
-                        <option value="health">🏥 Santé</option>
-                        <option value="other">✨ Autre</option>
+                      <label htmlFor="category-select" style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Catégorie</label>
+                      <select 
+                        id="category-select"
+                        style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }} 
+                        value={formData.category} 
+                        onChange={e => setFormData({...formData, category: e.target.value})}
+                      >
+                        <optgroup label="Restauration & Vie Nocturne" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="food">🍽️ Restaurant / Maquis</option>
+                          <option value="fastfood">🍔 Fast Food</option>
+                          <option value="cafe">☕ Café / Salon de thé</option>
+                          <option value="bar">🍺 Bar / Lounge</option>
+                          <option value="club">💃 Nightclub</option>
+                          <option value="bakery">🥐 Boulangerie / Pâtisserie</option>
+                        </optgroup>
+                        
+                        <optgroup label="Shopping & Commerce" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="shop">🛍️ Boutique / Mode</option>
+                          <option value="supermarket">🛒 Supermarché</option>
+                          <option value="mall">🏬 Centre Commercial</option>
+                          <option value="market">🏪 Marché local</option>
+                          <option value="beauty">💅 Institut de Beauté / Spa</option>
+                          <option value="hairdresser">💇 Coiffeur</option>
+                        </optgroup>
+
+                        <optgroup label="Services & Finance" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="bank">🏦 Banque</option>
+                          <option value="atm">🏧 Distributeur (ATM)</option>
+                          <option value="hotel">🏨 Hôtel / Hébergement</option>
+                          <option value="laundry">🧺 Pressing / Blanchisserie</option>
+                          <option value="gas">⛽ Station Service</option>
+                          <option value="repair">🛠️ Garage / Réparation</option>
+                        </optgroup>
+
+                        <optgroup label="Santé & Urgences" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="pharmacy">💊 Pharmacie</option>
+                          <option value="hospital">🏥 Hôpital / Clinique</option>
+                          <option value="dentist">🦷 Dentiste</option>
+                          <option value="vet">🐾 Vétérinaire</option>
+                        </optgroup>
+
+                        <optgroup label="Loisirs & Culture" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="fun">🎮 Centre de Loisirs</option>
+                          <option value="cinema">🎬 Cinéma</option>
+                          <option value="museum">🖼️ Musée / Galerie</option>
+                          <option value="park">🌳 Parc / Espace Vert</option>
+                          <option value="stadium">⚽ Stade / Sport</option>
+                          <option value="gym">💪 Salle de Sport</option>
+                          <option value="beach">🏖️ Plage / Resort</option>
+                        </optgroup>
+
+                        <optgroup label="Éducation & Admin" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="school">🎓 École / Lycée</option>
+                          <option value="university">🏛️ Université</option>
+                          <option value="library">📚 Bibliothèque</option>
+                          <option value="admin">🏢 Administration / Mairie</option>
+                          <option value="police">🚓 Commissariat</option>
+                          <option value="post">📮 Bureau de Poste</option>
+                        </optgroup>
+
+                        <optgroup label="Transport" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="station">🚉 Gare / Terminal</option>
+                          <option value="bus_stop">🚏 Arrêt de Bus</option>
+                          <option value="parking">🅿️ Parking</option>
+                          <option value="airport">✈️ Aéroport</option>
+                        </optgroup>
+
+                        <optgroup label="Autre" style={{ background: '#1A1410', color: '#fff' }}>
+                          <option value="religion">⛪ Lieu de culte</option>
+                          <option value="monument">🗽 Monument</option>
+                          <option value="other">✨ Autre établissement</option>
+                        </optgroup>
                       </select>
                     </div>
                   </div>
@@ -227,6 +322,42 @@ export default function AdminPlacesPage() {
 
               <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', marginBottom: 32 }} />
 
+              {/* SECTION: OFFERS (ONLY IF EDITING) */}
+              {editingId && (
+                <div style={{ marginBottom: 40, background: 'rgba(0,0,0,0.2)', padding: 32, borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 2 }}>Promotions & Bonus</h3>
+                    <button type="button" onClick={() => setShowOfferAdd(!showOfferAdd)} style={{ background: 'var(--orange)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 12, fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
+                      {showOfferAdd ? 'ANNULER' : '+ AJOUTER'}
+                    </button>
+                  </div>
+
+                  {showOfferAdd && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                       <input placeholder="Titre (ex: -20% Menu Midi)" style={inputStyle} value={offerForm.title} onChange={e => setOfferForm({...offerForm, title: e.target.value})} />
+                       <input type="number" placeholder="% de réduction" style={inputStyle} value={offerForm.discount_pct} onChange={e => setOfferForm({...offerForm, discount_pct: parseInt(e.target.value)})} />
+                       <input type="date" style={inputStyle} value={offerForm.valid_until} onChange={e => setOfferForm({...offerForm, valid_until: e.target.value})} />
+                       <button type="button" onClick={handleAddOffer} style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 16, fontWeight: 900 }}>VALIDER OFFRE</button>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {offers.length > 0 ? offers.map(offer => (
+                      <div key={offer.id} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(255,255,255,0.03)', padding: '12px 20px', borderRadius: 16 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--orange-pale)', color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>%{offer.discount_pct}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800 }}>{offer.title}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>Jusqu'au {offer.valid_until || 'Indéterminé'}</div>
+                        </div>
+                        <button type="button" onClick={() => deleteOffer(offer.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Ic.X s={18} /></button>
+                      </div>
+                    )) : (
+                      <div style={{ textAlign: 'center', opacity: 0.3, fontSize: 12, padding: 20 }}>Aucune promotion active.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <button type="submit" className="press" style={{ 
                 width: '100%', background: '#fff', color: '#000', border: 'none', 
                 padding: '20px', borderRadius: 20, fontWeight: 900, cursor: 'pointer',
@@ -253,14 +384,18 @@ export default function AdminPlacesPage() {
           />
         </div>
         <select 
-          style={{ ...inputStyle, width: 200, background: 'rgba(255,255,255,0.03)' }}
+          style={{ ...inputStyle, width: 220, background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}
           value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
         >
           <option value="all">Toutes catégories</option>
-          <option value="food">🍽️ Food</option>
-          <option value="shop">🛍️ Shop</option>
-          <option value="market">🏪 Marché</option>
+          <option value="food">🍽️ Restauration</option>
+          <option value="shop">🛍️ Shopping</option>
+          <option value="market">🏪 Marchés</option>
           <option value="fun">🎮 Loisirs</option>
+          <option value="health">🏥 Santé</option>
+          <option value="admin">🏢 Administration</option>
+          <option value="transport">🚉 Transport</option>
+          <option value="other">✨ Autres</option>
         </select>
       </div>
 

@@ -58,11 +58,14 @@ export default async function ComptePage() {
   startOfToday.setHours(0,0,0,0);
   const todayStr = startOfToday.toISOString();
 
-  const [{ count: todayCheckins }, { count: todayPosts }, { count: todayTarifs }] = await Promise.all([
+  const [{ count: todayCheckins }, { count: todayPosts }, { count: todayTarifs }, { data: favoritesRaw }] = await Promise.all([
     supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
     supabase.from('gbairai_posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
-    supabase.from('tarif_confirmations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr)
+    supabase.from('tarif_confirmations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', todayStr),
+    supabase.from('user_favorites').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
   ]);
+
+  const favorites = (favoritesRaw ?? []) as any[];
 
   // Récupération du Crew
   const { data: memberOf } = await supabase
@@ -123,6 +126,7 @@ export default async function ComptePage() {
       followersCount={followersCount ?? 0}
       crew={crew}
       collectiveQuest={colQuest}
+      favorites={favorites}
     >
       <ProfileEditor
         userId={user.id}

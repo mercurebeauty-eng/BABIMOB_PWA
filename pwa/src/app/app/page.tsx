@@ -188,11 +188,8 @@ function AppPageContent() {
     : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
 
   const handleSelectStop = useCallback((stop: Stop) => {
-    setSelected(stop);
-    setSheet('half');
-    setSearchOpen(false);
-    clearSearch();
-  }, [clearSearch]);
+    router.push(`/app/arret/${encodeURIComponent(stop.stop_id)}`);
+  }, [router]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
@@ -270,7 +267,10 @@ function AppPageContent() {
           if (poi.place_id) {
             router.push(`/app/place/${poi.place_id}`);
           } else {
-            setSelectedPoi(poi); setSelected(null); setSheet('half');
+            // Pour les POI OSM sans fiche dédiée, on garde la prévisualisation rapide ou on va vers itinéraire
+            setSelectedPoi(poi); 
+            setSelected(null); 
+            setSheet('half');
           }
         }}
         onMapReady={handleMapReady}

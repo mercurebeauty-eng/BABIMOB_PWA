@@ -89,20 +89,34 @@ async function fetchSupabasePlaces(
 async function fetchOSMPlaces(
   centerLat: number, centerLon: number, radiusM: number,
 ): Promise<POI[]> {
+  // On ne cherche que si on a un rayon raisonnable
+  if (radiusM < 10) return [];
+
   const query = `
     [out:json][timeout:30];
     (
-      nwr["shop"](around:${radiusM},${centerLat},${centerLon});
-      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy|bank|atm|school|place_of_worship|hospital|clinic"](around:${radiusM},${centerLat},${centerLon});
-      nwr["tourism"~"hotel|attraction"](around:${radiusM},${centerLat},${centerLon});
+      nwr["shop"](around:${Math.round(radiusM)},${centerLat},${centerLon});
+      nwr["amenity"~"restaurant|cafe|bar|fast_food|marketplace|pharmacy|bank|atm|school|place_of_worship|hospital|clinic|police|post_office|townhall"](around:${Math.round(radiusM)},${centerLat},${centerLon});
+      nwr["tourism"~"hotel|attraction|museum|viewpoint"](around:${Math.round(radiusM)},${centerLat},${centerLon});
+      nwr["leisure"~"park|playground|sports_centre"](around:${Math.round(radiusM)},${centerLat},${centerLon});
     );
-    out center 120;
+    out center 150;
   `;
+
   try {
-    const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
-    if (!res.ok) return [];
+    const res = await fetch('/api/osm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!res.ok) {
+      console.warn(`OSM Proxy returned ${res.status}`);
+      return [];
+    }
+    
     const data = await res.json();
-    return (data.elements || [])
+    const results = (data.elements || [])
       .map((el: any) => {
         const pointLat = el.lat ?? el.center?.lat;
         const pointLon = el.lon ?? el.center?.lon;
@@ -129,6 +143,9 @@ async function fetchOSMPlaces(
         } else if (el.tags.amenity === 'place_of_worship') {
           category = 'other';
           emoji = '🙏';
+        } else if (el.tags.leisure?.match(/park|playground/)) {
+          category = 'entertainment';
+          emoji = '🌳';
         }
 
         return {
@@ -147,9 +164,13 @@ async function fetchOSMPlaces(
         };
       })
       .filter(Boolean) as POI[];
-  } catch {
-    return [];
+    
+    return results;
+  } catch (err) {
+    console.error(`Error fetching from OSM proxy:`, err);
   }
+
+  return [];
 }
 
 // ── Export principal — prend les bounds visibles de la carte ──────────────
