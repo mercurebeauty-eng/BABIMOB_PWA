@@ -516,6 +516,7 @@ export default function CompteClient({
   const [showAlbum, setShowAlbum] = useState(false);
   const [activities, setActivities] = useState<any[]>(checkinsDetail);
   const { addXP } = useXP();
+  const supabase = createClient();
 
   // Dynamic calculation of conquest
   const communeCounts: Record<string, number> = {};
@@ -533,8 +534,6 @@ export default function CompteClient({
   // Daily Bonus XP Logic
   useEffect(() => {
     const claimBonus = async () => {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
       const { data } = await supabase.rpc('claim_daily_bonus');
       if (data?.success) {
         setPoints(p => p + 50);
