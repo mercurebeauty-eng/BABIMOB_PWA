@@ -58,8 +58,10 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode 
               zIndex: 999,
               display: 'flex',
               flexDirection: 'column',
-              gap: 4
+              gap: 4,
+              pointerEvents: 'auto'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             {menuItems.map((item, idx) => {
               const content = (

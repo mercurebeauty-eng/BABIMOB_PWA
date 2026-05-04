@@ -15,8 +15,6 @@ export default function NearbyStopsBubble({ stops, onSelect }: NearbyStopsBubble
   const [index, setIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Filter stops that could be "gbaka" (heuristic based on name or commune if we don't have explicit agency)
-  // Or just take the closest ones as they are likely relevant
   const relevantStops = useMemo(() => stops.slice(0, 5), [stops]);
 
   if (relevantStops.length === 0) return null;
@@ -47,8 +45,8 @@ export default function NearbyStopsBubble({ stops, onSelect }: NearbyStopsBubble
       onClick={handleNext}
       style={{
         position: 'fixed',
-        bottom: 100, // Above BottomNav
-        left: 16,
+        bottom: 25, 
+        left: 20,
         background: 'var(--cream)',
         borderRadius: 22,
         border: '1px solid var(--line)',

@@ -389,14 +389,15 @@ function AppPageContent() {
             initial={{ y: 20, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0, scale: 0.9 }}
-            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none', gap: 8 }}
+            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}
           >
-            <motion.button
+            {/* Recherche & Swipe */}
+            <motion.button 
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               onDragEnd={(_, info) => {
                 if (Math.abs(info.offset.x) > 50) {
-                  setHeatMode(!heatMode);
+                  onToggleHeatmap();
                 }
               }}
               onClick={openSearch}
@@ -423,32 +424,17 @@ function AppPageContent() {
               <Ic.Search s={14} />
               <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>Recherche</span>
               
+              {heatMode && (
+                <div style={{ padding: '2px 6px', background: 'var(--orange)', color: '#fff', fontSize: 8, fontWeight: 900, borderRadius: 4, marginLeft: 4 }}>
+                  HEATMAP
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
                 <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.8 }} />
                 <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.3 }} />
               </div>
             </motion.button>
-
-            {/* Heatmap Mini Toggle Indicator */}
-            <motion.div
-              onClick={() => setHeatMode(!heatMode)}
-              style={{
-                pointerEvents: 'auto',
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)',
-                backdropFilter: 'blur(20px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: heatMode ? '#fff' : 'var(--ink)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                cursor: 'pointer'
-              }}
-            >
-              <Ic.Layers s={16} />
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
