@@ -56,7 +56,12 @@ async function fetchSupabasePlaces(
     .gte('lon', minLon)
     .lte('lon', maxLon);
 
-  if (error || !data) return [];
+  if (error) {
+    console.error('Error fetching Supabase places:', error);
+    return [];
+  }
+  if (!data) return [];
+  console.log(`Fetched ${data.length} places from Supabase`);
 
   const now = new Date();
   return data

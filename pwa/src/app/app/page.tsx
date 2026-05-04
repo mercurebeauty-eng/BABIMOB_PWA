@@ -309,7 +309,7 @@ function AppPageContent() {
               lat: poi.lat,
               lon: poi.lon
             });
-            router.push(`/app/place/${poi.place_id}`);
+            router.push(`/app/place/${encodeURIComponent(poi.place_id)}`);
           } else {
             setSelectedPoi(poi); 
             setSelected(null); 
@@ -478,7 +478,7 @@ function AppPageContent() {
 
                   {selectedPoi.description && <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 16 }}>{selectedPoi.description}</p>}
                   
-                  <Link href={`/app/place/${selectedPoi.id}`} style={{ display: 'block', textAlign: 'center', fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 1, padding: '12px', background: 'rgba(0,0,0,0.05)', borderRadius: 12, textDecoration: 'none' }}>Voir le profil complet</Link>
+                  <Link href={`/app/place/${encodeURIComponent(selectedPoi.id)}`} style={{ display: 'block', textAlign: 'center', fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 1, padding: '12px', background: 'rgba(0,0,0,0.05)', borderRadius: 12, textDecoration: 'none' }}>Voir le profil complet</Link>
                 </div>
 
               ) : activeItinerary ? (
@@ -550,7 +550,8 @@ function AppPageContent() {
                     <button 
                       onClick={() => {
                         handleDescendIci(selected);
-                        router.push(`/app/arret/${selected.stop_id}`);
+                        const safeId = encodeURIComponent(selected.stop_id);
+                        router.push(`/app/arret/${safeId}`);
                       }}
                       style={{ flex: 1, height: 44, background: 'var(--ink)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                     >
@@ -559,13 +560,23 @@ function AppPageContent() {
                     <button 
                       onClick={() => {
                         const firstLigne = nearbyTransport.find(t => t.available && t.routeId);
-                        if (firstLigne) {
-                          router.push(`/app/ligne/${firstLigne.routeId}`);
+                        if (firstLigne && firstLigne.routeId) {
+                          const safeRouteId = encodeURIComponent(firstLigne.routeId);
+                          router.push(`/app/ligne/${safeRouteId}`);
                         } else {
                           router.push(`/app/ligne`);
                         }
                       }}
-                      style={{ width: 44, height: 44, background: 'var(--cream)', color: 'var(--ink)', borderRadius: 14, border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      disabled={!nearbyTransport.some(t => t.available && t.routeId)}
+                      style={{ 
+                        width: 44, height: 44, 
+                        background: nearbyTransport.some(t => t.available && t.routeId) ? 'var(--cream)' : 'rgba(0,0,0,0.05)', 
+                        color: nearbyTransport.some(t => t.available && t.routeId) ? 'var(--ink)' : 'var(--muted)', 
+                        borderRadius: 14, border: '1px solid var(--line)', 
+                        cursor: nearbyTransport.some(t => t.available && t.routeId) ? 'pointer' : 'not-allowed', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        opacity: nearbyTransport.some(t => t.available && t.routeId) ? 1 : 0.5
+                      }}
                     >
                       <Ic.Route s={20} />
                     </button>
@@ -681,7 +692,7 @@ function AppPageContent() {
                         commune: r.commune ?? null
                       });
                     } else {
-                      router.push(`/app/place/${r.id}`);
+                      router.push(`/app/place/${encodeURIComponent(r.id)}`);
                     }
                     closeSearch();
                   }}
@@ -723,7 +734,7 @@ function AppPageContent() {
                             commune: r.commune ?? null
                           });
                         } else {
-                          router.push(`/app/place/${r.id}`);
+                          router.push(`/app/place/${encodeURIComponent(r.id)}`);
                         }
                         closeSearch();
                       }}
