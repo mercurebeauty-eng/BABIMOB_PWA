@@ -338,17 +338,18 @@ function AppPageContent() {
         onPoiClick={(poi) => {
           if (poi.place_id) {
             addToRecent({
-              id: poi.id,
+              id: poi.place_id,
               name: poi.name,
               type: 'place',
               commune: poi.commune ?? undefined,
               lat: poi.lat,
-              lon: poi.lon
+              lon: poi.lon,
+              logo: poi.logo_emoji,
             });
             router.push(`/app/place/${encodeURIComponent(poi.place_id)}`);
           } else {
-            setSelectedPoi(poi); 
-            setSelected(null); 
+            setSelectedPoi(poi);
+            setSelected(null);
             setSheet('half');
           }
         }}
@@ -539,22 +540,39 @@ function AppPageContent() {
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 120px' }}>
               {selectedPoi ? (
                 <div>
-                  <Link 
-                    href={`/app/place/${encodeURIComponent(selectedPoi.id)}`} 
-                    style={{ 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                      height: 52, background: 'var(--orange)', color: '#fff', 
-                      fontWeight: 900, borderRadius: 18, fontSize: 13, 
-                      textTransform: 'uppercase', letterSpacing: 1.2, 
-                      textDecoration: 'none', boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
-                      marginBottom: 24,
-                      transition: 'transform 0.2s ease'
-                    }}
-                    className="press"
-                  >
-                    Voir le profil complet
-                    <Ic.Arrow s={18} />
-                  </Link>
+                  {selectedPoi.place_id ? (
+                    <Link
+                      href={`/app/place/${encodeURIComponent(selectedPoi.place_id)}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                        height: 52, background: 'var(--orange)', color: '#fff',
+                        fontWeight: 900, borderRadius: 18, fontSize: 13,
+                        textTransform: 'uppercase', letterSpacing: 1.2,
+                        textDecoration: 'none', boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
+                        marginBottom: 24,
+                        transition: 'transform 0.2s ease'
+                      }}
+                      className="press"
+                    >
+                      Voir le profil complet
+                      <Ic.Arrow s={18} />
+                    </Link>
+                  ) : (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '14px 18px', background: 'rgba(0,0,0,0.04)',
+                      borderRadius: 18, marginBottom: 24,
+                      color: 'var(--muted)',
+                    }}>
+                      <span style={{ fontSize: 18 }}>{selectedPoi.logo_emoji}</span>
+                      <div style={{ flex: 1, fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>
+                        Lieu OpenStreetMap · {selectedPoi.subcategory ?? selectedPoi.category}
+                        <div style={{ fontSize: 10, fontWeight: 600, marginTop: 2, opacity: 0.85 }}>
+                          Pas encore de profil détaillé.
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Infos Promo / Campagne */}
                   {selectedPoi.has_campaign && (
