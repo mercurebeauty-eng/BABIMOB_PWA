@@ -14,17 +14,17 @@ interface PlusBubbleProps {
 
 export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode }: PlusBubbleProps) {
   const menuItems = [
-    { icon: <Ic.Pin s={18} />, label: 'Stories', href: '/app/stories', color: 'var(--orange)' },
-    { icon: <Ic.Users s={18} />, label: 'Mon Profil', href: '/app/compte', color: 'var(--blue)' },
-    { icon: <Ic.Layers s={18} />, label: heatMode ? 'Désactiver Heatmap' : 'Activer Heatmap', action: onToggleHeatmap, color: heatMode ? 'var(--orange)' : 'var(--muted)' },
-    { icon: <Ic.Settings s={18} />, label: 'Paramètres', href: '/app/settings', color: 'var(--ink-2)' },
+    { icon: <Ic.Pin s={20} />, label: 'Stories', href: '/app/stories', color: 'var(--orange)' },
+    { icon: <Ic.Users s={20} />, label: 'Mon Profil', href: '/app/compte', color: 'var(--blue)' },
+    { icon: <Ic.Layers s={20} />, label: heatMode ? 'Désactiver Heatmap' : 'Activer Heatmap', action: onToggleHeatmap, color: heatMode ? 'var(--orange)' : 'var(--muted)' },
+    { icon: <Ic.Settings s={20} />, label: 'Paramètres', href: '/app/settings', color: 'var(--ink-2)' },
   ];
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay to close on click outside */}
+          {/* Transparent Overlay with Blur for iOS effect */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -33,33 +33,36 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode 
             style={{
               position: 'fixed',
               inset: 0,
-              zIndex: 998,
-              background: 'transparent'
+              zIndex: 2000,
+              background: 'rgba(26,20,16,0.2)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)'
             }}
           />
           
+          {/* iOS Style Context Menu Bubble */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            initial={{ scale: 0.4, opacity: 0, y: 100, x: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0, x: 0 }}
+            exit={{ scale: 0.4, opacity: 0, y: 100, x: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 400 }}
             style={{
-              position: 'absolute',
-              bottom: 80,
-              right: 16,
-              width: 200,
-              background: 'var(--cream-2)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              borderRadius: 24,
-              border: '1px solid var(--line)',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-              padding: 12,
-              zIndex: 999,
+              position: 'fixed',
+              bottom: 100,
+              right: 20,
+              width: 220,
+              background: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(30px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(30px) saturate(200%)',
+              borderRadius: 28,
+              border: '1px solid rgba(255,255,255,0.4)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+              padding: 8,
+              zIndex: 2100,
               display: 'flex',
               flexDirection: 'column',
-              gap: 4,
-              pointerEvents: 'auto'
+              transformOrigin: 'bottom right',
+              overflow: 'hidden'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -69,31 +72,45 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, heatMode 
                   style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: 12, 
-                    padding: '10px 12px',
-                    borderRadius: 14,
+                    justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    borderRadius: 20,
                     cursor: 'pointer',
-                    transition: 'background 0.2s ease',
+                    transition: 'all 0.2s ease',
                   }}
                   className="press"
                 >
-                  <div style={{ color: item.color }}>{item.icon}</div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{item.label}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{item.label}</span>
+                  <div style={{ 
+                    color: item.color, 
+                    width: 32, 
+                    height: 32, 
+                    borderRadius: 10, 
+                    background: 'rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {item.icon}
+                  </div>
                 </div>
               );
 
-              if (item.href) {
-                return (
-                  <Link key={idx} href={item.href} style={{ textDecoration: 'none' }} onClick={onClose}>
-                    {content}
-                  </Link>
-                );
-              }
-
               return (
-                <div key={idx} onClick={() => { item.action?.(); onClose(); }}>
-                  {content}
-                </div>
+                <React.Fragment key={idx}>
+                  {item.href ? (
+                    <Link href={item.href} style={{ textDecoration: 'none' }} onClick={onClose}>
+                      {content}
+                    </Link>
+                  ) : (
+                    <div onClick={() => { item.action?.(); onClose(); }}>
+                      {content}
+                    </div>
+                  )}
+                  {idx < menuItems.length - 1 && (
+                    <div style={{ height: 1, background: 'rgba(0,0,0,0.05)', margin: '0 16px' }} />
+                  )}
+                </React.Fragment>
               );
             })}
           </motion.div>

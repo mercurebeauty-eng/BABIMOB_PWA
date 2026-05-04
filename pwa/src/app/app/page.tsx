@@ -33,6 +33,7 @@ type RecentItem = {
   color?: string;
   lat?: number;
   lon?: number;
+  logo?: string;
 };
 
 const Map = dynamic(() => import('@/components/Map'), {
@@ -224,8 +225,9 @@ function AppPageContent() {
       lat: stop.stop_lat,
       lon: stop.stop_lon
     });
-    router.push(`/app/arret/${encodeURIComponent(stop.stop_id)}`);
-  }, [router, addToRecent]);
+    setSelected(stop);
+    setSheet('half');
+  }, [addToRecent]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
@@ -402,35 +404,30 @@ function AppPageContent() {
               className="press"
               style={{ 
                 pointerEvents: 'auto',
-                height: 32, 
-                padding: '0 16px',
-                borderRadius: 16, 
+                height: 36, 
+                padding: '0 18px',
+                borderRadius: 18, 
                 border: 'none', 
-                background: 'rgba(255, 255, 255, 0.45)', 
+                background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)', 
+                color: heatMode ? '#fff' : 'var(--ink)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+                boxShadow: heatMode ? '0 8px 20px rgba(242,108,26,0.3)' : '0 4px 12px rgba(0,0,0,0.08)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 8, 
-                color: 'var(--ink)', 
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                position: 'relative'
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                transform: heatMode ? 'scale(1.05)' : 'scale(1)'
               }}
             >
-              <Ic.Search s={14} />
-              <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>Recherche</span>
+              <Ic.Search s={16} />
+              <span style={{ fontSize: 13, fontWeight: 800 }}>{heatMode ? 'Heatmap active' : 'Recherche'}</span>
               
-              {heatMode && (
-                <div style={{ padding: '2px 6px', background: 'var(--orange)', color: '#fff', fontSize: 8, fontWeight: 900, borderRadius: 4, marginLeft: 4 }}>
-                  HEATMAP
-                </div>
-              )}
-
               <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.8 }} />
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--ink)', opacity: 0.3 }} />
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.8 }} />
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.3 }} />
               </div>
             </motion.button>
           </motion.div>
@@ -656,8 +653,9 @@ function AppPageContent() {
             </div>
 
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 32px' }}>
+              {/* Résultats de recherche */}
               {results.length > 0 && (
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '14px 4px 10px' }}>
                   Résultats
                 </div>
               )}
@@ -665,6 +663,15 @@ function AppPageContent() {
                 <button
                   key={i}
                   onClick={() => {
+                    addToRecent({
+                      id: r.id,
+                      name: r.name,
+                      type: r.type,
+                      commune: r.commune ?? undefined,
+                      lat: r.lat,
+                      lon: r.lon,
+                      logo: r.logo
+                    });
                     if (r.type === 'stop') {
                       handleSelectStop({
                         stop_id: r.id,
@@ -674,16 +681,9 @@ function AppPageContent() {
                         commune: r.commune
                       });
                     } else {
-                      addToRecent({
-                        id: r.id,
-                        name: r.name,
-                        type: 'place',
-                        commune: r.commune ?? undefined,
-                        lat: r.lat,
-                        lon: r.lon
-                      });
                       router.push(`/app/place/${r.id}`);
                     }
+                    closeSearch();
                   }}
                   className="press"
                   style={{
@@ -693,8 +693,8 @@ function AppPageContent() {
                     marginBottom: 8, textAlign: 'left', cursor: 'pointer',
                   }}
                 >
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'stop' ? 'var(--orange-pale)' : 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: r.type === 'place' ? '1px solid var(--line)' : 'none' }}>
-                    {r.type === 'stop' ? <Ic.Pin s={18} /> : <span>{r.logo || '📍'}</span>}
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'stop' ? 'var(--orange-pale)' : 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: 'none' }}>
+                    {r.type === 'stop' ? <Ic.Bus s={18} /> : (r.logo ? <span style={{ fontSize: 18 }}>{r.logo}</span> : <Ic.Pin s={18} />)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
@@ -704,70 +704,84 @@ function AppPageContent() {
                 </button>
               ))}
 
-              {!query && (
+              {/* Historique récent */}
+              {!query && recentItems.length > 0 && (
                 <>
-                  {recentItems.length > 0 ? (
-                    <>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '4px 4px 10px' }}>
-                        Récentes
-                      </div>
-                      {recentItems.map((r, i) => (
-                        <Link
-                          key={i}
-                          href={r.type === 'line' ? `/app/ligne/${encodeURIComponent(r.id)}?dir=0` : r.type === 'stop' ? `/app/arret/${encodeURIComponent(r.id)}` : `/app/place/${r.id}`}
-                          className="press"
-                          style={{
-                            background: 'var(--cream)', padding: 12, borderRadius: 14,
-                            border: '1px solid var(--line)',
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            marginBottom: 8, textDecoration: 'none',
-                          }}
-                        >
-                          <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'line' ? `#${r.color}20` : r.type === 'stop' ? 'var(--orange-pale)' : 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'line' ? `#${r.color}` : r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: r.type === 'place' ? '1px solid var(--line)' : 'none' }}>
-                            {r.type === 'line' ? <Vehicle kind="gbaka" size={22} /> : r.type === 'stop' ? <Ic.Pin s={18} /> : <Ic.Pin s={18} />}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                            <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
-                              {r.type === 'line' ? 'Ligne' : r.type === 'stop' ? (r.commune || 'Arrêt') : (r.commune || 'Lieu')}
-                            </div>
-                          </div>
-                          <Ic.Arrow s={16} />
-                        </Link>
-                      ))}
-                    </>
-                  ) : (
-                    <div
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', margin: '20px 4px 10px' }}>
+                    Récentes
+                  </div>
+                  {recentItems.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (r.type === 'stop') {
+                          handleSelectStop({
+                            stop_id: r.id,
+                            stop_name: r.name,
+                            stop_lat: r.lat!,
+                            stop_lon: r.lon!,
+                            commune: r.commune
+                          });
+                        } else {
+                          router.push(`/app/place/${r.id}`);
+                        }
+                        closeSearch();
+                      }}
+                      className="press"
                       style={{
-                        marginTop: 24, padding: '32px 20px',
-                        borderRadius: 18,
-                        background: 'var(--cream)',
-                        border: '1.5px dashed var(--line-strong)',
-                        textAlign: 'center',
-                        color: 'var(--muted)',
+                        width: '100%', background: 'var(--cream)', padding: 12, borderRadius: 14,
+                        border: '1px solid var(--line)',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        marginBottom: 8, textAlign: 'left', cursor: 'pointer',
                       }}
                     >
-                      <div
-                        style={{
-                          width: 56, height: 56, margin: '0 auto 12px',
-                          borderRadius: 18, background: 'var(--orange-pale)',
-                          color: 'var(--orange)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        <Ic.Search s={26} />
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: r.type === 'stop' ? 'var(--orange-pale)' : 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'stop' ? 'var(--orange)' : 'var(--blue)', flexShrink: 0, border: 'none' }}>
+                        {r.type === 'stop' ? <Ic.Bus s={18} /> : (r.logo ? <span style={{ fontSize: 18 }}>{r.logo}</span> : <Ic.Pin s={18} />)}
                       </div>
-                      <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)' }}>
-                        Cherche ton chemin
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                          {r.type === 'stop' ? (r.commune || 'Arrêt') : (r.commune || 'Lieu')}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
-                        Tape un arrêt, un quartier ou une ligne pour démarrer.
-                      </div>
-                    </div>
-                  )}
+                      <Ic.Arrow s={16} />
+                    </button>
+                  ))}
                 </>
               )}
 
+              {/* État vide par défaut */}
+              {!query && recentItems.length === 0 && (
+                <div
+                  style={{
+                    marginTop: 24, padding: '32px 20px',
+                    borderRadius: 18,
+                    background: 'var(--cream)',
+                    border: '1.5px dashed var(--line-strong)',
+                    textAlign: 'center',
+                    color: 'var(--muted)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 56, height: 56, margin: '0 auto 12px',
+                      borderRadius: 18, background: 'var(--orange-pale)',
+                      color: 'var(--orange)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Ic.Search s={26} />
+                  </div>
+                  <div className="font-display" style={{ fontSize: 18, color: 'var(--ink)' }}>
+                    Cherche ton chemin
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
+                    Tape un arrêt, un quartier ou une ligne pour démarrer.
+                  </div>
+                </div>
+              )}
+
+              {/* Aucun résultat */}
               {query && !isSearching && results.length === 0 && (
                 <div
                   style={{
