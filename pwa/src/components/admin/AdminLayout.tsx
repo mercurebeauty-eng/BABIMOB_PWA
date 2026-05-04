@@ -140,7 +140,7 @@ export default function AdminLayout({ children }: Props) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             style={{ 
-              position: 'fixed', inset: 0, zIindex: 100, background: '#0D0B0A',
+              position: 'fixed', inset: 0, zIndex: 100, background: '#0D0B0A',
               padding: '80px 32px'
             }}
           >
