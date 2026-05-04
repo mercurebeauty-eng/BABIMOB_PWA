@@ -126,10 +126,19 @@ function AppPageContent() {
     locateMe();
   }, [locateMe]);
 
-  const SNAP = { mini: 140, peek: 240, half: 450, full: 680 } as const;
+  const SNAP = { mini: 0, peek: 240, half: 450, full: 680 } as const;
   type SheetState = keyof typeof SNAP;
 
   const heightMV = useMotionValue<number>(SNAP.mini);
+
+  // Auto-hide sheet if no content
+  useEffect(() => {
+    if (!selected && !selectedPoi && !activeItinerary) {
+      setSheet('mini');
+    } else if (sheet === 'mini') {
+      setSheet('peek');
+    }
+  }, [selected, selectedPoi, activeItinerary]);
 
   // Sync programmatic state changes → spring animation
   useEffect(() => {
@@ -338,6 +347,28 @@ function AppPageContent() {
         profile={profile} 
       />
 
+      {/* ── FLOATING SEARCH PILL (ANTIGRAVITY STYLE) ── */}
+      <AnimatePresence>
+        {!selected && !selectedPoi && !activeItinerary && (
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            style={{ position: 'absolute', bottom: 100, left: 16, right: 16, zIndex: 500, display: 'flex', justifyContent: 'center' }}
+          >
+            <button
+              onClick={openSearch}
+              className="press"
+              style={{ width: '100%', maxWidth: 400, height: 54, borderRadius: 27, border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px', color: 'var(--ink)', cursor: 'pointer' }}
+            >
+              <Ic.Search s={20} />
+              <span style={{ fontSize: 16, fontWeight: 700, flex: 1, textAlign: 'left' }}>Où vas-tu, Mobeur ?</span>
+              <div style={{ padding: '4px 10px', borderRadius: 10, background: 'var(--orange-pale)', color: 'var(--orange)', fontSize: 10, fontWeight: 900 }}>LIVE</div>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── BOTTOM SHEET – DRAG (OPUS 4.6 ANCHORED STYLE) ── */}
       <motion.div
         style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: heightMV, background: 'var(--cream-2)', borderRadius: '32px 32px 0 0', boxShadow: '0 -8px 32px rgba(0,0,0,0.1)', zIndex: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}
@@ -356,19 +387,6 @@ function AppPageContent() {
           className="no-scrollbar"
           style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 140px' }}
         >
-          {!selectedPoi && !activeItinerary && !selected && (
-            /* ── PERSISTENT SEARCH BAR IN SHEET (OPUS 4.6) ── */
-            <div style={{ marginBottom: 20 }}>
-              <button
-                onClick={openSearch}
-                className="press"
-                style={{ width: '100%', height: 54, borderRadius: 18, background: 'var(--cream)', color: 'var(--muted)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', textAlign: 'left', border: '1.5px solid var(--line)' }}
-              >
-                <Ic.Search s={20} />
-                <span>Où vas-tu, Mobeur ?</span>
-              </button>
-            </div>
-          )}
           {selectedPoi ? (
             /* ── POI PREVIEW ── */
             <div>
