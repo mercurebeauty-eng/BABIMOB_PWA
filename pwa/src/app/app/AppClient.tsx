@@ -829,7 +829,6 @@ function AppPageContent() {
         heatMode={heatMode}
         isAdmin={profile?.role === 'admin'}
       />
-      <HelpTip />
 
     </div>
   );
