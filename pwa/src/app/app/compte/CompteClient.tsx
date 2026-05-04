@@ -11,6 +11,9 @@ import { getLevel } from '@/lib/levels';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
+import { useXP } from '@/components/providers/XPProvider';
+import { HelpTip } from '@/components/ui/HelpTip';
+
 type Badge = { badge_key: string; awarded_at: string };
 type FollowProfile = { id: string; display_name: string; avatar_emoji: string; total_points: number };
 type Props = {
@@ -211,7 +214,10 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
           </div>
 
           <div style={{ flex: 1, paddingTop: 4 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.8, marginBottom: 2 }}>SÉRIE EN COURS</div>
+            <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.8, marginBottom: 2 }}>
+              SÉRIE EN COURS
+              <HelpTip title="Série (Streak)" content="Le nombre de jours consécutifs où tu t'es connecté. Plus ta série est longue, plus tes bonus d'XP sont élevés !" />
+            </div>
             <div className="font-display" style={{ fontSize: 22, lineHeight: 1.1, marginBottom: 4 }}>{streak} jours sur Babi</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Reviens demain pour <span style={{ color: '#fff' }}>+50 XP bonus</span></div>
           </div>
@@ -280,9 +286,11 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
         })}
       </div>
 
-      {/* Album de badges */}
       <div onClick={() => setShowAlbum(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, cursor: 'pointer' }}>
-        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>Album de badges</h3>
+        <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>
+          Album de badges
+          <HelpTip title="Badges" content="Récompenses spéciales pour tes exploits à Abidjan (Exploration, contributions, fidélité)." />
+        </h3>
         <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)' }}>
           {badges.length} / {Object.keys(BADGE_META).length} →
         </div>
@@ -506,6 +514,7 @@ export default function CompteClient({
   const [streak, setStreak] = useState(initialStreak);
   const [showWeekly, setShowWeekly] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
+  const { addXP } = useXP();
 
   // Dynamic calculation of conquest
   const communeCounts: Record<string, number> = {};
@@ -528,6 +537,7 @@ export default function CompteClient({
       const { data } = await supabase.rpc('claim_daily_bonus');
       if (data?.success) {
         setPoints(p => p + 50);
+        addXP(50); // Feedback visuel !
         if (data.streak_count) setStreak(data.streak_count);
       }
     };

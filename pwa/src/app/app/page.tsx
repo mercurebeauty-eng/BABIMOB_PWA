@@ -23,6 +23,7 @@ import { useItinerary } from '@/hooks/useItinerary';
 import { useNearbyTransport } from '@/hooks/useNearbyTransport';
 import { haversineM } from '@/lib/geo';
 import { getLevel } from '@/lib/levels';
+import { HelpTip } from '@/components/ui/HelpTip';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -302,7 +303,10 @@ function AppPageContent() {
         >
           <Ic.Search s={18} />
           <span style={{ flex: 1 }}>{selected ? selected.stop_name : "Où vas-tu, Mobeur ?"}</span>
-          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5 }}>IA</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--orange)', background: 'color-mix(in oklab, var(--orange) 12%, transparent)', padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5, display: 'flex', alignItems: 'center' }}>
+            IA
+            <HelpTip title="Moteur IA" content="Notre intelligence artificielle analyse le trafic en temps réel et tes habitudes pour te proposer les meilleurs trajets à Abidjan." />
+          </span>
         </button>
 
         <Link
@@ -558,7 +562,10 @@ function AppPageContent() {
                   ))}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>247 Mobeurs sont en ligne</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                    247 Mobeurs sont en ligne
+                    <HelpTip title="Mobeurs en ligne" content="Le nombre de personnes utilisant actuellement l'application. La communauté Babimob s'entraide pour partager les infos trafic !" />
+                  </div>
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>Lance ton Gbairai</div>
                 </div>
                 <Ic.Arrow s={18} />
