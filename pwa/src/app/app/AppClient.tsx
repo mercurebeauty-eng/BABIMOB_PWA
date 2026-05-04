@@ -39,7 +39,7 @@ type RecentItem = {
   logo?: string;
 };
 
-const Map = NextDynamic(() => import('@/components/Map'), {
+const Map = NextDynamic(() => import('@/components/MapModern'), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 bg-beige-50 flex items-center justify-center">

@@ -24,6 +24,9 @@ type Props = {
   onPoiClick?: (poi: POI) => void;
   hotspots?: { lat: number; lon: number; intensity: number }[];
   recenterSignal?: number;
+  poiCheckins?: any;
+  livePois?: any[];
+  onMapReady?: (map: any) => void;
 };
 
 export default function MapModern({
@@ -40,8 +43,18 @@ export default function MapModern({
   onStopClick,
   onPoiClick,
   hotspots = [],
-  recenterSignal = 0
-}: Props) {
+  recenterSignal = 0,
+  poiCheckins = {},
+  livePois = [],
+  legs = [],
+  explorers = [],
+  broadcasts = [],
+  onMapReady
+}: Props & { 
+  legs?: { coords: [number, number][]; mode?: string; routeColor?: string }[];
+  explorers?: any[];
+  broadcasts?: any[];
+}) {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState({
     longitude: center[0],
@@ -50,6 +63,13 @@ export default function MapModern({
     pitch: 0,
     bearing: 0
   });
+
+  // Signal Map Ready
+  useEffect(() => {
+    if (mapRef.current && onMapReady) {
+      onMapReady(mapRef.current.getMap());
+    }
+  }, [onMapReady]);
 
   // Synchronisation du centre si nécessaire
   useEffect(() => {
@@ -71,7 +91,18 @@ export default function MapModern({
         duration: 2000
       });
     }
-  }, [recenterSignal]);
+  }, [recenterSignal, userLocation]);
+
+  // GeoJSON pour Itinéraires
+  const legsGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: legs.map((l, i) => ({
+      type: 'Feature' as const,
+      id: i,
+      geometry: { type: 'LineString' as const, coordinates: l.coords.map(c => [c[1], c[0]]) },
+      properties: { color: l.routeColor || '#F26C1A', mode: l.mode }
+    }))
+  }), [legs]);
 
   // Transformation des hotspots en GeoJSON pour Heatmap
   const hotspotsGeoJSON = useMemo(() => ({
@@ -103,11 +134,6 @@ export default function MapModern({
         tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
         tileSize: 256,
         attribution: 'Tiles &copy; Esri'
-      },
-      'openfreemap': {
-        type: 'raster',
-        tiles: ['https://tiles.openfreemap.org/styles/liberty/{z}/{x}/{y}.png'],
-        tileSize: 256
       }
     },
     layers: [
@@ -125,6 +151,22 @@ export default function MapModern({
         maxZoom={20}
         hash={false}
       >
+        {/* ITINÉRAIRES (TRACÉS VECTORIELS) */}
+        {legs.length > 0 && (
+          <Source id="legs-source" type="geojson" data={legsGeoJSON}>
+            <Layer
+              id="legs-layer"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{
+                'line-color': ['get', 'color'],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3, 15, 6],
+                'line-opacity': 0.8
+              }}
+            />
+          </Source>
+        )}
+
         {/* HEATMAP DES HOTSPOTS (WEBGL NATIF) */}
         {hotspots.length > 0 && (
           <Source id="hotspots-source" type="geojson" data={hotspotsGeoJSON}>
@@ -150,7 +192,7 @@ export default function MapModern({
           </Source>
         )}
 
-        {/* COUCHE DES ARRÊTS (CERLES OPTIMISÉS) */}
+        {/* COUCHE DES ARRÊTS */}
         <Source id="stops-source" type="geojson" data={stopsGeoJSON}>
           <Layer
             id="stops-layer"
@@ -163,6 +205,42 @@ export default function MapModern({
             }}
           />
         </Source>
+
+        {/* EXPLORERS (AUTRES UTILISATEURS) */}
+        {explorers.map((exp: any) => (
+          <Marker 
+            key={exp.id || exp.user_id} 
+            longitude={exp.lon} 
+            latitude={exp.lat}
+            anchor="center"
+          >
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center bg-white overflow-hidden">
+                <span className="text-lg">{exp.avatar_emoji || '👤'}</span>
+              </div>
+              <div className="mt-1 px-1.5 py-0.5 bg-black/50 backdrop-blur-sm rounded text-[8px] font-bold text-white whitespace-nowrap">
+                {exp.display_name}
+              </div>
+            </div>
+          </Marker>
+        ))}
+
+        {/* BROADCASTS (FLUX LIVE) */}
+        {broadcasts.map((b: any) => (
+          <Marker 
+            key={b.id} 
+            longitude={b.lon} 
+            latitude={b.lat}
+            anchor="center"
+          >
+            <div className="flex items-center justify-center relative">
+              <div className="absolute w-12 h-12 bg-orange-500/20 rounded-full animate-ping" />
+              <div className="w-6 h-6 bg-orange-600 border-2 border-white rounded-full shadow-lg flex items-center justify-center z-10">
+                <span className="text-xs text-white">📡</span>
+              </div>
+            </div>
+          </Marker>
+        ))}
 
         {/* MARQUEUR UTILISATEUR */}
         {userLocation && (
@@ -192,8 +270,6 @@ export default function MapModern({
         {/* POIs standards */}
         {pois.map(p => {
           const isElite = p.sponsor_tier === 'elite';
-          const isPro = p.sponsor_tier === 'pro';
-          
           return (
             <Marker 
               key={p.id} 
@@ -219,7 +295,6 @@ export default function MapModern({
                 >
                   <span style={{ fontSize: isElite ? 18 : 14 }}>{p.logo_emoji || '📍'}</span>
                 </div>
-                {/* Petit label élégant qui n'apparaît qu'au survol ou zoom élevé */}
                 <div className="mt-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm rounded text-[10px] font-black text-black border border-black/5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {p.name}
                 </div>
@@ -228,12 +303,12 @@ export default function MapModern({
           );
         })}
 
-        <NavigationControl position="bottom-right" />
+        <NavigationControl position="bottom-right" showCompass={false} />
       </Map>
 
       <style jsx global>{`
         .maplibregl-ctrl-attrib { display: none; }
-        .maplibregl-ctrl-logo { opacity: 0.2; transform: scale(0.8); transform-origin: left bottom; }
+        .maplibregl-ctrl-logo { opacity: 0.1; transform: scale(0.7); transform-origin: left bottom; }
       `}</style>
     </div>
   );

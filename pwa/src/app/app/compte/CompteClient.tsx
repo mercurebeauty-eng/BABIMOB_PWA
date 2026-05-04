@@ -9,7 +9,7 @@ import { WaxStrip } from '@/components/ui/WaxStrip';
 import dynamic from 'next/dynamic';
 import { getLevel } from '@/lib/levels';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
+const Map = dynamic(() => import('@/components/MapModern'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%', background: 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>Chargement de la carte...</div> });
 
 import { useXP } from '@/components/providers/XPProvider';
 import { createClient } from '@/lib/supabase/client';
