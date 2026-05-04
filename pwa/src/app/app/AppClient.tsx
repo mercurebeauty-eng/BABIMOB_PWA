@@ -536,9 +536,11 @@ function AppPageContent() {
               }}
             >
               <div style={{ width: 40, height: 5, borderRadius: 2.5, background: 'var(--ink)', opacity: 0.15, marginBottom: 8 }} />
-              
               {(selectedPoi || selected || activeItinerary) && (
-                <div style={{ padding: '0 24px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div 
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ padding: '0 24px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
                          {selectedPoi ? (selectedPoi.logo_emoji || '📍') : activeItinerary ? '🗺️' : '🚌'}
@@ -553,6 +555,7 @@ function AppPageContent() {
                       </div>
                    </div>
                     <button 
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => { 
                         e.stopPropagation();
                         setSelectedPoi(null); 
