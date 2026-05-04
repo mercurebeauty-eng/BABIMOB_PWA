@@ -429,8 +429,8 @@ export default function AdminPlacesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 900, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase' }}>{p.commune || 'Abidjan'}</div>
-                  {p.verified && <span style={{ fontSize: 10 }}>✅</span>}
+                   <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', textTransform: 'uppercase' }}>{p.commune || 'Abidjan'}</div>
+                   {p.verified && <span style={{ fontSize: 10 }}>✅</span>}
                 </div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 8, fontWeight: 800 }}>
                   {p.category.toUpperCase()} • {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
