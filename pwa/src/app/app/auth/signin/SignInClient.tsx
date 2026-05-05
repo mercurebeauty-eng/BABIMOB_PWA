@@ -2,16 +2,20 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 
 export default function SignInClient() {
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState('');
+  const [token, setToken] = useState('');
   const [sent, setSent] = useState(false);
+  const [verifyMode, setVerifyMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,11 +23,35 @@ export default function SignInClient() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/app/auth/callback` },
+      options: { 
+        // We still provide a redirect URL in case they click the link,
+        // but we'll prioritize the OTP code in the UI.
+        emailRedirectTo: `${window.location.origin}/app/auth/callback` 
+      },
     });
     setLoading(false);
     if (error) setError(error.message);
-    else setSent(true);
+    else {
+      setSent(true);
+      setVerifyMode(true);
+    }
+  }
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const { error: verifyErr } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'magiclink'
+    });
+    setLoading(false);
+    if (verifyErr) setError(verifyErr.message);
+    else {
+      router.push('/app');
+      router.refresh();
+    }
   }
 
   return (
@@ -57,22 +85,60 @@ export default function SignInClient() {
                   <Ic.Arrow s={18} />
                 </button>
                 <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5, fontWeight: 600, letterSpacing: 0.3 }}>
-                  Un lien magique sera envoyé — sans mot de passe.
+                  Une vérification rapide — sans mot de passe.
                 </p>
               </>
-            ) : sent ? (
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in oklab, var(--green) 15%, transparent)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <Ic.Check s={32} />
+            ) : verifyMode ? (
+              <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in oklab, var(--orange) 15%, transparent)', color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <span style={{ fontSize: 20 }}>✉️</span>
+                  </div>
+                  <h2 className="font-display" style={{ fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Vérifie ton email</h2>
+                  <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+                    On a envoyé un code à 6 chiffres à <br/><strong style={{ color: 'var(--ink)' }}>{email}</strong>
+                  </p>
                 </div>
-                <h2 className="font-display" style={{ fontSize: 24, color: 'var(--ink)', marginBottom: 8 }}>Lien envoyé !</h2>
-                <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.5 }}>
-                  Vérifie ton mail <strong style={{ color: 'var(--ink)' }}>{email}</strong>.<br/>Regarde aussi les spams.
-                </p>
-                <button onClick={() => { setSent(false); setEmail(''); }} style={{ marginTop: 20, fontSize: 12, fontWeight: 800, color: 'var(--orange)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Essayer un autre email
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 8, textAlign: 'center' }}>Code de vérification</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    inputMode="numeric"
+                    autoFocus
+                    value={token}
+                    onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    style={{ 
+                      width: '100%', padding: '16px', borderRadius: 14, border: '2px solid var(--orange)', 
+                      background: 'var(--cream)', color: 'var(--ink)', fontSize: 24, fontWeight: 900, 
+                      outline: 'none', textAlign: 'center', letterSpacing: 8, fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+
+                {error && (
+                  <div style={{ padding: '10px 14px', borderRadius: 12, background: 'color-mix(in oklab, #e53e3e 10%, transparent)', border: '1px solid #e53e3e', fontSize: 13, color: '#c53030', fontWeight: 600 }}>{error}</div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || token.length < 6}
+                  className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 transition-all disabled:opacity-50 text-lg tracking-tight"
+                >
+                  {loading ? 'Vérification…' : 'Valider le code'}
                 </button>
-              </div>
+
+                <button 
+                  type="button"
+                  onClick={() => { setVerifyMode(false); setToken(''); setSent(false); }} 
+                  style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: 10 }}
+                >
+                  Modifier l'email
+                </button>
+              </form>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
@@ -94,7 +160,7 @@ export default function SignInClient() {
                   disabled={loading}
                   className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 text-lg tracking-tight flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Envoi…' : (<>Recevoir le lien magique <Ic.Arrow s={18} /></>)}
+                  {loading ? 'Envoi…' : (<>Recevoir le code <Ic.Arrow s={18} /></>)}
                 </button>
 
               </form>
