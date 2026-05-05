@@ -11,6 +11,7 @@ import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
+import SearchUI from '@/components/SearchUI';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
@@ -97,6 +98,8 @@ function AppPageContent() {
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
+  const [poiSocialStats, setPoiSocialStats] = useState<{ checkins: number; advice: number } | null>(null);
+  const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [lastDestination, setLastDestination] = useState<LastDestination | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -108,7 +111,6 @@ function AppPageContent() {
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [discoveryPois, setDiscoveryPois] = useState<POI[]>([]);
   const [discoveryIndex, setDiscoveryIndex] = useState(0);
-  const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [onlineCount, setOnlineCount] = useState(247);
 
@@ -230,7 +232,34 @@ function AppPageContent() {
   const locateMeRef = useRef(locateMe);
   useEffect(() => { locateMeRef.current(); }, []);
 
-  const handlePoiClick = useCallback((poi: any) => {
+  // Charger les stats sociales du lieu sélectionné
+  useEffect(() => {
+    if (!selectedPoi) {
+      setPoiSocialStats(null);
+      return;
+    }
+
+    async function loadStats() {
+      const id = selectedPoi?.place_id || selectedPoi?.id;
+      if (!id) return;
+
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      
+      const [checkRes, adviceRes] = await Promise.all([
+        supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('place_id', id).gte('created_at', since),
+        supabase.from('place_advice').select('*', { count: 'exact', head: true }).eq('place_id', id)
+      ]);
+
+      setPoiSocialStats({
+        checkins: checkRes.count || 0,
+        advice: adviceRes.count || 0
+      });
+    }
+
+    loadStats();
+  }, [selectedPoi, supabase]);
+
+  const handlePoiClick = useCallback((poi: POI) => {
     setSelected(null);
     setSelectedPoi({
       id: poi.id,
@@ -335,7 +364,6 @@ function AppPageContent() {
       return;
     }
     const poiId = selectedPoi.id;
-    const supabase = createClient();
     async function load() {
       setLoadingReviews(true);
       const { data } = await supabase
@@ -348,7 +376,7 @@ function AppPageContent() {
       setLoadingReviews(false);
     }
     load();
-  }, [selectedPoi]);
+  }, [selectedPoi, supabase]);
 
   const handleLocateMe = useCallback(() => {
     setRecenterSignal(s => s + 1);
@@ -561,11 +589,7 @@ function AppPageContent() {
         satellite={isSatellite}
         recenterSignal={recenterSignal}
         onStopClick={handleSelectStop}
-        onPoiClick={(poi) => {
-          setSelected(null);
-          setSelectedPoi(poi);
-          setSheet('half');
-        }}
+        onPoiClick={handlePoiClick}
         onMapReady={handleMapReady}
         userLocation={userLoc}
         userHeading={userHeading}
@@ -808,8 +832,11 @@ function AppPageContent() {
                           }}
                           style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
                         >
-                          <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
+                          <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: 6 }}>
                             {isDiscoveryMode ? 'Découvre Abidjan' : selectedPoi ? selectedPoi.name : activeItinerary ? 'Ton trajet' : selected?.stop_name}
+                            {selectedPoi && poiSocialStats && poiSocialStats.checkins > 0 && (
+                              <span style={{ fontSize: 10, color: 'var(--orange)', background: 'var(--orange-pale)', padding: '2px 6px', borderRadius: 6, fontWeight: 900 }}>🔥 {poiSocialStats.checkins}</span>
+                            )}
                           </h2>
                           <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>
                             {isDiscoveryMode ? 'Sélection aléatoire' : selectedPoi ? (selectedPoi.commune || 'Abidjan') : activeItinerary ? 'Itinéraire optimisé' : (selected?.commune || 'Abidjan')}
@@ -900,6 +927,23 @@ function AppPageContent() {
                     <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>
                       {selectedPoi.subcategory || selectedPoi.category || 'Lieu'}
                     </div>
+                    <h1 className="font-display" style={{ fontSize: 28, margin: '8px 0', fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>
+                      {selectedPoi.name}
+                    </h1>
+                    {poiSocialStats && (poiSocialStats.checkins > 0 || poiSocialStats.advice > 0) && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        {poiSocialStats.checkins > 0 && (
+                          <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--orange-pale)', padding: '6px 12px', borderRadius: 12 }}>
+                            🔥 {poiSocialStats.checkins} BABIS SONT PASSÉS PAR ICI
+                          </div>
+                        )}
+                        {poiSocialStats.advice > 0 && (
+                          <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--blue-pale)', padding: '6px 12px', borderRadius: 12 }}>
+                            💬 {poiSocialStats.advice} AVIS COMMUNAUTÉ
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <>
                     <button
@@ -928,27 +972,25 @@ function AppPageContent() {
                     </button>
 
                     <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-                      <button 
-                        onClick={() => {
-                          setIsGlobalLoading(true);
-                          // Simulation d'un feedback de succès
-                          setTimeout(() => {
-                            setIsGlobalLoading(false);
-                            // On pourrait ajouter un toast ou un état local ici
-                          }, 800);
-                        }}
-                        style={{ flex: 1, height: 44, background: 'var(--ink)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                      >
-                        <Ic.Map s={16} /> J'y suis
-                      </button>
+                      <div style={{ flex: 1 }}>
+                        <PoiCheckInButton
+                          placeId={selectedPoi.place_id || selectedPoi.id}
+                          placeName={selectedPoi.name}
+                          commune={selectedPoi.commune}
+                          lat={selectedPoi.lat}
+                          lon={selectedPoi.lon}
+                          sponsorTier={selectedPoi.sponsor_tier as any}
+                        />
+                      </div>
                       {isDiscoveryMode && (
                         <button
                           onClick={handleNextDiscovery}
                           className="press"
                           style={{
-                            width: 44, height: 44, background: 'var(--cream)', color: 'var(--ink)',
-                            borderRadius: 14, border: '1px solid var(--line)', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            width: 52, height: 52, background: 'var(--cream)', color: 'var(--ink)',
+                            borderRadius: 24, border: '1.5px solid var(--line)', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
                           }}
                         >
                           <Ic.Arrow s={20} />
@@ -1056,6 +1098,24 @@ function AppPageContent() {
                        ) : (
                         <div style={{ background: 'rgba(0,0,0,0.02)', padding: '24px', borderRadius: 24, textAlign: 'center', border: '1px dashed rgba(0,0,0,0.1)' }}>
                           <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+                          <h2 className="font-display" style={{ fontSize: 24, margin: 0, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{selectedPoi.name}</h2>
+                      
+                      {poiSocialStats && (poiSocialStats.checkins > 0 || poiSocialStats.advice > 0) && (
+                        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                          {poiSocialStats.checkins > 0 && (
+                            <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--orange-pale)', padding: '4px 10px', borderRadius: 8 }}>
+                              🔥 {poiSocialStats.checkins} PASSAGES RÉCENTS
+                            </div>
+                          )}
+                          {poiSocialStats.advice > 0 && (
+                            <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--blue-pale)', padding: '4px 10px', borderRadius: 8 }}>
+                              💬 {poiSocialStats.advice} AVIS
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, opacity: 0.6 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Aucun avis pour l'instant</div>
                           <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>Soyez le premier à partager votre expérience sur ce lieu !</p>
                         </div>

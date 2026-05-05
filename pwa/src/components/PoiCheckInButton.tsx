@@ -93,9 +93,26 @@ export default function PoiCheckInButton({ placeId, placeName, commune, lat, lon
          profile = created;
        }
 
+       // 1. Si c'est un lieu OSM, on le naturalise d'abord pour avoir un UUID Supabase
+       let finalPlaceId = placeId;
+       const isOSM = placeId.startsWith('osm-') || placeId.startsWith('nominatim-');
+       
+       if (isOSM) {
+          const { data: osmPlace } = await supabase.rpc('get_or_create_osm_place', {
+            p_osm_id: placeId,
+            p_name: placeName,
+            p_lat: lat || userLat,
+            p_lon: lon || userLon,
+            p_commune: commune || 'Abidjan'
+          });
+          if (osmPlace && osmPlace[0]) {
+            finalPlaceId = osmPlace[0].id;
+          }
+       }
+
        const { error } = await supabase.from('checkins').insert({
          user_id: user.id,
-         place_id: placeId,
+         place_id: finalPlaceId,
          place_name: placeName,
          commune: commune ?? null,
          lat: lat ?? null,
