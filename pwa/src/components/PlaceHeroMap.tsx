@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import type { POI } from '@/lib/poi';
+import { useDataStore } from '@/context/DataStoreContext';
+import { useEffect } from 'react';
 
 const Map = dynamic(() => import('@/components/MapModern'), { ssr: false });
 
@@ -14,6 +16,12 @@ type Props = {
 };
 
 export default function PlaceHeroMap({ lat, lon, emoji, name, id }: Props) {
+  const { userLoc, userHeading, locateMe } = useDataStore();
+
+  useEffect(() => {
+    locateMe();
+  }, [locateMe]);
+
   const poi: POI = {
     id,
     name,
@@ -34,6 +42,8 @@ export default function PlaceHeroMap({ lat, lon, emoji, name, id }: Props) {
         center={[lat, lon]} 
         zoom={16} 
         pois={[poi]} 
+        userLocation={userLoc}
+        userHeading={userHeading}
       />
       {/* Immersive Overlay */}
       <div style={{ 

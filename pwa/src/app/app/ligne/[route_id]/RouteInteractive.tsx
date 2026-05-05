@@ -6,6 +6,7 @@ import Vehicle from '@/components/ui/Vehicle';
 import { Pill } from '@/components/ui/Pill';
 import { Ic } from '@/components/ui/Ic';
 import type { Sense } from './page';
+import { useDataStore } from '@/context/DataStoreContext';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -342,6 +343,13 @@ export default function RouteInteractive({
   const [activeDirFromStop, setActiveDirFromStop] = useState<string | undefined>(fromStop);
   const [activeSegment, setActiveSegment] = useState<SegmentState>({ cutAtId: null, showSeg: false });
 
+  const { userLoc, userHeading, locateMe } = useDataStore();
+
+  // Auto-request location on mount for routes
+  useEffect(() => {
+    locateMe();
+  }, [locateMe]);
+
   const activeSense = senses[activeDir] ?? { stops: [], shape: [], headsign: null };
 
   // ── FIX URL : garantir ?dir= dans l'URL dès le montage (sans casser from) ──
@@ -491,6 +499,8 @@ export default function RouteInteractive({
           stops={mapStops}
           routeColor={routeColorRaw}
           isSegmented={activeSegment.showSeg}
+          userLocation={userLoc}
+          userHeading={userHeading}
         />
       </div>
 
