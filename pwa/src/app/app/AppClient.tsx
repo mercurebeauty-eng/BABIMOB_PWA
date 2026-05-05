@@ -886,7 +886,7 @@ function AppPageContent() {
                         Suivant <Ic.Arrow s={18} />
                       </button>
                     )}
-                  ) : (
+                  : (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '14px 18px', background: 'rgba(0,0,0,0.04)',
