@@ -39,14 +39,12 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
 
+  outputFileTracingRoot: require('path').join(__dirname, '../'),
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' }
     ]
-  },
-
-  experimental: {
-    outputFileTracingRoot: require('path').join(__dirname, '../'),
   }
 };
 
