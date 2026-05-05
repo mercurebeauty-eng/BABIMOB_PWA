@@ -47,7 +47,7 @@ export function BottomNav({
     { 
       id: 'discover', 
       label: 'Découvrir', 
-      icon: Ic.Search, 
+      icon: Ic.Compass, 
       action: onDiscover,
       active: false
     },
