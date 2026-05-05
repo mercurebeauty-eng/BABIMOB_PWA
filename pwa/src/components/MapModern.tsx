@@ -204,7 +204,9 @@ export default function MapModern({
               'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 6],
               'circle-color': '#F26C1A',
               'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 15, 2],
-              'circle-stroke-color': '#ffffff'
+              'circle-stroke-color': '#ffffff',
+              'circle-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1],
+              'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1]
             }}
           />
         </Source>
@@ -252,7 +254,7 @@ export default function MapModern({
               {/* Halo pulsant */}
               <div className="absolute w-8 h-8 bg-blue-500/30 rounded-full animate-ping" />
               {/* Point central */}
-              <div className="w-5 h-5 bg-blue-600 border-[3px] border-white rounded-full shadow-[0_0_15px_rgba(30,91,255,0.5)] z-10" />
+              <div className="w-5 h-5 bg-blue-600 border-[3px] border-white rounded-full shadow-[0_0_15px_rgba(30,91,255,0.8)] z-[2000]" />
               {/* Direction (faisceau) */}
               {userHeading !== null && (
                 <div 

@@ -114,7 +114,7 @@ function AppPageContent() {
     handleMapReady,
     userLoc,
     userHeading,
-    nearbyStops,
+    nearbyStops: allNearbyStops,
     loading: geoLoading,
     locateMe,
     heatMode,
@@ -125,8 +125,12 @@ function AppPageContent() {
     explorers,
     activeItinerary,
     setActiveItinerary,
-    nearbyTransport,
+    nearbyTransport: allNearbyTransport,
   } = useDataStore();
+
+  const nearbyStops = useMemo(() => allNearbyStops.slice(0, 5), [allNearbyStops]);
+  const selectedStopList = useMemo(() => selected ? [selected] : nearbyStops, [selected, nearbyStops]);
+  const nearbyTransport = useNearbyTransport(selectedStopList);
 
   const {
     query,
@@ -275,7 +279,7 @@ function AppPageContent() {
 
   const mapStops: Stop[] = selected
     ? [selected]
-    : nearbyStops.map(a => ({ stop_id: a.stop_id, stop_name: a.stop_name, stop_lat: a.stop_lat, stop_lon: a.stop_lon, commune: a.commune }));
+    : nearbyStops; // Déjà limité à 5
 
   const handleSelectStop = useCallback((stop: Stop) => {
     addToRecent({ 
@@ -1024,8 +1028,9 @@ function AppPageContent() {
         nearbyStopsCount={nearbyStops.length}
         onCycleNearby={() => {
           if (nearbyStops.length > 0) {
-            setNearbyIndex(i => (i + 1) % nearbyStops.length);
-            handleSelectStop(nearbyStops[(nearbyIndex + 1) % nearbyStops.length]);
+            const nextIdx = (nearbyIndex + 1) % nearbyStops.length;
+            setNearbyIndex(nextIdx);
+            handleSelectStop(nearbyStops[nextIdx]);
           }
         }}
         onDiscover={handleDiscover}
