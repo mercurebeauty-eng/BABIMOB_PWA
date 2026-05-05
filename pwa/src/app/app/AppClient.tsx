@@ -1054,10 +1054,10 @@ function AppPageContent() {
                                 lat: r.lat, lon: r.lon, logo: r.logo,
                               });
                               // On préfixe par osm- pour que la page de destination sache quoi faire
-                              router.push(`/app/place/osm-${r.id}?lat=${r.lat}&lon=${r.lon}&name=${encodeURIComponent(r.name)}`);
+                              router.push(`/app/place/${r.id.startsWith('osm-') ? r.id : `osm-${r.id}`}?lat=${r.lat}&lon=${r.lon}&name=${encodeURIComponent(r.name)}`);
                             } else if (r.type === 'place') {
                               addToRecent({ id: r.id, name: r.name, type: 'place', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon, logo: r.logo });
-                              router.push(`/app/place/${encodeURIComponent(r.id)}`);
+                              router.push(`/app/place/${r.id}`);
                             } else {
                               addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
                               router.push(`/app/arret/${encodeURIComponent(r.id)}`);

@@ -10,7 +10,7 @@ import PlaceSocialSections from '@/components/PlaceSocialSections';
 import { Ic } from '@/components/ui/Ic';
 
 type Props = { 
-  params: Promise<{ id: string }>,
+  params: Promise<{ placeId: string }>,
   searchParams: Promise<{ lat?: string; lon?: string; name?: string; emoji?: string }> 
 };
 
@@ -29,7 +29,7 @@ function formatDist(m: number) {
 
 export default async function PlacePage({ params, searchParams }: Props) {
   const supabase = await createClient();
-  const { id } = await params;
+  const { placeId: id } = await params;
   const sParams = await searchParams;
   const { data: { user } } = await supabase.auth.getUser();
 

@@ -43,7 +43,11 @@ export function useMapPois({ logReach }: Options) {
     }
 
     const loadPois = async () => {
+      if (!map.getStyle()) return; // Carte pas encore prête
+      
       const b = map.getBounds();
+      if (!b || !b.getSouth()) return; // Bounds invalides
+
       const mod = await import('@/lib/poi');
       
       try {
@@ -51,9 +55,7 @@ export function useMapPois({ logReach }: Options) {
           b.getSouth(), b.getNorth(), b.getWest(), b.getEast()
         );
         
-        // Si on n'a rien trouvé du tout, on garde les anciens POIs pour éviter le vide
-        // Sauf si on est vraiment dans un désert (mais peu probable à Abidjan)
-        if (fetchedPois.length > 0) {
+        if (fetchedPois && fetchedPois.length > 0) {
           setPois(fetchedPois);
         }
 

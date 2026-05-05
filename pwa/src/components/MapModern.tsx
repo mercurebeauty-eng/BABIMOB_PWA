@@ -87,13 +87,13 @@ export default function MapModern({
     }
   }, [onMapReady]);
 
-  // Synchronisation du centre si nécessaire
+  // Synchronisation du viewState quand center change (Prop → State)
   useEffect(() => {
-    if (center) {
+    if (center && center[0] && center[1]) {
       setViewState(prev => ({
         ...prev,
-        longitude: center[1],
-        latitude: center[0]
+        latitude: center[0],
+        longitude: center[1]
       }));
     }
   }, [center[0], center[1]]);
@@ -101,12 +101,11 @@ export default function MapModern({
   // Atterrissage cinématique (Landing Zoom)
   const hasLanded = useRef(false);
   useEffect(() => {
-    if (mapRef.current && !hasLanded.current && center) {
+    if (mapRef.current && !hasLanded.current && center && center[0]) {
       hasLanded.current = true;
       const targetZoom = zoom;
       const startZoom = Math.max(targetZoom - 3, 10);
       
-      // On commence un peu plus haut pour l'effet wow
       mapRef.current.setZoom(startZoom);
       mapRef.current.setCenter([center[1], center[0]]);
       
@@ -114,10 +113,10 @@ export default function MapModern({
         mapRef.current?.flyTo({
           center: [center[1], center[0]],
           zoom: targetZoom,
-          duration: 2500,
+          duration: 2000,
           essential: true
         });
-      }, 100);
+      }, 300);
     }
   }, [center, zoom]);
 
@@ -310,8 +309,8 @@ export default function MapModern({
 
         {/* MARQUEUR UTILISATEUR - Supprimé d'ici car on le déplace à la fin pour le z-index */}
 
-        {/* POIs — Elite > Pro > Standard
-            Rendu AVANT le user marker pour que le point bleu passe toujours dessus */}
+        {/* POIs — Elite > Pro > Standard */}
+        {pois.length > 0 && console.log(`[MapModern] Rendering ${pois.length} POIs`, pois[0])}
         {pois.map(p => {
           const isElite = p.sponsor_tier === 'elite';
           const isPro   = p.sponsor_tier === 'pro';
@@ -332,6 +331,7 @@ export default function MapModern({
               longitude={p.lon} 
               latitude={p.lat}
               anchor="bottom"
+              style={{ zIndex: (p.sponsor_tier === 'elite' ? 60 : p.sponsor_tier === 'pro' ? 50 : 40) }}
               onClick={e => {
                 e.originalEvent.stopPropagation();
                 onPoiClick?.(p);
