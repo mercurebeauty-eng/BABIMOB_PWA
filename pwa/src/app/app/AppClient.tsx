@@ -72,8 +72,6 @@ function AppPageContent() {
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [center, setCenter] = useState<[number, number]>(ABIDJAN_CENTER);
-  const [zoom, setZoom] = useState(13);
   const [previewPlace, setPreviewPlace] = useState<any>(null);
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
@@ -213,8 +211,7 @@ function AppPageContent() {
       emoji: poi.logo || '📍',
       source: 'supabase'
     });
-    setCenter([poi.lat, poi.lon]);
-  }, [setCenter]);
+  }, []);
 
   const handleDiscover = useCallback(() => {
     if (pois.length === 0) return;
@@ -329,12 +326,14 @@ function AppPageContent() {
     window.addEventListener('pointerup', onUp);
   }, [heightMV]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const center: [number, number] = selected
+  const center: [number, number] = previewPlace
+    ? [previewPlace.lat, previewPlace.lon]
+    : selected
     ? [selected.stop_lat, selected.stop_lon]
     : selectedPoi
     ? [selectedPoi.lat, selectedPoi.lon]
     : userLoc ?? ABIDJAN_CENTER;
-  const zoom = (selected || selectedPoi) ? 16 : userLoc ? 15 : 12;
+  const zoom = (previewPlace || selected || selectedPoi) ? 16 : userLoc ? 15 : 12;
 
   const mapStops: Stop[] = selected
     ? [selected]
@@ -1025,7 +1024,6 @@ function AppPageContent() {
                               commune: item.commune,
                               source: item.source || 'supabase'
                             });
-                            setCenter([item.lat, item.lon]);
                           } else if (item.type === 'line') {
                             router.push(`/app/ligne/${encodeURIComponent(item.id)}`);
                           } else {
@@ -1112,7 +1110,6 @@ function AppPageContent() {
                                 source: isOSM ? 'osm' : 'supabase'
                               });
 
-                              setCenter([r.lat, r.lon]);
                             } else {
                               addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
                               router.push(`/app/arret/${encodeURIComponent(r.id)}`);
