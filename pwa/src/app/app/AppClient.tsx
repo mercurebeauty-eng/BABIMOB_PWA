@@ -218,11 +218,28 @@ function AppPageContent() {
     });
   }, []);
 
-  const handleDiscover = useCallback(() => {
-    if (pois.length === 0) return;
+  const handleDiscover = useCallback(async () => {
+    console.log("🎲 Discovery Triggered - Checking local pool...");
+    let pool = [...pois];
     
-    // Mélange des POIs (Uniquement POI, priorité partenaires)
-    const shuffled = [...pois].sort(() => Math.random() - 0.5);
+    // Si la piscine locale est vide, on va chercher les pépites globales d'Abidjan !
+    if (pool.length === 0) {
+      console.log("🌐 Local area empty, fetching global Abidjan gems...");
+      const { fetchNearbyPOIs } = await import('@/lib/poi');
+      // Abidjan large bounds
+      const globalGems = await fetchNearbyPOIs(5.2, 5.5, -4.1, -3.8);
+      if (globalGems && globalGems.length > 0) {
+        pool = globalGems;
+      }
+    }
+
+    if (pool.length === 0) {
+      alert("Chargement des lieux... Réessaie dans une seconde ! ⏳");
+      return;
+    }
+    
+    // Mélange et sélection
+    const shuffled = pool.sort(() => Math.random() - 0.5);
     const partners = shuffled.filter(p => p.is_sponsored || p.sponsor_tier);
     const others = shuffled.filter(p => !p.is_sponsored && !p.sponsor_tier);
     
