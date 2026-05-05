@@ -29,6 +29,8 @@ export default function PlaceHeroMap({ lat, lon, emoji, name, id }: Props) {
         center={[lat, lon]} 
         zoom={16} 
         pois={[]} // On ne passe pas le POI principal en standard pour éviter les doublons
+        userLocation={userLoc}
+        userHeading={userHeading}
       >
         {/* LE MARQUEUR VEDETTE (Toujours visible et premium) */}
         <Marker longitude={lon} latitude={lat} anchor="bottom">
@@ -63,6 +65,32 @@ export default function PlaceHeroMap({ lat, lon, emoji, name, id }: Props) {
           </div>
         </Marker>
       </Map>
+
+      {/* Bouton de localisation flottant */}
+      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
+        <button
+          onClick={() => locateMe()}
+          className="press"
+          style={{
+            width: 44, height: 44, borderRadius: 14,
+            background: 'rgba(255,255,255,0.95)',
+            border: 'none',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(10px)',
+            color: userLoc ? '#1A73E8' : 'var(--muted)',
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="4" />
+            <line x1="12" y1="20" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="4" y1="12" />
+            <line x1="20" y1="12" x2="22" y1="12" />
+          </svg>
+        </button>
+      </div>
 
       {/* Immersive Overlay adouci */}
       <div style={{ 

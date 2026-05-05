@@ -199,6 +199,41 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmen
           </Marker>
         )}
       </Map>
+      <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
+        <button
+          onClick={() => {
+            if (userLocation && mapRef.current) {
+              mapRef.current.flyTo({
+                center: [userLocation[1], userLocation[0]],
+                zoom: 16,
+                duration: 1500,
+                essential: true
+              });
+            }
+          }}
+          className="press"
+          style={{
+            width: 44, height: 44, borderRadius: 14,
+            background: 'rgba(255,255,255,0.95)',
+            border: 'none',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(10px)',
+            color: userLocation ? '#1A73E8' : 'var(--muted)',
+            opacity: userLocation ? 1 : 0.6
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="4" />
+            <line x1="12" y1="20" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="4" y1="12" />
+            <line x1="20" y1="12" x2="22" y1="12" />
+          </svg>
+        </button>
+      </div>
+
       <style jsx global>{`
         @keyframes pulse {
           0% { transform: scale(1); opacity: 0.6; }
