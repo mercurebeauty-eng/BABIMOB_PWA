@@ -37,6 +37,7 @@ type RecentItem = {
   lat?: number;
   lon?: number;
   logo?: string;
+  source?: string;
 };
 
 const Map = NextDynamic(() => import('@/components/MapModern'), {
