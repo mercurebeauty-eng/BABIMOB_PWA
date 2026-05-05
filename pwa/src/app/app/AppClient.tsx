@@ -90,6 +90,7 @@ function AppPageContent() {
   const [discoveryPois, setDiscoveryPois] = useState<POI[]>([]);
   const [discoveryIndex, setDiscoveryIndex] = useState(0);
   const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
+  const [isGlobalLoading, setIsGlobalLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -219,6 +220,7 @@ function AppPageContent() {
   }, []);
 
   const handleDiscover = useCallback(async () => {
+    setIsGlobalLoading(true);
     console.log("🎲 Discovery Triggered - Checking local pool...");
     let pool = [...pois];
     
@@ -234,6 +236,7 @@ function AppPageContent() {
     }
 
     if (pool.length === 0) {
+      setIsGlobalLoading(false);
       alert("Chargement des lieux... Réessaie dans une seconde ! ⏳");
       return;
     }
@@ -262,10 +265,14 @@ function AppPageContent() {
       source: first.source === 'osm' ? 'osm' : 'supabase'
     });
     setSheet('mini'); // On cache le grand sheet pour voir la bulle
+    
+    // Simuler un petit délai pour le "Wow" effect et laisser la carte fly
+    setTimeout(() => setIsGlobalLoading(false), 800);
   }, [pois]);
 
   const handleNextDiscovery = useCallback(() => {
     if (discoveryPois.length === 0) return;
+    setIsGlobalLoading(true);
     const nextIdx = (discoveryIndex + 1) % discoveryPois.length;
     setDiscoveryIndex(nextIdx);
     
@@ -280,6 +287,8 @@ function AppPageContent() {
       commune: nextPoi.commune,
       source: nextPoi.source === 'osm' ? 'osm' : 'supabase'
     });
+    
+    setTimeout(() => setIsGlobalLoading(false), 600);
   }, [discoveryPois, discoveryIndex]);
 
   // Gestion du paramètre ?discover=1
@@ -398,6 +407,7 @@ function AppPageContent() {
     : nearbyStops; // Déjà limité à 5
 
   const handleSelectStop = useCallback((stop: Stop) => {
+    setIsGlobalLoading(true);
     addToRecent({ 
       id: stop.stop_id, 
       name: stop.stop_name, 
@@ -408,6 +418,7 @@ function AppPageContent() {
     });
     setSelected(stop);
     setSheet('half');
+    setTimeout(() => setIsGlobalLoading(false), 800);
   }, [addToRecent]);
 
   const clearSelection = useCallback(() => {
@@ -477,6 +488,29 @@ function AppPageContent() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden', background: 'var(--cream)' }}>
+      <AnimatePresence>
+        {isGlobalLoading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, height: 3, 
+              background: 'rgba(255,255,255,0.1)', zIndex: 10000, overflow: 'hidden'
+            }}
+          >
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: '100%' }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              style={{
+                width: '40%', height: '100%', background: 'var(--orange)',
+                boxShadow: '0 0 10px var(--orange)'
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* MAP */}
       <Map
@@ -530,7 +564,11 @@ function AppPageContent() {
       <div style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
         {(
           [
-            { icon: <Ic.Layers s={18} />, action: () => setIsSatellite(v => !v), active: isSatellite, loading: false },
+            { icon: <Ic.Layers s={18} />, action: () => {
+              setIsGlobalLoading(true);
+              setIsSatellite(v => !v);
+              setTimeout(() => setIsGlobalLoading(false), 800);
+            }, active: isSatellite, loading: false },
             { icon: <Ic.Locate s={18} />, action: handleLocateMe, active: !!userLoc, loading: geoLoading },
             { icon: <Ic.Compass s={18} />, action: () => router.push('/app/boussole'), active: false, loading: false },
           ] as { icon: React.ReactNode; action: () => void; active: boolean; loading: boolean }[]
