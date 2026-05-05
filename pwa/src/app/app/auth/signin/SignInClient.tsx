@@ -96,7 +96,7 @@ export default function SignInClient() {
                   </div>
                   <h2 className="font-display" style={{ fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Vérifie ton email</h2>
                   <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
-                    On a envoyé un code à 6 chiffres à <br/><strong style={{ color: 'var(--ink)' }}>{email}</strong>
+                    On a envoyé un code à 8 chiffres à <br/><strong style={{ color: 'var(--ink)' }}>{email}</strong>
                   </p>
                 </div>
 
@@ -105,12 +105,12 @@ export default function SignInClient() {
                   <input
                     type="text"
                     required
-                    maxLength={6}
+                    maxLength={8}
                     inputMode="numeric"
                     autoFocus
                     value={token}
                     onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
-                    placeholder="000000"
+                    placeholder="00000000"
                     style={{ 
                       width: '100%', padding: '16px', borderRadius: 14, border: '2px solid var(--orange)', 
                       background: 'var(--cream)', color: 'var(--ink)', fontSize: 24, fontWeight: 900, 
@@ -125,7 +125,7 @@ export default function SignInClient() {
 
                 <button
                   type="submit"
-                  disabled={loading || token.length < 6}
+                  disabled={loading || token.length < 8}
                   className="w-full bg-abidjan-orange text-white font-black py-5 rounded-2xl shadow-lg shadow-abidjan-orange/30 hover:shadow-abidjan-orange/40 transition-all disabled:opacity-50 text-lg tracking-tight"
                 >
                   {loading ? 'Vérification…' : 'Valider le code'}
