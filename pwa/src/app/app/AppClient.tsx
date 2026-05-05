@@ -91,6 +91,19 @@ function AppPageContent() {
   const [discoveryIndex, setDiscoveryIndex] = useState(0);
   const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(247);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOnlineCount(prev => {
+        const delta = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const next = prev + delta;
+        // On reste dans une fourchette réaliste
+        return next < 238 ? 242 : next > 265 ? 258 : next;
+      });
+    }, 7000 + Math.random() * 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -556,7 +569,19 @@ function AppPageContent() {
       <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, zIndex: 10 }}>
         <div style={{ background: 'var(--cream)', padding: '6px 12px', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>
           <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-          LIVE · 247 MOBEURS
+          <span>LIVE · </span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={onlineCount}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              style={{ display: 'inline-block', minWidth: 20 }}
+            >
+              {onlineCount}
+            </motion.span>
+          </AnimatePresence>
+          <span> MOBEURS</span>
         </div>
       </div>
 
