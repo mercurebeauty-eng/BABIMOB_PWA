@@ -72,8 +72,6 @@ function AppPageContent() {
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [pinnedSearch, setPinnedSearch] = useState<any>(null);
   const [previewPlace, setPreviewPlace] = useState<any>(null);
   const [query, setQuery] = useState('');
   const [isPlusOpen, setIsPlusOpen] = useState(false);
