@@ -1223,10 +1223,10 @@ function AppPageContent() {
         {previewPlace && (
           <motion.div
             drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.1}
+            dragConstraints={{ top: 0, bottom: 600 }}
+            dragElastic={0.05}
             onDragEnd={(_, info) => {
-              if (info.offset.y > 100) setPreviewPlace(null);
+              if (info.offset.y > 100 || info.velocity.y > 500) setPreviewPlace(null);
             }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
@@ -1239,7 +1239,7 @@ function AppPageContent() {
               backdropFilter: 'blur(10px)',
               borderTopLeftRadius: 32, borderTopRightRadius: 32,
               boxShadow: '0 -10px 40px rgba(0,0,0,0.1)',
-              touchAction: 'none'
+              touchAction: 'pan-x'
             }}
           >
             {/* Barre de saisie style "iOS handle" */}
