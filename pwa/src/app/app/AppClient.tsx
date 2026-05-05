@@ -129,7 +129,19 @@ function AppPageContent() {
   } = useDataStore();
 
   const nearbyStops = useMemo(() => allNearbyStops.slice(0, 5), [allNearbyStops]);
-  const selectedStopList = useMemo(() => selected ? [selected] : nearbyStops, [selected, nearbyStops]);
+  const selectedStopList = useMemo(() => {
+    if (selected) {
+      return [{ 
+        stop_id: selected.stop_id, 
+        stop_name: selected.stop_name, 
+        stop_lat: selected.stop_lat, 
+        stop_lon: selected.stop_lon, 
+        commune: selected.commune,
+        distance_m: 0 
+      } as ArretProche];
+    }
+    return nearbyStops;
+  }, [selected, nearbyStops]);
   const nearbyTransport = useNearbyTransport(selectedStopList);
 
   const {
