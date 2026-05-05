@@ -9,7 +9,10 @@ import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import PlaceSocialSections from '@/components/PlaceSocialSections';
 import { Ic } from '@/components/ui/Ic';
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { 
+  params: Promise<{ id: string }>,
+  searchParams: Promise<{ lat?: string; lon?: string; name?: string; emoji?: string }> 
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   food:          'RESTAURATION',
@@ -24,44 +27,76 @@ function formatDist(m: number) {
   return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
-export default async function PlacePage({ params }: Props) {
+export default async function PlacePage({ params, searchParams }: Props) {
   const supabase = await createClient();
   const { id } = await params;
+  const sParams = await searchParams;
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [
-    { data: place }, 
-    { data: offers },
-    { data: checkins },
-    { data: advice },
-    { data: userProfile }
-  ] = await Promise.all([
-    supabase.from('places').select('*').eq('id', id).maybeSingle(),
-    supabase
-      .from('place_offers')
-      .select('*')
-      .eq('place_id', id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('checkins')
-      .select('id, created_at, display_name, avatar_emoji, is_public')
-      .eq('place_id', id)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('place_advice')
-      .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
-      .eq('place_id', id)
-      .order('created_at', { ascending: false })
-      .limit(10),
-    user 
-      ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
-      : Promise.resolve({ data: null }),
-  ]);
+  const isOSM = id.startsWith('osm-');
+  
+  let place: any = null;
+  let offers: any[] = [];
+  let checkins: any[] = [];
+  let advice: any[] = [];
+  let userProfile: any = null;
 
-  if (!place) notFound();
+  if (isOSM) {
+    // MODE VIRTUEL (OSM)
+    // On construit l'objet place à partir des données de l'URL
+    place = {
+      id: id,
+      name: sParams.name || 'Lieu inconnu',
+      lat: parseFloat(sParams.lat || '0'),
+      lon: parseFloat(sParams.lon || '0'),
+      logo_emoji: sParams.emoji || '📍',
+      category: 'other',
+      address: '',
+      description: 'Lieu identifié via OpenStreetMap.',
+      is_sponsored: false,
+    };
+  } else {
+    // MODE STANDARD (Supabase)
+    const [
+      { data: dbPlace }, 
+      { data: dbOffers },
+      { data: dbCheckins },
+      { data: dbAdvice },
+      { data: dbUserProfile }
+    ] = await Promise.all([
+      supabase.from('places').select('*').eq('id', id).maybeSingle(),
+      supabase
+        .from('place_offers')
+        .select('*')
+        .eq('place_id', id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('checkins')
+        .select('id, created_at, display_name, avatar_emoji, is_public')
+        .eq('place_id', id)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase
+        .from('place_advice')
+        .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
+        .eq('place_id', id)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      user 
+        ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
+        : Promise.resolve({ data: null }),
+    ]);
 
+    if (!dbPlace) notFound();
+    place = dbPlace;
+    offers = dbOffers || [];
+    checkins = dbCheckins || [];
+    advice = dbAdvice || [];
+    userProfile = dbUserProfile;
+  }
+
+  // Les arrêts proches marchent pour tout le monde !
   const { data: nearbyStops } = await supabase.rpc('arrets_proches', {
     p_lat: place.lat,
     p_lon: place.lon,
@@ -71,7 +106,7 @@ export default async function PlacePage({ params }: Props) {
 
   const now = new Date();
   const isActive = (d: string | null) => !d || new Date(d) > now;
-  const sponsoredActive = place.is_sponsored && isActive(place.sponsor_expires_at);
+  const sponsoredActive = !isOSM && place.is_sponsored && isActive(place.sponsor_expires_at);
   const color = place.cover_color ?? 'var(--orange)';
 
   return (
@@ -92,7 +127,7 @@ export default async function PlacePage({ params }: Props) {
               <Ic.Back s={22} />
             </Link>
 
-            {user && (
+            {!isOSM && user && (
               <PoiFavoriteButton 
                 placeId={place.id}
                 placeName={place.name}
@@ -146,10 +181,10 @@ export default async function PlacePage({ params }: Props) {
                   {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
                 </div>
                 <h1 className="font-display" style={{ fontSize: 26, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>{place.name}</h1>
-                {place.address && (
+                {(place.address || isOSM) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
                     <Ic.Pin s={14} color="rgba(255,255,255,0.5)" />
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{place.address}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{place.address || 'Source: OpenStreetMap'}</div>
                   </div>
                 )}
               </div>
@@ -163,17 +198,19 @@ export default async function PlacePage({ params }: Props) {
           </div>
         </div>
 
-        {/* CHECK-IN CTA - NOW USING PREMIUM PoiCheckInButton */}
-        <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
-          <PoiCheckInButton
-            placeId={place.id}
-            placeName={place.name}
-            commune={place.commune ?? undefined}
-            lat={place.lat}
-            lon={place.lon}
-            sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
-          />
-        </div>
+        {/* CHECK-IN CTA - Hide for OSM for now to avoid ID issues */}
+        {!isOSM && (
+          <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
+            <PoiCheckInButton
+              placeId={place.id}
+              placeName={place.name}
+              commune={place.commune ?? undefined}
+              lat={place.lat}
+              lon={place.lon}
+              sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
+            />
+          </div>
+        )}
 
         {/* CONTACT QUICK LINKS - MODERNIZED */}
         {(place.phone || place.whatsapp || place.instagram || place.website) && (
@@ -217,7 +254,7 @@ export default async function PlacePage({ params }: Props) {
         )}
 
         {/* OFFRES & PROMOS */}
-        {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
+        {!isOSM && ((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
           <div className="slide-up" style={{
             background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
             boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.3s',
@@ -306,19 +343,21 @@ export default async function PlacePage({ params }: Props) {
           </div>
         )}
 
-        {/* SECTIONS SOCIALES */}
-        <div className="slide-up" style={{ animationDelay: '0.5s' }}>
-          <PlaceSocialSections 
-            placeId={id} 
-            placeName={place.name}
-            initialCheckins={checkins || []} 
-            initialAdvice={(advice as any[]) || []}
-            userId={user?.id || null}
-            userDisplayName={userProfile?.display_name || 'Un Babi'}
-            userAvatarEmoji={userProfile?.avatar_emoji || '👤'}
-            isVerifiedExplorer={!!userProfile?.is_verified_explorer}
-          />
-        </div>
+        {/* SECTIONS SOCIALES - Hide for OSM for now */}
+        {!isOSM && (
+          <div className="slide-up" style={{ animationDelay: '0.5s' }}>
+            <PlaceSocialSections 
+              placeId={id} 
+              placeName={place.name}
+              initialCheckins={checkins || []} 
+              initialAdvice={(advice as any[]) || []}
+              userId={user?.id || null}
+              userDisplayName={userProfile?.display_name || 'Un Babi'}
+              userAvatarEmoji={userProfile?.avatar_emoji || '👤'}
+              isVerifiedExplorer={!!userProfile?.is_verified_explorer}
+            />
+          </div>
+        )}
 
       </div>
     </div>

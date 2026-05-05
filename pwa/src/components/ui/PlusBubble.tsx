@@ -34,6 +34,13 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
       help: { title: 'Découvrir', content: 'Laissez le hasard choisir votre prochaine destination parmi nos lieux préférés.' }
     },
     { 
+      icon: <Ic.Chat s={20} />, 
+      label: 'Gbairai', 
+      path: '/app/gbairai',
+      color: 'var(--orange-deep)',
+      help: { title: 'Gbairai', content: 'Discutez en temps réel avec les autres Mobeurs.' }
+    },
+    { 
       icon: <Ic.Route s={20} />, 
       label: 'Escale', 
       disabled: true,

@@ -98,13 +98,38 @@ export default function MapModern({
     }
   }, [center[0], center[1]]);
 
-  // Recentrage forcé
+  // Atterrissage cinématique (Landing Zoom)
+  const hasLanded = useRef(false);
+  useEffect(() => {
+    if (mapRef.current && !hasLanded.current && center) {
+      hasLanded.current = true;
+      const targetZoom = zoom;
+      const startZoom = Math.max(targetZoom - 3, 10);
+      
+      // On commence un peu plus haut pour l'effet wow
+      mapRef.current.setZoom(startZoom);
+      mapRef.current.setCenter([center[1], center[0]]);
+      
+      setTimeout(() => {
+        mapRef.current?.flyTo({
+          center: [center[1], center[0]],
+          zoom: targetZoom,
+          duration: 2500,
+          essential: true
+        });
+      }, 100);
+    }
+  }, [center, zoom]);
+
+  // Recentrage forcé (Bouton Locate Me)
   useEffect(() => {
     if (recenterSignal && userLocation) {
       mapRef.current?.flyTo({
         center: [userLocation[1], userLocation[0]],
-        zoom: 15,
-        duration: 2000
+        zoom: 16,
+        duration: 2000,
+        curve: 1.5,
+        essential: true
       });
     }
   }, [recenterSignal, userLocation]);
@@ -367,25 +392,23 @@ export default function MapModern({
           </Marker>
         )}
 
-        <NavigationControl position="bottom-right" showCompass={false} />
-
-        {/* CERCLE DE PRÉCISION GPS (GeoJSON → scale avec le zoom, rendu sous le point bleu) */}
+        {/* CERCLE DE PRÉCISION GPS (Rendu sous le point bleu) */}
         {accuracyGeoJSON && (
           <Source id="accuracy-source" type="geojson" data={accuracyGeoJSON}>
             <Layer
               id="accuracy-fill"
               type="fill"
-              paint={{ 'fill-color': '#1E5BFF', 'fill-opacity': 0.07 }}
+              paint={{ 'fill-color': '#1A73E8', 'fill-opacity': 0.05 }}
             />
             <Layer
               id="accuracy-stroke"
               type="line"
-              paint={{ 'line-color': '#1E5BFF', 'line-width': 1.5, 'line-opacity': 0.25 }}
+              paint={{ 'line-color': '#1A73E8', 'line-width': 1, 'line-opacity': 0.2 }}
             />
           </Source>
         )}
 
-        {/* MARQUEUR UTILISATEUR — rendu EN DERNIER pour passer au-dessus de tout */}
+        {/* MARQUEUR UTILISATEUR (Point Bleu Premium) */}
         {userLocation && (
           <Marker
             longitude={userLocation[1]}
@@ -393,51 +416,52 @@ export default function MapModern({
             anchor="center"
             style={{ zIndex: 100 }}
           >
-            <div className="relative flex items-center justify-center" style={{ width: 40, height: 40 }}>
-              {/* Halo pulsant externe */}
-              <div
-                className="absolute rounded-full animate-ping"
-                style={{
-                  width: 36, height: 36,
-                  background: 'rgba(30, 91, 255, 0.22)',
-                  border: '1px solid rgba(30, 91, 255, 0.4)',
-                }}
-              />
-              {/* Wedge de direction — CSS triangle, pivote autour du centre */}
+            <div style={{ position: 'relative', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              
+              {/* Halo pulsant adouci */}
+              <div className="pulse" style={{
+                position: 'absolute',
+                width: 24, height: 24,
+                borderRadius: '50%',
+                background: 'rgba(26, 115, 232, 0.2)',
+              }} />
+
+              {/* Wedge Directionnel (Cône de vue) */}
               {userHeading !== null && (
-                <div
-                  aria-hidden
-                  style={{
-                    position: 'absolute',
+                <div style={{
+                  position: 'absolute',
+                  width: 60, height: 60,
+                  transform: `rotate(${userHeading}deg)`,
+                  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  top: -10 
+                }}>
+                  <div style={{
                     width: 0, height: 0,
-                    borderLeft: '10px solid transparent',
-                    borderRight: '10px solid transparent',
-                    borderBottom: '28px solid rgba(30, 91, 255, 0.45)',
-                    bottom: '50%',
-                    left: '50%',
-                    marginLeft: '-10px',
-                    transformOrigin: '50% 100%',
-                    transform: `rotate(${userHeading}deg)`,
-                    filter: 'blur(2px)',
-                    pointerEvents: 'none',
-                  }}
-                />
+                    borderLeft: '14px solid transparent',
+                    borderRight: '14px solid transparent',
+                    borderBottom: '38px solid rgba(26, 115, 232, 0.2)',
+                    filter: 'blur(3px)',
+                  }} />
+                </div>
               )}
-              {/* Point central bleu vif */}
-              <div
-                style={{
-                  position: 'relative',
-                  width: 18, height: 18,
-                  background: '#1E5BFF',
-                  borderRadius: '50%',
-                  border: '3px solid #fff',
-                  boxShadow: '0 0 0 2px rgba(30,91,255,0.3), 0 4px 12px rgba(30,91,255,0.6)',
-                  zIndex: 2,
-                }}
-              />
+
+              {/* Point Bleu Central */}
+              <div style={{
+                width: 13, height: 13,
+                background: '#1A73E8',
+                borderRadius: '50%',
+                border: '2.5px solid #fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                zIndex: 2,
+              }} />
             </div>
           </Marker>
         )}
+
+        <NavigationControl position="bottom-right" showCompass={false} />
       </Map>
 
       <style jsx global>{`

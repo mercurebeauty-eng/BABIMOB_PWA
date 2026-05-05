@@ -45,11 +45,11 @@ export function BottomNav({
       active: pathname === '/app'
     },
     { 
-      id: 'gbairai', 
-      label: 'Gbairai', 
-      icon: Ic.Chat, 
-      path: '/app/gbairai',
-      active: pathname === '/app/gbairai'
+      id: 'discover', 
+      label: 'Découvrir', 
+      icon: Ic.Search, 
+      action: onDiscover,
+      active: false
     },
     { 
       id: 'compte', 

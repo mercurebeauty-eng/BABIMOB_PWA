@@ -200,11 +200,10 @@ function AppPageContent() {
     const pool = (partners.length > 0 && Math.random() > 0.3) ? partners : pois;
     const randomPoi = pool[Math.floor(Math.random() * pool.length)];
     
-    setSelected(null);
-    setActiveItinerary(null);
-    setSelectedPoi(randomPoi);
-    setSheet('half');
-  }, [pois]);
+    if (randomPoi) {
+      router.push(`/app/place/${encodeURIComponent(randomPoi.id)}`);
+    }
+  }, [pois, router]);
 
   // Gestion du paramètre ?discover=1
   useEffect(() => {
@@ -1045,32 +1044,18 @@ function AppPageContent() {
                         <button
                           key={`${r.source}-${r.id}`}
                           onClick={() => {
-                            // OSM: pas de page détail BDD → on épingle + flyTo
+                            closeSearch();
+                            
+                            // Navigation universelle : OSM ou Supabase
                             if (isOSM) {
-                              setPinnedSearch({
-                                id: r.id,
-                                name: r.name,
-                                lat: r.lat,
-                                lon: r.lon,
-                                emoji: r.logo,
-                                subtitle: r.subtitle ?? r.commune ?? undefined,
-                              });
-                              mapRef.current?.flyTo({
-                                center: [r.lon, r.lat],
-                                zoom: 17,
-                                duration: 1400,
-                              });
                               addToRecent({
                                 id: r.id, name: r.name, type: 'place',
                                 commune: r.commune ?? undefined,
                                 lat: r.lat, lon: r.lon, logo: r.logo,
                               });
-                              closeSearch();
-                              return;
-                            }
-
-                            closeSearch();
-                            if (r.type === 'place') {
+                              // On préfixe par osm- pour que la page de destination sache quoi faire
+                              router.push(`/app/place/osm-${r.id}?lat=${r.lat}&lon=${r.lon}&name=${encodeURIComponent(r.name)}`);
+                            } else if (r.type === 'place') {
                               addToRecent({ id: r.id, name: r.name, type: 'place', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon, logo: r.logo });
                               router.push(`/app/place/${encodeURIComponent(r.id)}`);
                             } else {
