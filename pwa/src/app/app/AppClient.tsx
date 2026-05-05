@@ -846,7 +846,7 @@ function AppPageContent() {
                 </div>
               ) : selectedPoi ? (
                 <div>
-                  {selectedPoi.id ? (
+                  {selectedPoi.id ? (<>
                     <button
                       onClick={() => {
                         setIsGlobalLoading(true);
@@ -886,6 +886,7 @@ function AppPageContent() {
                         Suivant <Ic.Arrow s={18} />
                       </button>
                     )}
+                  </> )
                   : (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 10,
