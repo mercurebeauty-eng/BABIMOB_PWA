@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl/maplibre';
+import { motion, AnimatePresence } from 'framer-motion';
 import { POI } from '@/lib/poi';
 import { Stop } from '@/lib/types';
 
@@ -421,7 +422,26 @@ export default function MapModern({
           </Marker>
         ))}
 
-        {/* MARQUEUR UTILISATEUR - Supprimé d'ici car on le déplace à la fin pour le z-index */}
+        {/* PIN DE SÉLECTION DYNAMIQUE (POUR NE JAMAIS PERDRE UN LIEU) */}
+        {selectedPoiId && pois.find(p => p.id === selectedPoiId) && (
+          <Marker 
+            longitude={pois.find(p => p.id === selectedPoiId)!.lon} 
+            latitude={pois.find(p => p.id === selectedPoiId)!.lat}
+            anchor="bottom"
+            style={{ zIndex: 1000 }}
+          >
+             <motion.div 
+               initial={{ scale: 0, y: 10 }}
+               animate={{ scale: 1, y: 0 }}
+               className="flex flex-col items-center"
+             >
+                <div className="w-10 h-10 rounded-full bg-orange-600 border-2 border-white shadow-2xl flex items-center justify-center animate-bounce">
+                   <span className="text-xl">{pois.find(p => p.id === selectedPoiId)!.logo_emoji || '📍'}</span>
+                </div>
+                <div className="w-2 h-2 bg-orange-600 rounded-full mt-0.5 border-1 border-white" />
+             </motion.div>
+          </Marker>
+        )}
 
         {/* POIs PREMIUM (Elite & Pro) — Toujours des Markers pour l'animation et le style */}
         {premiumPois.map(p => {
