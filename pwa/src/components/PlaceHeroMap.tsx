@@ -86,8 +86,8 @@ export default function PlaceHeroMap({ lat, lon, emoji, name, id }: Props) {
             <circle cx="12" cy="12" r="3" />
             <line x1="12" y1="2" x2="12" y2="4" />
             <line x1="12" y1="20" x2="12" y2="22" />
-            <line x1="2" y1="12" x2="4" y1="12" />
-            <line x1="20" y1="12" x2="22" y1="12" />
+            <line x1="2" y1="12" x2="4" y2="12" />
+            <line x1="20" y1="12" x2="22" y2="12" />
           </svg>
         </button>
       </div>
