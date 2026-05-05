@@ -155,15 +155,26 @@ export default function MapModern({
     }))
   }), [hotspots]);
 
-  // Transformation des stops en GeoJSON pour la performance
+  // Transformation des stops en GeoJSON pour la performance avec clustering
   const stopsGeoJSON = useMemo(() => ({
     type: 'FeatureCollection' as const,
     features: stops.map(s => ({
       type: 'Feature' as const,
       geometry: { type: 'Point' as const, coordinates: [s.stop_lon, s.stop_lat] },
-      properties: { id: s.stop_id, name: s.stop_name }
+      properties: { id: s.stop_id, name: s.stop_name, type: 'stop' }
     }))
   }), [stops]);
+
+  // Séparation des POIs : Elite/Pro (Markers) vs Standards (Vector)
+  const premiumPois = useMemo(() => pois.filter(p => p.sponsor_tier === 'elite' || p.sponsor_tier === 'pro'), [pois]);
+  const standardPoisGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: pois.filter(p => !p.sponsor_tier).map(p => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
+      properties: { ...p }
+    }))
+  }), [pois]);
 
   // Style Satellite (Esri) - optimisé
   const satelliteStyle = useMemo(() => ({
@@ -213,6 +224,25 @@ export default function MapModern({
         hash={false}
         onError={(e) => console.error('MapLibre Error:', e)}
         style={{ width: '100%', height: '100%' }}
+        onClick={e => {
+          const feature = e.features?.[0];
+          if (feature && feature.layer.id === 'stops-clusters') {
+            const clusterId = feature.properties.cluster_id;
+            const map = mapRef.current?.getMap();
+            if (!map) return;
+            
+            const source: any = map.getSource('stops-source');
+            source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+              if (err) return;
+              map.easeTo({
+                center: (feature.geometry as any).coordinates,
+                zoom: zoom,
+                duration: 500
+              });
+            });
+          }
+        }}
+        interactiveLayerIds={['stops-clusters', 'poi-clusters']}
       >
         {/* ITINÉRAIRES (TRACÉS VECTORIELS) */}
         {legs.length > 0 && (
@@ -231,42 +261,114 @@ export default function MapModern({
         )}
 
         {/* HEATMAP DES HOTSPOTS (WEBGL NATIF) */}
-        {hotspots.length > 0 && (
-          <Source id="hotspots-source" type="geojson" data={hotspotsGeoJSON}>
-            <Layer
-              id="hotspots-heat"
-              type="heatmap"
-              paint={{
-                'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 50, 1],
-                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
-                'heatmap-color': [
-                  'interpolate', ['linear'], ['heatmap-density'],
-                  0, 'rgba(242,108,26,0)',
-                  0.2, 'rgba(242,108,26,0.2)',
-                  0.4, 'rgba(242,108,26,0.4)',
-                  0.6, 'rgba(242,108,26,0.7)',
-                  0.8, '#F26C1A',
-                  1, '#ffffff'
-                ],
-                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 40],
-                'heatmap-opacity': 0.6
-              }}
-            />
-          </Source>
-        )}
-
-        {/* COUCHE DES ARRÊTS */}
-        <Source id="stops-source" type="geojson" data={stopsGeoJSON}>
+        <Source id="hotspots-source" type="geojson" data={hotspotsGeoJSON}>
           <Layer
-            id="stops-layer"
-            type="circle"
+            id="hotspots-heat"
+            type="heatmap"
+            layout={{
+              'visibility': hotspots.length > 0 ? 'visible' : 'none'
+            }}
             paint={{
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 6],
+              'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 50, 1],
+              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+              'heatmap-color': [
+                'interpolate', ['linear'], ['heatmap-density'],
+                0, 'rgba(242,108,26,0)',
+                0.2, 'rgba(242,108,26,0.2)',
+                0.4, 'rgba(242,108,26,0.4)',
+                0.6, 'rgba(242,108,26,0.7)',
+                0.8, '#F26C1A',
+                1, '#ffffff'
+              ],
+              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 40],
+              'heatmap-opacity': 0.6
+            }}
+          />
+        </Source>
+
+        {/* COUCHE DES ARRÊTS AVEC CLUSTERING */}
+        <Source 
+          id="stops-source" 
+          type="geojson" 
+          data={stopsGeoJSON}
+          cluster={true}
+          clusterMaxZoom={14}
+          clusterRadius={50}
+        >
+          {/* Cercles de clusters */}
+          <Layer
+            id="stops-clusters"
+            type="circle"
+            filter={['has', 'point_count']}
+            paint={{
               'circle-color': '#F26C1A',
-              'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 15, 2],
+              'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 30, 25],
+              'circle-opacity': 0.8,
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#ffffff'
+            }}
+          />
+          {/* Chiffre dans les clusters */}
+          <Layer
+            id="stops-cluster-count"
+            type="symbol"
+            filter={['has', 'point_count']}
+            layout={{
+              'text-field': '{point_count_abbreviated}',
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+              'text-size': 12
+            }}
+            paint={{ 'text-color': '#ffffff' }}
+          />
+          {/* Arrêts individuels (quand non-clusterisé) */}
+          <Layer
+            id="unclustered-stop"
+            type="circle"
+            filter={['!', ['has', 'point_count']]}
+            paint={{
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 15, 8],
+              'circle-color': '#F26C1A',
+              'circle-stroke-width': 2,
               'circle-stroke-color': '#ffffff',
-              'circle-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1],
-              'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1]
+              'circle-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0, 12, 1]
+            }}
+          />
+        </Source>
+
+        {/* COUCHE DES POIS STANDARDS (VECTOR CLUSTERING) */}
+        <Source 
+          id="standard-pois-source" 
+          type="geojson" 
+          data={standardPoisGeoJSON}
+          cluster={true}
+          clusterMaxZoom={15}
+          clusterRadius={40}
+        >
+          <Layer
+            id="poi-clusters"
+            type="circle"
+            filter={['has', 'point_count']}
+            paint={{
+              'circle-color': '#8a93a2',
+              'circle-radius': 12,
+              'circle-opacity': 0.6,
+              'circle-stroke-width': 1,
+              'circle-stroke-color': '#ffffff'
+            }}
+          />
+          <Layer
+            id="poi-unclustered"
+            type="symbol"
+            filter={['!', ['has', 'point_count']]}
+            layout={{
+              'icon-image': ['get', 'logo_emoji'], // Nécessite que les emojis soient des images chargées dans le style, sinon on utilise du texte
+              'text-field': ['get', 'logo_emoji'],
+              'text-size': 14,
+              'icon-allow-overlap': true,
+              'text-allow-overlap': true
+            }}
+            paint={{
+              'text-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 15, 1]
             }}
           />
         </Source>
@@ -309,8 +411,8 @@ export default function MapModern({
 
         {/* MARQUEUR UTILISATEUR - Supprimé d'ici car on le déplace à la fin pour le z-index */}
 
-        {/* POIs — Elite > Pro > Standard */}
-        {pois.map(p => {
+        {/* POIs PREMIUM (Elite & Pro) — Toujours des Markers pour l'animation et le style */}
+        {premiumPois.map(p => {
           const isElite = p.sponsor_tier === 'elite';
           const isPro   = p.sponsor_tier === 'pro';
           const size    = isElite ? 42 : isPro ? 34 : 28;

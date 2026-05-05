@@ -1237,9 +1237,25 @@ function AppPageContent() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{previewPlace.name}</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {previewPlace.commune || 'Abidjan'}
-                  </p>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {previewPlace.commune || 'Abidjan'}
+                    </p>
+                    {userLoc && (
+                      <>
+                        <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--line)' }} />
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
+                          {(() => {
+                            const d = Math.sqrt(
+                              Math.pow((previewPlace.lat - userLoc[0]) * 111000, 2) + 
+                              Math.pow((previewPlace.lon - userLoc[1]) * 111000 * Math.cos(userLoc[0] * Math.PI / 180), 2)
+                            );
+                            return d > 1000 ? `${(d/1000).toFixed(1)}km` : `${Math.round(d)}m`;
+                          })()}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <button 
