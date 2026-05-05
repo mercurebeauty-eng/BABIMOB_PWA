@@ -197,12 +197,13 @@ function AppPageContent() {
   const handlePoiClick = useCallback((poi: any) => {
     setPreviewPlace({
       id: poi.id,
+      place_id: poi.place_id,
       name: poi.name,
       lat: poi.lat,
       lon: poi.lon,
-      emoji: poi.logo || '📍',
+      emoji: poi.logo_emoji || poi.logo || '📍',
       commune: poi.commune,
-      source: 'supabase'
+      source: poi.source === 'osm' ? 'osm' : 'supabase'
     });
     setPinnedSearch({
       id: poi.id,
@@ -436,6 +437,7 @@ function AppPageContent() {
           setSelectedPoi(poi);
           setPreviewPlace({
             id: poi.id,
+            place_id: poi.place_id,
             name: poi.name,
             lat: poi.lat,
             lon: poi.lon,
@@ -700,7 +702,7 @@ function AppPageContent() {
                       href={
                         selectedPoi.source === 'osm'
                           ? `/app/place/${selectedPoi.id}?name=${encodeURIComponent(selectedPoi.name)}&lat=${selectedPoi.lat}&lon=${selectedPoi.lon}&emoji=${encodeURIComponent(selectedPoi.logo_emoji)}`
-                          : `/app/place/${selectedPoi.id.replace('sp-', '')}`
+                          : `/app/place/${selectedPoi.place_id || selectedPoi.id.replace('sp-', '')}`
                       }
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -1020,7 +1022,9 @@ function AppPageContent() {
                                 source: item.source || 'supabase'
                               });
                               setPreviewPlace({
-                                id: fullId, name: item.name,
+                                id: fullId, 
+                                place_id: item.source === 'supabase' ? item.id : undefined,
+                                name: item.name,
                                 lat: item.lat, lon: item.lon,
                                 emoji: item.logo || '📍',
                                 commune: item.commune,
@@ -1106,7 +1110,9 @@ function AppPageContent() {
                               });
 
                               setPreviewPlace({
-                                id: fullId, name: r.name,
+                                id: fullId,
+                                place_id: isOSM ? undefined : r.id,
+                                name: r.name,
                                 lat: r.lat, lon: r.lon,
                                 emoji: r.logo || '📍',
                                 commune: r.commune,
@@ -1288,9 +1294,10 @@ function AppPageContent() {
             <button 
               onClick={() => {
                 const isOSM = previewPlace.source === 'osm' || previewPlace.id.toString().startsWith('osm-');
+                const cleanId = previewPlace.place_id || previewPlace.id.toString().replace('sp-', '');
                 const url = isOSM
                   ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}&emoji=${encodeURIComponent(previewPlace.emoji || '📍')}`
-                  : `/app/place/${previewPlace.id.toString().replace('sp-', '')}`;
+                  : `/app/place/${cleanId}`;
                 router.push(url);
                 setPreviewPlace(null);
               }}
