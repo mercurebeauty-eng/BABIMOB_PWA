@@ -68,6 +68,15 @@ export default function AppClient() {
 }
 
 function AppPageContent() {
+  const Skeleton = ({ width = '100%', height = 20, radius = 12 }) => (
+    <div style={{ 
+      width, height, borderRadius: radius, 
+      background: 'linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'skeleton-wave 1.5s infinite linear'
+    }} />
+  );
+
   const router = useRouter();
 
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
@@ -878,7 +887,12 @@ function AppPageContent() {
                   </button>
                 </div>
               ) : selectedPoi ? (
-                <div>
+                <div style={{ paddingBottom: 40 }}>
+                  <div style={{ marginBottom: 16, padding: '0 4px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>
+                      {selectedPoi.subcategory || selectedPoi.category || 'Lieu'}
+                    </div>
+                  </div>
                   <>
                     <button
                       onClick={() => {
@@ -909,8 +923,11 @@ function AppPageContent() {
                       <button 
                         onClick={() => {
                           setIsGlobalLoading(true);
-                          // Logique check-in simplifiée pour démo ou réelle si table prête
-                          setTimeout(() => setIsGlobalLoading(false), 800);
+                          // Simulation d'un feedback de succès
+                          setTimeout(() => {
+                            setIsGlobalLoading(false);
+                            // On pourrait ajouter un toast ou un état local ici
+                          }, 800);
                         }}
                         style={{ flex: 1, height: 44, background: 'var(--ink)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                       >
@@ -984,8 +1001,23 @@ function AppPageContent() {
                   <div style={{ padding: '0 4px' }}>
                     <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>COMMUNAUTÉ</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                       {loadingReviews ? (
-                         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic', fontSize: 13 }}>Chargement des avis...</div>
+                     {loadingReviews ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {[1, 2].map(i => (
+                            <div key={i} style={{ padding: '16px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.03)', background: 'white' }}>
+                              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                                <Skeleton width={36} height={36} radius={12} />
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  <Skeleton width="40%" height={12} />
+                                  <Skeleton width="20%" height={10} />
+                                </div>
+                              </div>
+                              <Skeleton width="90%" height={14} />
+                              <div style={{ height: 6 }} />
+                              <Skeleton width="70%" height={14} />
+                            </div>
+                          ))}
+                        </div>
                        ) : placeReviews.length > 0 ? (
                          placeReviews.map((rev, i) => (
                           <div key={rev.id || i} style={{ 
