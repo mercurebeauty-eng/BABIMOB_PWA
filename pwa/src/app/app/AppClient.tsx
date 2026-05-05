@@ -135,7 +135,7 @@ function AppPageContent() {
    * Lieu épinglé suite à une recherche OSM (queryRenderedFeatures ou Nominatim).
    * Pas en BDD → on l'affiche via un marker temporaire et on flyTo dessus.
    */
-  type PinnedSearch = { id: string; name: string; lat: number; lon: number; emoji?: string; subtitle?: string };
+  type PinnedSearch = { id: string; name: string; lat: number; lon: number; emoji?: string; subtitle?: string; source?: string };
   const [pinnedSearch, setPinnedSearch] = useState<PinnedSearch | null>(null);
 
   // Drag-offset de la bulle de recherche (pour feedback visuel + seuil swipe→heatmap)
