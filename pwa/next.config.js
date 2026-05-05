@@ -38,8 +38,6 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 const nextConfig = {
   reactStrictMode: true,
 
-  outputFileTracingRoot: require('path').join(__dirname, '../'),
-
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' }
