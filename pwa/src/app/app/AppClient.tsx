@@ -1,4 +1,4 @@
-'use client';
+'use client'; // Vercel Trigger: Final UX Audit Stable
 
 import NextDynamic from 'next/dynamic';
 import Image from 'next/image';
