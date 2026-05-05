@@ -73,7 +73,6 @@ function AppPageContent() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [previewPlace, setPreviewPlace] = useState<any>(null);
-  const [query, setQuery] = useState('');
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
