@@ -12,6 +12,9 @@ export const Ic = {
   Compass: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M16 8l-2 6-6 2 2-6 6-2z" fill="currentColor"/></P>
   ),
+  Walking: ({ s = 20, color }: IconProps) => (
+    <P s={s} color={color}><path d="M13 5.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM13 5.5l-2 5-1 6-2 4.5M11 10.5l3 3.5 1 7M11 10.5h-4M11 10.5l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></P>
+  ),
   Search: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></P>
   ),
