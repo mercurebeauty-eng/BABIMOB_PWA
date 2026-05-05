@@ -643,7 +643,7 @@ function AppPageContent() {
 
       {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
       <AnimatePresence>
-        {!selected && !selectedPoi && !activeItinerary && (
+        {!selected && !selectedPoi && !activeItinerary && !searchOpen && (
           <motion.div 
             initial={{ y: 20, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
