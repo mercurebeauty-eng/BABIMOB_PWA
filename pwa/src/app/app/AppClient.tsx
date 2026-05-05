@@ -72,6 +72,10 @@ function AppPageContent() {
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [pinnedSearch, setPinnedSearch] = useState<any>(null);
+  const [previewPlace, setPreviewPlace] = useState<any>(null);
+  const [query, setQuery] = useState('');
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
@@ -192,18 +196,37 @@ function AppPageContent() {
   const locateMeRef = useRef(locateMe);
   useEffect(() => { locateMeRef.current(); }, []);
 
+  const handlePoiClick = useCallback((poi: any) => {
+    setPreviewPlace({
+      id: poi.id,
+      name: poi.name,
+      lat: poi.lat,
+      lon: poi.lon,
+      emoji: poi.logo || '📍',
+      commune: poi.commune,
+      source: 'supabase'
+    });
+    setPinnedSearch({
+      id: poi.id,
+      name: poi.name,
+      lat: poi.lat,
+      lon: poi.lon,
+      emoji: poi.logo || '📍',
+      source: 'supabase'
+    });
+    setCenter([poi.lat, poi.lon]);
+  }, [setCenter]);
+
   const handleDiscover = useCallback(() => {
     if (pois.length === 0) return;
-    // Priorité aux lieux sponsorisés (partenariats)
     const partners = pois.filter(p => p.is_sponsored || p.sponsor_tier);
-    // 70% de chance d'afficher un partenaire s'il y en a, sinon un lieu au hasard
     const pool = (partners.length > 0 && Math.random() > 0.3) ? partners : pois;
     const randomPoi = pool[Math.floor(Math.random() * pool.length)];
     
     if (randomPoi) {
-      router.push(`/app/place/${encodeURIComponent(randomPoi.id)}`);
+      handlePoiClick(randomPoi);
     }
-  }, [pois, router]);
+  }, [pois, handlePoiClick]);
 
   // Gestion du paramètre ?discover=1
   useEffect(() => {
@@ -985,7 +1008,25 @@ function AppPageContent() {
                         onClick={() => {
                           closeSearch();
                           if (item.type === 'place') {
-                            router.push(`/app/place/${encodeURIComponent(item.id)}`);
+                            const fullId = (item.source === 'osm' && !item.id.toString().startsWith('osm-')) 
+                              ? `osm-${item.id}` 
+                              : item.id;
+                            
+                            // Flux Aperçu pour les récents aussi
+                            setPinnedSearch({ 
+                              id: fullId, name: item.name, 
+                              lat: item.lat, lon: item.lon, 
+                              emoji: item.logo || '📍',
+                              source: item.source || 'supabase'
+                            });
+                            setPreviewPlace({
+                              id: fullId, name: item.name,
+                              lat: item.lat, lon: item.lon,
+                              emoji: item.logo || '📍',
+                              commune: item.commune,
+                              source: item.source || 'supabase'
+                            });
+                            setCenter([item.lat, item.lon]);
                           } else if (item.type === 'line') {
                             router.push(`/app/ligne/${encodeURIComponent(item.id)}`);
                           } else {
@@ -1046,18 +1087,33 @@ function AppPageContent() {
                           onClick={() => {
                             closeSearch();
                             
-                            // Navigation universelle : OSM ou Supabase
-                            if (isOSM) {
+                            // NAVIGATION UNIFIÉE -> APERÇU SUR CARTE
+                            const fullId = isOSM ? `osm-${r.id}` : r.id;
+                            
+                            if (isOSM || r.type === 'place') {
                               addToRecent({
-                                id: r.id, name: r.name, type: 'place',
+                                id: fullId, name: r.name, type: 'place',
                                 commune: r.commune ?? undefined,
                                 lat: r.lat, lon: r.lon, logo: r.logo,
+                                source: isOSM ? 'osm' : 'supabase'
                               });
-                              // On préfixe par osm- pour que la page de destination sache quoi faire
-                              router.push(`/app/place/${r.id.startsWith('osm-') ? r.id : `osm-${r.id}`}?lat=${r.lat}&lon=${r.lon}&name=${encodeURIComponent(r.name)}`);
-                            } else if (r.type === 'place') {
-                              addToRecent({ id: r.id, name: r.name, type: 'place', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon, logo: r.logo });
-                              router.push(`/app/place/${r.id}`);
+                              
+                              setPinnedSearch({ 
+                                id: fullId, name: r.name, 
+                                lat: r.lat, lon: r.lon, 
+                                emoji: r.logo || '📍',
+                                source: isOSM ? 'osm' : 'supabase'
+                              });
+
+                              setPreviewPlace({
+                                id: fullId, name: r.name,
+                                lat: r.lat, lon: r.lon,
+                                emoji: r.logo || '📍',
+                                commune: r.commune,
+                                source: isOSM ? 'osm' : 'supabase'
+                              });
+
+                              setCenter([r.lat, r.lon]);
                             } else {
                               addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
                               router.push(`/app/arret/${encodeURIComponent(r.id)}`);
@@ -1156,6 +1212,105 @@ function AppPageContent() {
         heatMode={heatMode}
         isAdmin={profile?.role === 'admin'}
       />
+      
+      {/* --- BULLE D'APERÇU (IMAGE 2) --- */}
+      <AnimatePresence>
+        {previewPlace && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              position: 'fixed', bottom: 0, left: 0, right: 0,
+              zIndex: 9000, padding: '20px 20px 100px', // padding bottom pour laisser la place au BottomNav
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              borderTopLeftRadius: 32, borderTopRightRadius: 32,
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.1)',
+            }}
+          >
+            {/* Barre de saisie style "iOS handle" */}
+            <div style={{ width: 40, height: 4, background: 'var(--line)', borderRadius: 2, margin: '0 auto 20px', opacity: 0.5 }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <div style={{ 
+                  width: 50, height: 50, borderRadius: 16, 
+                  background: 'var(--orange-pale)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+                  boxShadow: '0 4px 12px rgba(242, 108, 26, 0.15)'
+                }}>
+                  {previewPlace.emoji || '📍'}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{previewPlace.name}</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {previewPlace.commune || 'Abidjan'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setPreviewPlace(null)}
+                style={{ 
+                  width: 32, height: 32, borderRadius: 16, border: 'none', 
+                  background: 'var(--ink-2)', color: 'var(--ink)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                  opacity: 0.6
+                }}
+              >
+                <Ic.X s={16} />
+              </button>
+            </div>
+
+            <button 
+              onClick={() => {
+                const url = previewPlace.source === 'osm' 
+                  ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}`
+                  : `/app/place/${previewPlace.id}`;
+                router.push(url);
+                setPreviewPlace(null);
+              }}
+              className="press"
+              style={{
+                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
+                background: 'var(--orange)', color: '#fff',
+                fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                boxShadow: '0 8px 24px rgba(242, 108, 26, 0.3)',
+                marginBottom: 24
+              }}
+            >
+              Voir le profil complet <Ic.ArrowRight s={18} />
+            </button>
+
+            <div style={{ padding: '0 4px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                Communauté
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[
+                  { user: 'Kouassi', review: 'Super accueil et service rapide !', stars: 5 },
+                  { user: 'Marie', review: 'Très bon rapport qualité/prix.', stars: 4 }
+                ].map((rev, i) => (
+                  <div key={i} style={{ padding: '14px', background: 'var(--cream)', borderRadius: 16, border: '1px solid var(--line)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{rev.user}</span>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        {[...Array(5)].map((_, si) => (
+                          <span key={si} style={{ fontSize: 10, color: si < rev.stars ? '#FFB800' : 'var(--line)' }}>★</span>
+                        ))}
+                      </div>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--muted)', lineHeight: 1.4 }}>{rev.review}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
