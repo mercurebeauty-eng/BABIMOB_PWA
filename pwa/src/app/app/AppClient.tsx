@@ -265,23 +265,15 @@ function AppPageContent() {
     setDiscoveryIndex(0);
     setIsDiscoveryMode(true);
     
-    // Afficher le premier
+    // Afficher le premier dans le sheet principal
     const first = selection[0];
-    setPreviewPlace({
-      id: first.id,
-      place_id: first.place_id,
-      name: first.name,
-      lat: first.lat,
-      lon: first.lon,
-      emoji: first.logo_emoji,
-      commune: first.commune,
-      source: first.source === 'osm' ? 'osm' : 'supabase'
-    });
-    setSheet('mini'); // On cache le grand sheet pour voir la bulle
+    setSelectedPoi(first);
+    setSelected(null);
+    setSheet('half'); // On l'ouvre à moitié pour montrer qu'il y a du contenu
     
     // Simuler un petit délai pour le "Wow" effect et laisser la carte fly
     setTimeout(() => setIsGlobalLoading(false), 800);
-  }, [pois]);
+  }, [pois, handlePoiClick]);
 
   const handleNextDiscovery = useCallback(() => {
     if (discoveryPois.length === 0) return;
@@ -290,16 +282,9 @@ function AppPageContent() {
     setDiscoveryIndex(nextIdx);
     
     const nextPoi = discoveryPois[nextIdx];
-    setPreviewPlace({
-      id: nextPoi.id,
-      place_id: nextPoi.place_id,
-      name: nextPoi.name,
-      lat: nextPoi.lat,
-      lon: nextPoi.lon,
-      emoji: nextPoi.logo_emoji,
-      commune: nextPoi.commune,
-      source: nextPoi.source === 'osm' ? 'osm' : 'supabase'
-    });
+    setSelectedPoi(nextPoi);
+    setSelected(null);
+    setSheet('half');
     
     setTimeout(() => setIsGlobalLoading(false), 600);
   }, [discoveryPois, discoveryIndex]);
@@ -344,10 +329,10 @@ function AppPageContent() {
     locateMe();
   }, [locateMe]);
 
-  const SNAP = { mini: 0, peek: 240, half: 450, full: 680 } as const;
+  const SNAP = { mini: 90, peek: 240, half: 450, full: 680 } as const;
   type SheetState = keyof typeof SNAP;
 
-  const heightMV = useMotionValue<number>(SNAP.mini);
+  const heightMV = useMotionValue<number>(SNAP.peek);
 
   // Auto-hide sheet if no content
   useEffect(() => {
@@ -406,14 +391,12 @@ function AppPageContent() {
     window.addEventListener('pointerup', onUp);
   }, [heightMV]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const center: [number, number] = previewPlace
-    ? [previewPlace.lat, previewPlace.lon]
-    : selected
+  const center: [number, number] = selected
     ? [selected.stop_lat, selected.stop_lon]
     : selectedPoi
     ? [selectedPoi.lat, selectedPoi.lon]
     : userLoc ?? ABIDJAN_CENTER;
-  const zoom = (previewPlace || selected || selectedPoi) ? 16 : userLoc ? 15 : 12;
+  const zoom = (selected || selectedPoi) ? 16 : userLoc ? 15 : 12;
 
   const mapStops: Stop[] = selected
     ? [selected]
@@ -864,25 +847,45 @@ function AppPageContent() {
               ) : selectedPoi ? (
                 <div>
                   {selectedPoi.id ? (
-                    <Link
-                      href={
-                        selectedPoi.source === 'osm'
-                          ? `/app/place/${selectedPoi.id}?name=${encodeURIComponent(selectedPoi.name)}&lat=${selectedPoi.lat}&lon=${selectedPoi.lon}&emoji=${encodeURIComponent(selectedPoi.logo_emoji)}`
-                          : `/app/place/${selectedPoi.place_id || selectedPoi.id.replace('sp-', '')}`
-                      }
+                    <button
+                      onClick={() => {
+                        setIsGlobalLoading(true);
+                        const isOSM = selectedPoi.source === 'osm' || 
+                                      selectedPoi.id.toString().startsWith('osm-') || 
+                                      selectedPoi.id.toString().startsWith('nominatim-');
+                        const url = isOSM
+                          ? `/app/place/${selectedPoi.id}?lat=${selectedPoi.lat}&lon=${selectedPoi.lon}&name=${encodeURIComponent(selectedPoi.name)}&emoji=${encodeURIComponent(selectedPoi.logo_emoji || '📍')}`
+                          : `/app/place/${selectedPoi.place_id || selectedPoi.id.toString().replace('sp-', '')}`;
+                        router.push(url);
+                      }}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                         height: 52, background: 'var(--orange)', color: '#fff',
+                        width: '100%', border: 'none',
                         fontWeight: 900, borderRadius: 18, fontSize: 13,
                         textTransform: 'uppercase', letterSpacing: 1.2,
-                        textDecoration: 'none', boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
-                        marginBottom: 24,
-                        transition: 'transform 0.2s ease'
+                        boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
+                        marginBottom: 12, cursor: 'pointer'
                       }}
                       className="press"
                     >
                       Voir le profil complet <Ic.Arrow s={18} />
-                    </Link>
+                    </button>
+
+                    {isDiscoveryMode && (
+                      <button
+                        onClick={handleNextDiscovery}
+                        className="press"
+                        style={{
+                          width: '100%', height: 52, background: 'var(--ink)', color: '#fff',
+                          fontWeight: 900, borderRadius: 18, fontSize: 13,
+                          textTransform: 'uppercase', letterSpacing: 1.2,
+                          border: 'none', cursor: 'pointer', marginBottom: 24
+                        }}
+                      >
+                        Suivant <Ic.Arrow s={18} />
+                      </button>
+                    )}
                   ) : (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 10,
@@ -1383,155 +1386,6 @@ function AppPageContent() {
         heatMode={heatMode}
         isAdmin={profile?.role === 'admin'}
       />
-      
-      {/* --- BULLE D'APERÇU (IMAGE 2) --- */}
-      <AnimatePresence>
-        {previewPlace && (
-          <motion.div
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 600 }}
-            dragElastic={0.05}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 100 || info.velocity.y > 500) setPreviewPlace(null);
-            }}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0,
-              zIndex: 9000, padding: '20px 20px 100px',
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              borderTopLeftRadius: 32, borderTopRightRadius: 32,
-              boxShadow: '0 -10px 40px rgba(0,0,0,0.1)',
-              touchAction: 'pan-x'
-            }}
-          >
-            {/* Barre de saisie style "iOS handle" */}
-            <div style={{ width: 40, height: 4, background: 'var(--line)', borderRadius: 2, margin: '0 auto 20px', opacity: 0.5 }} />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div style={{ 
-                  width: 50, height: 50, borderRadius: 16, 
-                  background: 'var(--orange-pale)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-                  boxShadow: '0 4px 12px rgba(242, 108, 26, 0.15)'
-                }}>
-                  {previewPlace.emoji || '📍'}
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{previewPlace.name}</h3>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
-                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {previewPlace.commune || 'Abidjan'}
-                    </p>
-                    {userLoc && (
-                      <>
-                        <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--line)' }} />
-                        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
-                          {(() => {
-                            const d = Math.sqrt(
-                              Math.pow((previewPlace.lat - userLoc[0]) * 111000, 2) + 
-                              Math.pow((previewPlace.lon - userLoc[1]) * 111000 * Math.cos(userLoc[0] * Math.PI / 180), 2)
-                            );
-                            return d > 1000 ? `${(d/1000).toFixed(1)}km` : `${Math.round(d)}m`;
-                          })()}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <button 
-                onClick={() => {
-                  setPreviewPlace(null);
-                  setIsDiscoveryMode(false);
-                }}
-                style={{ 
-                  width: 32, height: 32, borderRadius: 16, border: 'none', 
-                  background: 'var(--ink-2)', color: 'var(--ink)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                  opacity: 0.6
-                }}
-              >
-                <Ic.X s={16} />
-              </button>
-            </div>
-
-            <button 
-              onClick={() => {
-                const isOSM = previewPlace.source === 'osm' || 
-                              previewPlace.id.toString().startsWith('osm-') || 
-                              previewPlace.id.toString().startsWith('nominatim-');
-                const cleanId = previewPlace.place_id || previewPlace.id.toString().replace('sp-', '');
-                const url = isOSM
-                  ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}&emoji=${encodeURIComponent(previewPlace.emoji || '📍')}`
-                  : `/app/place/${cleanId}`;
-                router.push(url);
-                setPreviewPlace(null);
-              }}
-              className="press"
-              style={{
-                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                background: 'var(--orange)', color: '#fff',
-                fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                boxShadow: '0 8px 24px rgba(242, 108, 26, 0.3)',
-                marginBottom: 24
-              }}
-            >
-              Voir le profil complet <Ic.Arrow s={18} />
-            </button>
-
-            <div style={{ padding: '0 4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                  Communauté
-                </div>
-                {isDiscoveryMode && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)' }}>
-                      {discoveryIndex + 1} / {discoveryPois.length}
-                    </span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleNextDiscovery(); }}
-                      className="press"
-                      style={{ 
-                        padding: '6px 12px', borderRadius: 10, border: 'none', 
-                        background: 'var(--ink)', color: '#fff', fontSize: 10, fontWeight: 800,
-                        display: 'flex', alignItems: 'center', gap: 6
-                      }}
-                    >
-                      SUIVANT <Ic.Arrow s={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {[
-                  { user: 'Kouassi', review: 'Super accueil et service rapide !', stars: 5 },
-                  { user: 'Marie', review: 'Très bon rapport qualité/prix.', stars: 4 }
-                ].map((rev, i) => (
-                  <div key={i} style={{ padding: '14px', background: 'var(--cream)', borderRadius: 16, border: '1px solid var(--line)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{rev.user}</span>
-                      <div style={{ display: 'flex', gap: 2 }}>
-                        {[...Array(5)].map((_, si) => (
-                          <span key={si} style={{ fontSize: 10, color: si < rev.stars ? '#FFB800' : 'var(--line)' }}>★</span>
-                        ))}
-                      </div>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--muted)', lineHeight: 1.4 }}>{rev.review}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
     </div>
   );
