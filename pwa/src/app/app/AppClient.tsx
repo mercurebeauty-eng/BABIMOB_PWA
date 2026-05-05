@@ -413,7 +413,7 @@ function AppPageContent() {
 
   const nearbyStopsToPoi = useMemo(() => {
     if (!selectedPoi) return [];
-    return stops
+    return allNearbyStops
       .map(s => ({
         ...s,
         distance: Math.sqrt(
@@ -424,7 +424,7 @@ function AppPageContent() {
       .filter(s => s.distance < 1000) 
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 3);
-  }, [selectedPoi, stops]);
+  }, [selectedPoi, allNearbyStops]);
 
   const handleSelectStop = useCallback((stop: Stop) => {
     setIsGlobalLoading(true);
