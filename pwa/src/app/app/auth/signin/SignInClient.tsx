@@ -131,13 +131,24 @@ export default function SignInClient() {
                   {loading ? 'Vérification…' : 'Valider le code'}
                 </button>
 
-                <button 
-                  type="button"
-                  onClick={() => { setVerifyMode(false); setToken(''); setSent(false); }} 
-                  style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: 10 }}
-                >
-                  Modifier l'email
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 10 }}>
+                  <button 
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--orange)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    Renvoyer le code
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => { setVerifyMode(false); setToken(''); setSent(false); }} 
+                    style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Modifier l'email
+                  </button>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
