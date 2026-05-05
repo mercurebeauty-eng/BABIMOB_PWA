@@ -93,7 +93,6 @@ function AppPageContent() {
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [previewPlace, setPreviewPlace] = useState<any>(null);
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
@@ -232,13 +231,14 @@ function AppPageContent() {
   useEffect(() => { locateMeRef.current(); }, []);
 
   const handlePoiClick = useCallback((poi: any) => {
-    setPreviewPlace({
+    setSelected(null);
+    setSelectedPoi({
       id: poi.id,
       place_id: poi.place_id,
       name: poi.name,
       lat: poi.lat,
       lon: poi.lon,
-      emoji: poi.logo_emoji || poi.logo || '📍',
+      logo_emoji: poi.logo_emoji || poi.logo || '📍',
       commune: poi.commune,
       source: poi.source === 'osm' ? 'osm' : 'supabase'
     });
@@ -250,6 +250,7 @@ function AppPageContent() {
       emoji: poi.logo || '📍',
       source: 'supabase'
     });
+    setSheet('half');
   }, []);
 
   const handleDiscover = useCallback(async () => {
@@ -439,6 +440,7 @@ function AppPageContent() {
 
   const handleSelectStop = useCallback((stop: Stop) => {
     setIsGlobalLoading(true);
+    setSelectedPoi(null);
     addToRecent({ 
       id: stop.stop_id, 
       name: stop.stop_name, 
@@ -555,18 +557,9 @@ function AppPageContent() {
         recenterSignal={recenterSignal}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => {
+          setSelected(null);
           setSelectedPoi(poi);
-          setPreviewPlace({
-            id: poi.id,
-            place_id: poi.place_id,
-            name: poi.name,
-            lat: poi.lat,
-            lon: poi.lon,
-            emoji: poi.logo_emoji,
-            commune: poi.commune,
-            source: poi.source === 'osm' ? 'osm' : 'supabase'
-          });
-          setSheet('peek');
+          setSheet('half');
         }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
@@ -742,7 +735,7 @@ function AppPageContent() {
 
       {/* ── FLOATING INFO POD (ANTIGRAVITY STACK STYLE) ── */}
       <AnimatePresence>
-        {(selected || selectedPoi || activeItinerary || (isDiscoveryMode && !previewPlace)) && (
+        {(selected || selectedPoi || activeItinerary || isDiscoveryMode) && (
           <motion.div
             initial={{ y: 100, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -827,7 +820,6 @@ function AppPageContent() {
                         setDiscoveryPois([]);
                         setSelectedPoi(null); 
                         setSelected(null); 
-                        setPreviewPlace(null);
                         if (typeof setActiveItinerary === 'function') setActiveItinerary(null);
                         setSheet('mini');
                       }} 
@@ -1285,15 +1277,16 @@ function AppPageContent() {
                                 emoji: item.logo || '📍',
                                 source: item.source || 'supabase'
                               });
-                              setPreviewPlace({
+                              setSelectedPoi({
                                 id: fullId, 
                                 place_id: item.source === 'supabase' ? item.id : undefined,
                                 name: item.name,
                                 lat: item.lat, lon: item.lon,
-                                emoji: item.logo || '📍',
+                                logo_emoji: item.logo || '📍',
                                 commune: item.commune,
                                 source: item.source || 'supabase'
                               });
+                              setSheet('half');
                             }
                           } else if (item.type === 'line') {
                             router.push(`/app/ligne/${encodeURIComponent(item.id)}`);
