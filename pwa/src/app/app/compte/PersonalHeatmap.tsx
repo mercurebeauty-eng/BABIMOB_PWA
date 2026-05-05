@@ -1,13 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import 'leaflet/dist/leaflet.css';
-
-// Loading Leaflet dynamically to avoid SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Map, { Source, Layer, MapRef } from 'react-map-gl/maplibre';
 
 type Checkin = {
   lat: number;
@@ -16,12 +10,12 @@ type Checkin = {
 };
 
 export default function PersonalHeatmap({ checkins }: { checkins: any[] }) {
+  const mapRef = useRef<MapRef>(null);
   const [mounted, setMounted] = useState(false);
-  const [heatmapData, setHeatmapData] = useState<Checkin[]>([]);
 
-  useEffect(() => {
-    setMounted(true);
-    // Process checkins to group by coordinates
+  const heatmapData = useMemo(() => {
+    if (!checkins || checkins.length === 0) return null;
+    
     const geoGroups: Record<string, number> = {};
     checkins.forEach(c => {
       if (c.lat && c.lon) {
@@ -30,48 +24,89 @@ export default function PersonalHeatmap({ checkins }: { checkins: any[] }) {
       }
     });
 
-    const data = Object.entries(geoGroups).map(([key, count]) => {
+    const features = Object.entries(geoGroups).map(([key, count]) => {
       const [lat, lon] = key.split(',').map(Number);
-      return { lat, lon, weight: count };
+      return {
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [lon, lat]
+        },
+        properties: {
+          weight: count
+        }
+      };
     });
-    setHeatmapData(data);
+
+    return {
+      type: 'FeatureCollection' as const,
+      features
+    };
   }, [checkins]);
 
-  if (!mounted || heatmapData.length === 0) return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fit bounds when data changes
+  useEffect(() => {
+    if (!mapRef.current || !heatmapData || heatmapData.features.length === 0) return;
+    
+    const lons = heatmapData.features.map(f => f.geometry.coordinates[0]);
+    const lats = heatmapData.features.map(f => f.geometry.coordinates[1]);
+    
+    mapRef.current.fitBounds(
+      [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)],
+      { padding: 40, duration: 1000 }
+    );
+  }, [heatmapData]);
+
+  if (!mounted || !heatmapData || heatmapData.features.length === 0) return (
     <div className="w-full h-full bg-beige-100/50 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-beige-muted">
        Pas encore d&apos;activité enregistrée
     </div>
   );
 
-  const center: [number, number] = [5.3484, -4.0305]; // Abidjan
-
   return (
     <div className="w-full h-full relative rounded-[2rem] overflow-hidden grayscale contrast-125 brightness-110">
-      <MapContainer 
-        center={center} 
-        zoom={11} 
-        scrollWheelZoom={false}
-        zoomControl={false}
+      <Map
+        ref={mapRef}
+        initialViewState={{
+          longitude: -4.0305,
+          latitude: 5.3484,
+          zoom: 11
+        }}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        style={{ width: '100%', height: '100%' }}
         attributionControl={false}
-        dragging={false}
+        dragPan={false}
+        scrollZoom={false}
+        boxZoom={false}
         doubleClickZoom={false}
-        touchZoom={false}
-        style={{ height: '100%', width: '100%', background: '#f4f4f0' }}
+        touchZoomRotate={false}
       >
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
-        {heatmapData.map((d, i) => (
-          <CircleMarker
-            key={i}
-            center={[d.lat, d.lon]}
-            radius={6 + (d.weight * 2)}
-            fillColor="#FF7A00"
-            color="transparent"
-            fillOpacity={0.4}
+        <Source id="personal-heat-source" type="geojson" data={heatmapData}>
+          <Layer
+            id="personal-heat-layer"
+            type="heatmap"
+            paint={{
+              'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 1, 0.5, 10, 1],
+              'heatmap-intensity': 1,
+              'heatmap-color': [
+                'interpolate', ['linear'], ['heatmap-density'],
+                0, 'rgba(255,122,0,0)',
+                0.2, 'rgba(255,122,0,0.2)',
+                0.4, 'rgba(255,122,0,0.4)',
+                0.6, 'rgba(255,122,0,0.6)',
+                0.8, '#FF7A00',
+                1, '#ffffff'
+              ],
+              'heatmap-radius': 30,
+              'heatmap-opacity': 0.7
+            }}
           />
-        ))}
-      </MapContainer>
+        </Source>
+      </Map>
       <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none" />
     </div>
   );
