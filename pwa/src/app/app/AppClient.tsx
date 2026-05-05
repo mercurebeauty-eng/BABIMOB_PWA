@@ -136,6 +136,10 @@ function AppPageContent() {
   type PinnedSearch = { id: string; name: string; lat: number; lon: number; emoji?: string; subtitle?: string };
   const [pinnedSearch, setPinnedSearch] = useState<PinnedSearch | null>(null);
 
+  // Drag-offset de la bulle de recherche (pour feedback visuel + seuil swipe→heatmap)
+  const [bubbleDragX, setBubbleDragX] = useState(0);
+  const SWIPE_HEAT_THRESHOLD = 60;
+
   const nearbyStops = useMemo(() => allNearbyStops.slice(0, 5), [allNearbyStops]);
   const selectedStopList = useMemo(() => {
     if (selected) {
@@ -332,7 +336,15 @@ function AppPageContent() {
   }, [clearSelection]);
 
   const openSearch = () => setSearchOpen(true);
-  const closeSearch = () => { setSearchOpen(false); clearSearch(); };
+  const closeSearch = useCallback(() => { setSearchOpen(false); clearSearch(); }, [clearSearch]);
+
+  // Escape ferme l'overlay de recherche
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeSearch(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searchOpen, closeSearch]);
 
 
   const TICKER_FALLBACK: [string, string, string][] = [
@@ -479,43 +491,81 @@ function AppPageContent() {
               pointerEvents: 'none' 
             }}
           >
-            {/* Recherche & Swipe */}
-            <motion.button 
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              onDragEnd={(_, info) => {
-                  setHeatMode(!heatMode);
-              }}
-              onClick={openSearch}
-              className="press"
-              style={{ 
-                pointerEvents: 'auto',
-                height: 36, 
-                padding: '0 18px',
-                borderRadius: 18, 
-                border: 'none', 
-                background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)', 
-                color: heatMode ? '#fff' : 'var(--ink)',
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                boxShadow: heatMode ? '0 8px 20px rgba(242,108,26,0.3)' : '0 4px 12px rgba(0,0,0,0.08)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 8, 
-                cursor: 'pointer',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                transform: heatMode ? 'scale(1.05)' : 'scale(1)'
-              }}
-            >
-              <Ic.Search s={16} />
-              <span style={{ fontSize: 13, fontWeight: 800 }}>{heatMode ? 'Heatmap active' : 'Recherche'}</span>
-              
-              <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.8 }} />
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.3 }} />
-              </div>
-            </motion.button>
+            {/* Recherche (tap) + Heatmap (swipe ≥ 60 px) */}
+            {(() => {
+              const dragMag = Math.abs(bubbleDragX);
+              const willToggleHeat = dragMag > SWIPE_HEAT_THRESHOLD;
+              const dragProgress = Math.min(dragMag / SWIPE_HEAT_THRESHOLD, 1);
+              const isDragging = dragMag > 2;
+              const label = willToggleHeat
+                ? (heatMode ? 'Relâche pour désactiver' : 'Relâche pour la heatmap')
+                : isDragging
+                  ? (heatMode ? 'Continue pour désactiver' : 'Continue → heatmap')
+                  : (heatMode ? 'Heatmap active' : 'Recherche');
+              return (
+                <motion.button
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.5}
+                  onDrag={(_, info) => setBubbleDragX(info.offset.x)}
+                  onDragEnd={(_, info) => {
+                    setBubbleDragX(0);
+                    if (Math.abs(info.offset.x) > SWIPE_HEAT_THRESHOLD) {
+                      setHeatMode(!heatMode);
+                    }
+                  }}
+                  onClick={openSearch}
+                  className="press"
+                  aria-label={heatMode ? 'Recherche (heatmap active, swipe pour désactiver)' : 'Recherche (swipe pour activer la heatmap)'}
+                  style={{
+                    pointerEvents: 'auto',
+                    height: 36,
+                    padding: '0 18px',
+                    borderRadius: 18,
+                    border: 'none',
+                    background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)',
+                    color: heatMode ? '#fff' : 'var(--ink)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                    boxShadow: willToggleHeat
+                      ? '0 10px 24px rgba(242,108,26,0.45)'
+                      : heatMode
+                        ? '0 8px 20px rgba(242,108,26,0.3)'
+                        : '0 4px 12px rgba(0,0,0,0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                    transition: isDragging ? 'none' : 'background 0.3s, box-shadow 0.3s',
+                    position: 'relative',
+                    transform: heatMode ? 'scale(1.05)' : 'scale(1)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Trail de progression remplissant la pilule pendant le drag */}
+                  {isDragging && (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: willToggleHeat ? 'var(--orange)' : 'rgba(242,108,26,0.18)',
+                        transformOrigin: bubbleDragX < 0 ? 'right' : 'left',
+                        transform: `scaleX(${dragProgress})`,
+                        transition: 'background 0.15s',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  <Ic.Search s={16} />
+                  <span style={{ fontSize: 13, fontWeight: 800, position: 'relative', zIndex: 1 }}>{label}</span>
+                  <div aria-hidden style={{ display: 'flex', gap: 4, marginLeft: 4, position: 'relative', zIndex: 1 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.8 }} />
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.3 }} />
+                  </div>
+                </motion.button>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>
@@ -809,6 +859,9 @@ function AppPageContent() {
       <AnimatePresence>
         {searchOpen && (
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Recherche"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
@@ -852,6 +905,14 @@ function AppPageContent() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Chercher un arrêt, un lieu…"
+                  type="search"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  aria-label="Champ de recherche"
                   style={{
                     flex: 1, fontSize: 15, fontWeight: 600,
                     border: 'none', outline: 'none', background: 'transparent',
@@ -861,6 +922,8 @@ function AppPageContent() {
                 {isSearching ? (
                   <div
                     className="animate-spin"
+                    aria-label="Recherche en cours"
+                    role="status"
                     style={{
                       width: 16, height: 16,
                       border: '2px solid var(--orange)',
@@ -868,15 +931,21 @@ function AppPageContent() {
                       borderRadius: '50%',
                     }}
                   />
-                ) : (
-                  <span
+                ) : query.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    aria-label="Effacer la recherche"
+                    className="press"
                     style={{
-                      fontSize: 10, fontWeight: 800, color: 'var(--orange)',
-                      background: 'var(--orange-pale)',
-                      padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5,
+                      width: 22, height: 22, borderRadius: 11, border: 'none',
+                      background: 'var(--ink-2)', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0,
+                      flexShrink: 0,
                     }}
-                  >IA</span>
-                )}
+                  >×</button>
+                ) : null}
               </div>
             </div>
 
