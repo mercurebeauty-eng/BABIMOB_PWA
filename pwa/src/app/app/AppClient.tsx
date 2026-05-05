@@ -1012,19 +1012,21 @@ function AppPageContent() {
                               : item.id;
                             
                             // Flux Aperçu pour les récents aussi
-                            setPinnedSearch({ 
-                              id: fullId, name: item.name, 
-                              lat: item.lat, lon: item.lon, 
-                              emoji: item.logo || '📍',
-                              source: item.source || 'supabase'
-                            });
-                            setPreviewPlace({
-                              id: fullId, name: item.name,
-                              lat: item.lat, lon: item.lon,
-                              emoji: item.logo || '📍',
-                              commune: item.commune,
-                              source: item.source || 'supabase'
-                            });
+                            if (item.lat && item.lon) {
+                              setPinnedSearch({ 
+                                id: fullId, name: item.name, 
+                                lat: item.lat, lon: item.lon, 
+                                emoji: item.logo || '📍',
+                                source: item.source || 'supabase'
+                              });
+                              setPreviewPlace({
+                                id: fullId, name: item.name,
+                                lat: item.lat, lon: item.lon,
+                                emoji: item.logo || '📍',
+                                commune: item.commune,
+                                source: item.source || 'supabase'
+                              });
+                            }
                           } else if (item.type === 'line') {
                             router.push(`/app/ligne/${encodeURIComponent(item.id)}`);
                           } else {
