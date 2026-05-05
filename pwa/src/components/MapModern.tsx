@@ -89,16 +89,25 @@ export default function MapModern({
     }
   }, [onMapReady]);
 
-  // Synchronisation du viewState quand center change (Prop → State)
+  // Synchronisation intelligente du viewState (Prop → State)
   useEffect(() => {
     if (center && center[0] && center[1]) {
+      // SI c'est une mise à jour du GPS (micro-mouvement), on ignore pour laisser l'utilisateur naviguer
+      // Sauf si on n'a pas encore de position stable.
+      // On considère que c'est le GPS si la distance est minuscule par rapport à userLocation
+      const isGpsUpdate = userLocation && 
+                          Math.abs(center[0] - userLocation[0]) < 0.0001 && 
+                          Math.abs(center[1] - userLocation[1]) < 0.0001;
+      
+      if (isGpsUpdate) return;
+
       setViewState(prev => ({
         ...prev,
         latitude: center[0],
         longitude: center[1]
       }));
     }
-  }, [center[0], center[1]]);
+  }, [center[0], center[1], userLocation]);
 
   // Atterrissage cinématique (Landing Zoom)
   const hasLanded = useRef(false);
