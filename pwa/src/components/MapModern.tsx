@@ -529,7 +529,7 @@ export default function MapModern({
             <div style={{ position: 'relative', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               
               {/* Halo pulsant adouci */}
-              <div className="pulse" style={{
+              <div className="pulse-animation" style={{
                 position: 'absolute',
                 width: 24, height: 24,
                 borderRadius: '50%',
@@ -577,6 +577,15 @@ export default function MapModern({
       <style jsx global>{`
         .maplibregl-ctrl-attrib { display: none; }
         .maplibregl-ctrl-logo { opacity: 0.1; transform: scale(0.7); transform-origin: left bottom; }
+        
+        @keyframes pulse-blue {
+          0% { transform: scale(1); opacity: 0.6; }
+          70% { transform: scale(2.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+        .pulse-animation {
+          animation: pulse-blue 2s infinite;
+        }
       `}</style>
     </div>
   );

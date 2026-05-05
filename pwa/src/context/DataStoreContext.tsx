@@ -13,6 +13,7 @@ import { useReachTracking } from '@/hooks/useReachTracking';
 import { useCommunityData } from '@/hooks/useCommunityData';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useNearbyTransport } from '@/hooks/useNearbyTransport';
+import { useCompass } from '@/hooks/useCompass';
 
 interface DataStoreContextType {
   pois: POI[];
@@ -49,15 +50,25 @@ export function DataStoreProvider({ children }: { children: React.ReactNode }) {
   // Geolocation
   const {
     userLoc,
-    userHeading,
+    userHeading: gpsHeading,
     userAccuracy,
     nearbyStops,
     loading: geoLoading,
-    locateMe,
+    locateMe: baseLocateMe,
   } = useGeoLocation({
     onPositionAcquired: () => {},
     onLocate: () => {},
   });
+
+  // Compass
+  const { heading: deviceHeading, requestPermission: requestCompassPermission } = useCompass();
+
+  const locateMe = useCallback(() => {
+    baseLocateMe();
+    requestCompassPermission();
+  }, [baseLocateMe, requestCompassPermission]);
+
+  const userHeading = deviceHeading ?? gpsHeading;
 
   // POIs & Map Data
   const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady, mapRef } = useMapPois({ logReach });
