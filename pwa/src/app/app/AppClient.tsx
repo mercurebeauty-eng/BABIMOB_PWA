@@ -87,6 +87,8 @@ function AppPageContent() {
   const [nearbyIndex, setNearbyIndex] = useState(0);
   const [placeReviews, setPlaceReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [discoveryPois, setDiscoveryPois] = useState<POI[]>([]);
+  const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -217,14 +219,21 @@ function AppPageContent() {
 
   const handleDiscover = useCallback(() => {
     if (pois.length === 0) return;
-    const partners = pois.filter(p => p.is_sponsored || p.sponsor_tier);
-    const pool = (partners.length > 0 && Math.random() > 0.3) ? partners : pois;
-    const randomPoi = pool[Math.floor(Math.random() * pool.length)];
     
-    if (randomPoi) {
-      handlePoiClick(randomPoi);
-    }
-  }, [pois, handlePoiClick]);
+    // Mélange des POIs avec priorité aux partenaires
+    const shuffled = [...pois].sort(() => Math.random() - 0.5);
+    const partners = shuffled.filter(p => p.is_sponsored || p.sponsor_tier);
+    const others = shuffled.filter(p => !p.is_sponsored && !p.sponsor_tier);
+    
+    const selection = [...partners, ...others].slice(0, 15);
+    
+    setDiscoveryPois(selection);
+    setIsDiscoveryMode(true);
+    setSelectedPoi(null);
+    setSelected(null);
+    if (typeof setActiveItinerary === 'function') setActiveItinerary(null);
+    setSheet('half'); // Ouvre le bottom sheet à moitié pour montrer la liste
+  }, [pois]);
 
   // Gestion du paramètre ?discover=1
   useEffect(() => {
@@ -605,7 +614,7 @@ function AppPageContent() {
 
       {/* ── FLOATING INFO POD (ANTIGRAVITY STACK STYLE) ── */}
       <AnimatePresence>
-        {(selected || selectedPoi || activeItinerary) && (
+        {(selected || selectedPoi || activeItinerary || isDiscoveryMode) && (
           <motion.div
             initial={{ y: 100, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -646,21 +655,21 @@ function AppPageContent() {
               }}
             >
               <div style={{ width: 40, height: 5, borderRadius: 2.5, background: 'var(--ink)', opacity: 0.15, marginBottom: 8 }} />
-              {(selectedPoi || selected || activeItinerary) && (
+              {(selectedPoi || selected || activeItinerary || isDiscoveryMode) && (
                 <div 
                   onPointerDown={(e) => e.stopPropagation()}
                   style={{ padding: '0 24px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-                         {selectedPoi ? (selectedPoi.logo_emoji || '📍') : activeItinerary ? '🗺️' : '🚌'}
+                         {isDiscoveryMode ? '🧭' : selectedPoi ? (selectedPoi.logo_emoji || '📍') : activeItinerary ? '🗺️' : '🚌'}
                       </div>
                       <div>
                         <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
-                          {selectedPoi ? selectedPoi.name : activeItinerary ? 'Ton trajet' : selected?.stop_name}
+                          {isDiscoveryMode ? 'Découvre Abidjan' : selectedPoi ? selectedPoi.name : activeItinerary ? 'Ton trajet' : selected?.stop_name}
                         </h2>
                         <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>
-                          {selectedPoi ? (selectedPoi.commune || 'Abidjan') : activeItinerary ? 'Itinéraire optimisé' : (selected?.commune || 'Abidjan')}
+                          {isDiscoveryMode ? 'Sélection aléatoire' : selectedPoi ? (selectedPoi.commune || 'Abidjan') : activeItinerary ? 'Itinéraire optimisé' : (selected?.commune || 'Abidjan')}
                         </div>
                       </div>
                    </div>
@@ -668,6 +677,8 @@ function AppPageContent() {
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => { 
                         e.stopPropagation();
+                        setIsDiscoveryMode(false);
+                        setDiscoveryPois([]);
                         setSelectedPoi(null); 
                         setSelected(null); 
                         setPreviewPlace(null);
@@ -695,7 +706,52 @@ function AppPageContent() {
             </div>
 
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 120px' }}>
-              {selectedPoi ? (
+              {isDiscoveryMode ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600, marginBottom: 8 }}>Voici quelques pépites à découvrir aujourd'hui :</p>
+                  {discoveryPois.map((p, i) => (
+                    <button
+                      key={p.id + i}
+                      onClick={() => {
+                        handlePoiClick(p);
+                        setIsDiscoveryMode(false);
+                      }}
+                      className="press"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '14px', background: 'rgba(255,255,255,0.5)',
+                        borderRadius: 20, border: '1px solid rgba(0,0,0,0.03)',
+                        textAlign: 'left', cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                        {p.logo_emoji || '📍'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.name}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>
+                          {p.commune || 'Abidjan'} • {p.category}
+                        </div>
+                      </div>
+                      {(p.is_sponsored || p.sponsor_tier) && (
+                        <div style={{ padding: '4px 8px', background: 'var(--orange-pale)', color: 'var(--orange)', borderRadius: 8, fontSize: 9, fontWeight: 900 }}>PRO</div>
+                      )}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleDiscover}
+                    style={{
+                      marginTop: 12, padding: '16px', borderRadius: 20, border: '2px dashed var(--line)',
+                      background: 'transparent', color: 'var(--ink)', fontWeight: 800, fontSize: 13,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Mélanger à nouveau 🔄
+                  </button>
+                </div>
+              ) : selectedPoi ? (
                 <div>
                   {selectedPoi.id ? (
                     <Link
