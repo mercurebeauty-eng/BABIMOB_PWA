@@ -18,8 +18,19 @@ type Props = {
   stops: RouteStop[];
   routeColor?: string;
   isSegmented: boolean;
+  userLocation?: [number, number] | null;
+  userHeading?: number | null;
 };
 
-export default function RouteMapWrapper({ shape, stops, routeColor, isSegmented }: Props) {
-  return <RouteMap shape={shape} stops={stops} routeColor={routeColor} isSegmented={isSegmented} />;
+export default function RouteMapWrapper({ shape, stops, routeColor, isSegmented, userLocation, userHeading }: Props) {
+  return (
+    <RouteMap 
+      shape={shape} 
+      stops={stops} 
+      routeColor={routeColor} 
+      isSegmented={isSegmented} 
+      userLocation={userLocation}
+      userHeading={userHeading}
+    />
+  );
 }

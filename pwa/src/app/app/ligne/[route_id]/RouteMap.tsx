@@ -17,8 +17,8 @@ type Props = {
   stops: RouteStop[];
   routeColor?: string;
   isSegmented: boolean;
-  // Optionnel: si on veut passer le tracé complet pour le segment "passé"
-  fullShape?: ShapePoint[]; 
+  userLocation?: [number, number] | null;
+  userHeading?: number | null;
 };
 
 const ABIDJAN_CENTER = { latitude: 5.345, longitude: -4.020 };
@@ -151,7 +151,61 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmen
             </Marker>
           );
         })}
+        {/* MARQUEUR UTILISATEUR (Point Bleu Premium) */}
+        {userLocation && (
+          <Marker
+            longitude={userLocation[1]}
+            latitude={userLocation[0]}
+            anchor="center"
+            style={{ zIndex: 100 }}
+          >
+            <div style={{ position: 'relative', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                position: 'absolute',
+                width: 24, height: 24,
+                borderRadius: '50%',
+                background: 'rgba(26, 115, 232, 0.2)',
+                animation: 'pulse 2s infinite'
+              }} />
+              {userHeading !== null && (
+                <div style={{
+                  position: 'absolute',
+                  width: 60, height: 60,
+                  transform: `rotate(${userHeading}deg)`,
+                  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  top: -10 
+                }}>
+                  <div style={{
+                    width: 0, height: 0,
+                    borderLeft: '14px solid transparent',
+                    borderRight: '14px solid transparent',
+                    borderBottom: '38px solid rgba(26, 115, 232, 0.2)',
+                    filter: 'blur(3px)',
+                  }} />
+                </div>
+              )}
+              <div style={{
+                width: 13, height: 13,
+                background: '#1A73E8',
+                borderRadius: '50%',
+                border: '2.5px solid #fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                zIndex: 2,
+              }} />
+            </div>
+          </Marker>
+        )}
       </Map>
+      <style jsx global>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.6; }
+          70% { transform: scale(2.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
