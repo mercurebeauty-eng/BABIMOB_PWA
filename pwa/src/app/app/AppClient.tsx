@@ -238,8 +238,13 @@ function AppPageContent() {
       name: poi.name,
       lat: poi.lat,
       lon: poi.lon,
+      category: poi.category || 'other',
       logo_emoji: poi.logo_emoji || poi.logo || '📍',
-      commune: poi.commune,
+      cover_color: poi.cover_color || 'var(--orange)',
+      is_sponsored: poi.is_sponsored || false,
+      sponsor_tier: poi.sponsor_tier || null,
+      has_campaign: poi.has_campaign || false,
+      commune: poi.commune || undefined,
       source: poi.source === 'osm' ? 'osm' : 'supabase'
     });
     setPinnedSearch({
@@ -1275,16 +1280,21 @@ function AppPageContent() {
                                 id: fullId, name: item.name, 
                                 lat: item.lat, lon: item.lon, 
                                 emoji: item.logo || '📍',
-                                source: item.source || 'supabase'
+                                source: (item.source as 'supabase' | 'osm') || 'supabase'
                               });
                               setSelectedPoi({
                                 id: fullId, 
                                 place_id: item.source === 'supabase' ? item.id : undefined,
                                 name: item.name,
                                 lat: item.lat, lon: item.lon,
+                                category: (item as any).category || 'other',
                                 logo_emoji: item.logo || '📍',
-                                commune: item.commune,
-                                source: item.source || 'supabase'
+                                cover_color: (item as any).cover_color || 'var(--orange)',
+                                is_sponsored: (item as any).is_sponsored || false,
+                                sponsor_tier: (item as any).sponsor_tier || null,
+                                has_campaign: (item as any).has_campaign || false,
+                                commune: item.commune || undefined,
+                                source: (item.source as 'supabase' | 'osm') || 'supabase'
                               });
                               setSheet('half');
                             }
@@ -1371,8 +1381,13 @@ function AppPageContent() {
                                 place_id: isOSM ? undefined : r.id,
                                 name: r.name,
                                 lat: r.lat, lon: r.lon,
+                                category: r.type === 'place' ? 'shop' : 'other',
                                 logo_emoji: r.logo || '📍',
-                                commune: r.commune,
+                                cover_color: r.type === 'place' ? 'var(--orange)' : 'var(--ink-2)',
+                                is_sponsored: false,
+                                sponsor_tier: null,
+                                has_campaign: false,
+                                commune: r.commune || undefined,
                                 source: isOSM ? 'osm' : 'supabase'
                               });
                               setSheet('half');
