@@ -1,0 +1,13 @@
+# Dev local : docker compose up → OTP sur http://localhost:8080
+services:
+  otp:
+    build: .
+    container_name: babimob-otp
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./graphs:/otp/graphs
+    environment:
+      - TZ=Africa/Abidjan
+    restart: unless-stopped
+    mem_limit: 2g
