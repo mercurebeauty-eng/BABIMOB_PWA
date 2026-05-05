@@ -70,8 +70,7 @@ export default function ProfileSocialTabs({ userId, initialVisits, initialFollow
       .single();
 
     if (data) setFoundUser(data);
-    else if (error) console.log("User not found or privacy restricted");
-    
+
     setSearchLoading(false);
   }
 

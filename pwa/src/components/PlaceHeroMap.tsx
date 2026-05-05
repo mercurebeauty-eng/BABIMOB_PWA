@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { POI } from '@/lib/poi';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+const Map = dynamic(() => import('@/components/MapModern'), { ssr: false });
 
 type Props = {
   lat: number;

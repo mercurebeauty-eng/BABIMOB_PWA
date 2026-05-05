@@ -16,8 +16,6 @@ export default function AdminGate() {
     setLoading(true);
     setError(null);
 
-    console.log("Tentative de connexion pour:", email);
-
     // 1. Authentification
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -37,8 +35,6 @@ export default function AdminGate() {
       return;
     }
 
-    console.log("Auth réussie, ID:", data.user.id);
-
     // 2. Vérification du profil Admin
     // On essaie d'abord par ID, puis par Email si l'ID échoue
     let { data: profile, error: profileError } = await supabase
@@ -48,7 +44,6 @@ export default function AdminGate() {
       .maybeSingle();
 
     if (!profile) {
-      console.log("Profil non trouvé par ID, tentative par email...");
       const { data: p2 } = await supabase
         .from('profiles')
         .select('is_admin, email')
@@ -57,18 +52,13 @@ export default function AdminGate() {
       profile = p2;
     }
 
-    console.log("Profil récupéré:", profile);
-
     if (!profile?.is_admin) {
-      console.warn("Accès refusé: is_admin est", profile?.is_admin);
       await supabase.auth.signOut();
       setError("Ton compte n'a pas les droits Administrateur.");
       setLoading(false);
       return;
     }
 
-    console.log("Accès Admin validé !");
-    
     // Succès ! On attend un peu et on recharge
     setTimeout(() => {
       window.location.href = '/app/admin';

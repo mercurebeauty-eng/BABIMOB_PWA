@@ -61,7 +61,6 @@ async function fetchSupabasePlaces(
     return [];
   }
   if (!data) return [];
-  console.log(`Fetched ${data.length} places from Supabase`);
 
   const now = new Date();
   return data
@@ -111,7 +110,6 @@ async function fetchOSMPlaces(
   );
 
   if (cached) {
-    console.log("Using cached OSM data");
     return cached.pois;
   }
 
