@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Map, { Source, Layer, Marker, MapRef } from 'react-map-gl/maplibre';
 
 type ShapePoint = { shape_pt_lat: number; shape_pt_lon: number };
@@ -39,20 +39,40 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmen
     }]
   }), [shape]);
 
-  // Fit bounds
-  useEffect(() => {
-    if (!mapRef.current) return;
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Fit bounds function
+  const fitToData = useCallback(() => {
+    if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current.getMap();
     
-    if (shape.length > 0) {
-      const lons = shape.map(p => p.shape_pt_lon);
-      const lats = shape.map(p => p.shape_pt_lat);
-      map.fitBounds([Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)], {
+    let coords: [number, number][] = [];
+    
+    if (shape && shape.length > 0) {
+      coords = shape.map(p => [p.shape_pt_lon, p.shape_pt_lat]);
+    } else if (stops && stops.length > 0) {
+      coords = stops.map(s => [s.stop_lon, s.stop_lat]);
+    }
+
+    if (coords.length > 0) {
+      const lons = coords.map(c => c[0]);
+      const lats = coords.map(c => c[1]);
+      const bounds: [[number, number], [number, number]] = [
+        [Math.min(...lons), Math.min(...lats)],
+        [Math.max(...lons), Math.max(...lats)]
+      ];
+      
+      map.fitBounds(bounds, {
         padding: { top: 40, bottom: 80, left: 40, right: 40 },
         duration: 1000
       });
     }
-  }, [shape]);
+  }, [shape, stops, mapLoaded]);
+
+  // Trigger fit whenever data changes or map loads
+  useEffect(() => {
+    fitToData();
+  }, [fitToData, isSegmented]);
 
   const color = `#${routeColor}`;
   // Si segmenté, on utilise une couleur "focus" (Gold) pour le segment sélectionné
@@ -70,6 +90,7 @@ export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmen
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
+        onLoad={() => setMapLoaded(true)}
       >
         {/* Tracé de la ligne */}
         {shape.length > 1 && (
