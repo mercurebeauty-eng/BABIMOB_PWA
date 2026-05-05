@@ -1293,7 +1293,9 @@ function AppPageContent() {
 
             <button 
               onClick={() => {
-                const isOSM = previewPlace.source === 'osm' || previewPlace.id.toString().startsWith('osm-');
+                const isOSM = previewPlace.source === 'osm' || 
+                              previewPlace.id.toString().startsWith('osm-') || 
+                              previewPlace.id.toString().startsWith('nominatim-');
                 const cleanId = previewPlace.place_id || previewPlace.id.toString().replace('sp-', '');
                 const url = isOSM
                   ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}&emoji=${encodeURIComponent(previewPlace.emoji || '📍')}`
