@@ -883,14 +883,8 @@ function AppPageContent() {
                             router.push(`/app/place/${encodeURIComponent(item.id)}`);
                           } else if (item.type === 'line') {
                             router.push(`/app/ligne/${encodeURIComponent(item.id)}`);
-                          } else if (item.lat != null && item.lon != null) {
-                            handleSelectStop({
-                              stop_id: item.id,
-                              stop_name: item.name,
-                              stop_lat: item.lat,
-                              stop_lon: item.lon,
-                              commune: item.commune ?? null,
-                            } as Stop);
+                          } else {
+                            router.push(`/app/arret/${encodeURIComponent(item.id)}`);
                           }
                         }}
                         className="press"
@@ -945,13 +939,7 @@ function AppPageContent() {
                             router.push(`/app/place/${encodeURIComponent(r.id)}`);
                           } else {
                             addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
-                            handleSelectStop({
-                              stop_id: r.id,
-                              stop_name: r.name,
-                              stop_lat: r.lat,
-                              stop_lon: r.lon,
-                              commune: r.commune,
-                            } as Stop);
+                            router.push(`/app/arret/${encodeURIComponent(r.id)}`);
                           }
                         }}
                         className="press"
