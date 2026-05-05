@@ -23,7 +23,7 @@ type Props = {
 
 const ABIDJAN_CENTER = { latitude: 5.345, longitude: -4.020 };
 
-export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmented }: Props) {
+export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmented, userLocation, userHeading }: Props) {
   const mapRef = useRef<MapRef>(null);
   
   // GeoJSON pour le tracé principal (actif)
