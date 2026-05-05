@@ -310,49 +310,54 @@ export default function MapModern({
         {/* MARQUEUR UTILISATEUR - Supprimé d'ici car on le déplace à la fin pour le z-index */}
 
         {/* POIs — Elite > Pro > Standard */}
-        {pois.length > 0 && console.log(`[MapModern] Rendering ${pois.length} POIs`, pois[0])}
         {pois.map(p => {
           const isElite = p.sponsor_tier === 'elite';
           const isPro   = p.sponsor_tier === 'pro';
-          const size    = isElite ? 36 : isPro ? 32 : 28;
+          const size    = isElite ? 42 : isPro ? 34 : 28;
           const border  = isElite
             ? '3px solid #FFD700'
             : isPro
-              ? '2.5px solid #C0C0FF'
+              ? '2.5px solid rgba(255, 255, 255, 0.9)'
               : '2px solid #fff';
           const shadow  = isElite
-            ? '0 0 14px rgba(255,215,0,0.5), 0 4px 10px rgba(0,0,0,0.2)'
+            ? '0 0 20px rgba(255,215,0,0.6), 0 8px 16px rgba(0,0,0,0.3)'
             : isPro
-              ? '0 0 10px rgba(130,100,255,0.35), 0 4px 10px rgba(0,0,0,0.15)'
+              ? '0 0 12px rgba(255,255,255,0.4), 0 4px 10px rgba(0,0,0,0.2)'
               : '0 4px 10px rgba(0,0,0,0.18)';
+          
           return (
             <Marker 
               key={p.id} 
               longitude={p.lon} 
               latitude={p.lat}
               anchor="bottom"
-              style={{ zIndex: (p.sponsor_tier === 'elite' ? 60 : p.sponsor_tier === 'pro' ? 50 : 40) }}
+              style={{ zIndex: isElite ? 70 : isPro ? 60 : 50 }}
               onClick={e => {
                 e.originalEvent.stopPropagation();
                 onPoiClick?.(p);
               }}
             >
-              <div className="group flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-110">
-                <div
-                  className="flex items-center justify-center"
-                  style={{
-                    width: size, height: size,
-                    background: p.cover_color || 'var(--orange)',
-                    borderRadius: '50%',
-                    border,
-                    boxShadow: shadow,
-                  }}
-                >
-                  <span style={{ fontSize: isElite ? 18 : isPro ? 16 : 14 }}>
-                    {p.logo_emoji || '📍'}
-                  </span>
+              <div className="group flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-115">
+                <div style={{ position: 'relative' }}>
+                  {isElite && (
+                    <div className="absolute inset-0 rounded-full animate-ping bg-yellow-400/30" style={{ transform: 'scale(1.5)' }} />
+                  )}
+                  <div
+                    className="flex items-center justify-center relative z-10"
+                    style={{
+                      width: size, height: size,
+                      background: p.cover_color || 'var(--orange)',
+                      borderRadius: '50%',
+                      border,
+                      boxShadow: shadow,
+                    }}
+                  >
+                    <span style={{ fontSize: isElite ? 22 : isPro ? 18 : 14 }}>
+                      {p.logo_emoji || '📍'}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm rounded text-[10px] font-black text-black border border-black/5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <div className="mt-1.5 px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-full text-[10px] font-black text-black border border-black/5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {p.name}
                 </div>
               </div>
