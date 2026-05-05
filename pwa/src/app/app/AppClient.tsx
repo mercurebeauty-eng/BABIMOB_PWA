@@ -1280,7 +1280,7 @@ function AppPageContent() {
                 marginBottom: 24
               }}
             >
-              Voir le profil complet <Ic.ArrowRight s={18} />
+              Voir le profil complet <Ic.Arrow s={18} />
             </button>
 
             <div style={{ padding: '0 4px' }}>
