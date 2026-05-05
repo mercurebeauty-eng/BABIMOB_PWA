@@ -119,8 +119,9 @@ export function useMapPois({ logReach }: Options) {
     map.on('moveend', loadPois);
     
     // On force un premier chargement avec un petit délai pour laisser les bounds se stabiliser
-    setTimeout(loadPois, 500);
-    setTimeout(loadPois, 2000); // Second attempt if style was slow
+    setTimeout(loadPois, 100);
+    setTimeout(loadPois, 1000);
+    setTimeout(loadPois, 3000); 
   // stable — all mutable values accessed via refs
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

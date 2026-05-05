@@ -1216,17 +1216,24 @@ function AppPageContent() {
       <AnimatePresence>
         {previewPlace && (
           <motion.div
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.1}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) setPreviewPlace(null);
+            }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0,
-              zIndex: 9000, padding: '20px 20px 100px', // padding bottom pour laisser la place au BottomNav
+              zIndex: 9000, padding: '20px 20px 100px',
               background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(10px)',
               borderTopLeftRadius: 32, borderTopRightRadius: 32,
               boxShadow: '0 -10px 40px rgba(0,0,0,0.1)',
+              touchAction: 'none'
             }}
           >
             {/* Barre de saisie style "iOS handle" */}
@@ -1280,10 +1287,10 @@ function AppPageContent() {
 
             <button 
               onClick={() => {
-                const isOSM = previewPlace.source.startsWith('osm');
+                const isOSM = previewPlace.source === 'osm' || previewPlace.id.toString().startsWith('osm-');
                 const url = isOSM
                   ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}&emoji=${encodeURIComponent(previewPlace.emoji || '📍')}`
-                  : `/app/place/${previewPlace.id}`;
+                  : `/app/place/${previewPlace.id.toString().replace('sp-', '')}`;
                 router.push(url);
                 setPreviewPlace(null);
               }}
