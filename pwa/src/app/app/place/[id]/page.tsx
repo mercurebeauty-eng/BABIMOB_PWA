@@ -33,7 +33,7 @@ export default async function PlacePage({ params, searchParams }: Props) {
   const sParams = await searchParams;
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isOSM = id.startsWith('osm-');
+  const isOSM = id.startsWith('osm-') || id.startsWith('nominatim-');
   
   let place: any = null;
   let offers: any[] = [];
