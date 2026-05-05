@@ -361,14 +361,14 @@ export default function MapModern({
             type="symbol"
             filter={['!', ['has', 'point_count']]}
             layout={{
-              'icon-image': ['get', 'logo_emoji'], // Nécessite que les emojis soient des images chargées dans le style, sinon on utilise du texte
               'text-field': ['get', 'logo_emoji'],
-              'text-size': 14,
-              'icon-allow-overlap': true,
-              'text-allow-overlap': true
+              'text-size': ['interpolate', ['linear'], ['zoom'], 12, 14, 18, 22],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+              'text-padding': 0
             }}
             paint={{
-              'text-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 15, 1]
+              'text-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0, 12, 1]
             }}
           />
         </Source>

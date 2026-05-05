@@ -433,6 +433,7 @@ function AppPageContent() {
         recenterSignal={recenterSignal}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => {
+          setSelectedPoi(poi);
           setPreviewPlace({
             id: poi.id,
             name: poi.name,
@@ -442,6 +443,7 @@ function AppPageContent() {
             commune: poi.commune,
             source: poi.source === 'osm' ? 'osm' : 'supabase'
           });
+          setSheet('peek');
         }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
@@ -666,7 +668,9 @@ function AppPageContent() {
                         e.stopPropagation();
                         setSelectedPoi(null); 
                         setSelected(null); 
+                        setPreviewPlace(null);
                         if (typeof setActiveItinerary === 'function') setActiveItinerary(null);
+                        setSheet('mini');
                       }} 
                       style={{ 
                         width: 36, 
@@ -691,9 +695,13 @@ function AppPageContent() {
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 120px' }}>
               {selectedPoi ? (
                 <div>
-                  {selectedPoi.place_id ? (
+                  {selectedPoi.id ? (
                     <Link
-                      href={`/app/place/${encodeURIComponent(selectedPoi.place_id)}`}
+                      href={
+                        selectedPoi.source === 'osm'
+                          ? `/app/place/${selectedPoi.id}?name=${encodeURIComponent(selectedPoi.name)}&lat=${selectedPoi.lat}&lon=${selectedPoi.lon}&emoji=${encodeURIComponent(selectedPoi.logo_emoji)}`
+                          : `/app/place/${selectedPoi.id.replace('sp-', '')}`
+                      }
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                         height: 52, background: 'var(--orange)', color: '#fff',
@@ -705,8 +713,7 @@ function AppPageContent() {
                       }}
                       className="press"
                     >
-                      Voir le profil complet
-                      <Ic.Arrow s={18} />
+                      Voir le profil complet <Ic.Arrow s={18} />
                     </Link>
                   ) : (
                     <div style={{

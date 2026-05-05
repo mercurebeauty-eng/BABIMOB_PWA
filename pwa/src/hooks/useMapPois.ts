@@ -36,38 +36,48 @@ export function useMapPois({ logReach }: Options) {
 
   const handleMapReady = useCallback((map: MapLibreMap) => {
     mapRef.current = map;
-
-    // Remove any previously attached listener before re-attaching
-    if (moveListenerRef.current) {
-      map.off('moveend', moveListenerRef.current);
-    }
+    console.log("🗺️ MapReady in useMapPois");
 
     const loadPois = async () => {
-      if (!map.getStyle()) return; // Carte pas encore prête
+      if (!map.getStyle()) {
+        console.warn("⚠️ Map style not ready, skipping POI load");
+        return;
+      }
       
       const b = map.getBounds();
-      if (!b || !b.getSouth()) return; // Bounds invalides
+      if (!b || !b.getSouth()) {
+        console.warn("⚠️ Map bounds not ready, skipping POI load");
+        return;
+      }
 
-      const mod = await import('@/lib/poi');
-      
+      console.log(`🔍 Loading POIs for bounds: S:${b.getSouth()} N:${b.getNorth()} W:${b.getWest()} E:${b.getEast()}`);
+
       try {
+        const mod = await import('@/lib/poi');
         const fetchedPois = await mod.fetchNearbyPOIs(
           b.getSouth(), b.getNorth(), b.getWest(), b.getEast()
         );
         
+        console.log(`✅ Fetched ${fetchedPois?.length || 0} POIs from hybrid source`);
+
         if (fetchedPois && fetchedPois.length > 0) {
           setPois(fetchedPois);
+        } else {
+          console.warn("⚠️ No POIs found in this area");
         }
 
         const placeIds = fetchedPois.length > 0 ? fetchedPois.map((p) => p.id) : pois.map(p => p.id);
         if (placeIds.length === 0) return;
 
+        // Stats & Live
         const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
-        const { data: checkinsData } = await supabase
+        const { data: checkinsData, error: errC } = await supabase
           .from('checkins')
           .select('place_id')
           .in('place_id', placeIds)
           .gte('created_at', since7d);
+
+        if (errC) console.error("❌ Error fetching checkins:", errC);
 
         if (checkinsData) {
           const counts: Record<string, number> = {};
@@ -78,12 +88,14 @@ export function useMapPois({ logReach }: Options) {
         }
 
         const since3h = new Date(Date.now() - 3 * 3600000).toISOString();
-        const { data: liveData } = await supabase
+        const { data: liveData, error: errL } = await supabase
           .from('checkins')
           .select('place_id, place_name, profile:profiles(id, display_name, is_public_visits)')
           .in('place_id', placeIds)
           .gte('created_at', since3h)
           .order('created_at', { ascending: false });
+
+        if (errL) console.error("❌ Error fetching live checkins:", errL);
 
         if (liveData) {
           const raw = liveData as unknown as RawLiveCheckin[];
@@ -97,20 +109,18 @@ export function useMapPois({ logReach }: Options) {
           })).slice(0, 5);
 
           setLiveTickerFeed(filteredTicker);
-          filteredTicker.forEach((d) => {
-            const uid = d.profile?.id;
-            if (uid) logReachRef.current(uid, 'ticker');
-          });
         }
       } catch (err) {
-        console.error("Failed to load POIs:", err);
-        // On ne fait rien, on garde les anciens POIs
+        console.error("❌ Failed to load POIs process:", err);
       }
     };
 
     moveListenerRef.current = loadPois;
     map.on('moveend', loadPois);
-    loadPois();
+    
+    // On force un premier chargement avec un petit délai pour laisser les bounds se stabiliser
+    setTimeout(loadPois, 500);
+    setTimeout(loadPois, 2000); // Second attempt if style was slow
   // stable — all mutable values accessed via refs
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
