@@ -433,22 +433,15 @@ function AppPageContent() {
         recenterSignal={recenterSignal}
         onStopClick={handleSelectStop}
         onPoiClick={(poi) => {
-          if (poi.place_id) {
-            addToRecent({
-              id: poi.place_id,
-              name: poi.name,
-              type: 'place',
-              commune: poi.commune ?? undefined,
-              lat: poi.lat,
-              lon: poi.lon,
-              logo: poi.logo_emoji,
-            });
-            router.push(`/app/place/${encodeURIComponent(poi.place_id)}`);
-          } else {
-            setSelectedPoi(poi);
-            setSelected(null);
-            setSheet('half');
-          }
+          setPreviewPlace({
+            id: poi.id,
+            name: poi.name,
+            lat: poi.lat,
+            lon: poi.lon,
+            emoji: poi.logo_emoji,
+            commune: poi.commune,
+            source: poi.source === 'osm' ? 'osm' : 'supabase'
+          });
         }}
         onMapReady={handleMapReady}
         userLocation={userLoc}
@@ -1264,8 +1257,9 @@ function AppPageContent() {
 
             <button 
               onClick={() => {
-                const url = previewPlace.source === 'osm' 
-                  ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}`
+                const isOSM = previewPlace.source.startsWith('osm');
+                const url = isOSM
+                  ? `/app/place/${previewPlace.id}?lat=${previewPlace.lat}&lon=${previewPlace.lon}&name=${encodeURIComponent(previewPlace.name)}&emoji=${encodeURIComponent(previewPlace.emoji || '📍')}`
                   : `/app/place/${previewPlace.id}`;
                 router.push(url);
                 setPreviewPlace(null);
