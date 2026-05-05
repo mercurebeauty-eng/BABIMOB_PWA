@@ -72,6 +72,8 @@ function AppPageContent() {
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [center, setCenter] = useState<[number, number]>(ABIDJAN_CENTER);
+  const [zoom, setZoom] = useState(13);
   const [previewPlace, setPreviewPlace] = useState<any>(null);
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const [selected, setSelected] = useState<Stop | null>(null);
