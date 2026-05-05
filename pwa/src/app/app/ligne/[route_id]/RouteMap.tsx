@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useMemo, useRef } from 'react';
+import Map, { Source, Layer, Marker, MapRef } from 'react-map-gl/maplibre';
 
 type ShapePoint = { shape_pt_lat: number; shape_pt_lon: number };
 type RouteStop = {
@@ -18,135 +17,120 @@ type Props = {
   stops: RouteStop[];
   routeColor?: string;
   isSegmented: boolean;
+  // Optionnel: si on veut passer le tracé complet pour le segment "passé"
+  fullShape?: ShapePoint[]; 
 };
 
+const ABIDJAN_CENTER = { latitude: 5.345, longitude: -4.020 };
+
 export default function RouteMap({ shape, stops, routeColor = '1565c0', isSegmented }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<L.Map | null>(null);
-  const layersRef    = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<MapRef>(null);
+  
+  // GeoJSON pour le tracé principal (actif)
+  const shapeGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: [{
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: shape.map(p => [p.shape_pt_lon, p.shape_pt_lat])
+      },
+      properties: {}
+    }]
+  }), [shape]);
 
-  // ── Créer la carte UNE SEULE FOIS au montage ──────────────────────
+  // Fit bounds
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-
-    const map = L.map(containerRef.current, {
-      scrollWheelZoom: false,
-      zoomControl: false,
-      attributionControl: false,
-    });
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 20,
-    }).addTo(map);
-
-    const layers = L.layerGroup().addTo(map);
-
-    mapRef.current  = map;
-    layersRef.current = layers;
-
-    // ── Localisation de l'utilisateur ──
-    map.locate({ watch: true, enableHighAccuracy: true });
+    if (!mapRef.current) return;
+    const map = mapRef.current.getMap();
     
-    let userMarker: L.Marker | null = null;
-    map.on('locationfound', (e) => {
-      if (!userMarker) {
-        userMarker = L.marker(e.latlng, {
-          icon: L.divIcon({
-            className: '',
-            html: `<div style="width:16px;height:16px;border-radius:50%;background:var(--blue, #1E5BFF);border:3px solid #fff;box-shadow:0 0 0 4px rgba(30,91,255,0.3), 0 4px 10px rgba(0,0,0,0.2)"></div>`,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          })
-        }).addTo(map);
-      } else {
-        userMarker.setLatLng(e.latlng);
-      }
-    });
-
-    return () => {
-      map.stopLocate();
-      map.remove();
-      mapRef.current    = null;
-      layersRef.current = null;
-    };
-  }, []); // vide → exécuté une seule fois
-
-  // ── Mettre à jour les couches sans recréer la carte ───────────────
-  // Se déclenche à chaque changement de tracé, d'arrêts ou de mode
-  useEffect(() => {
-    const map    = mapRef.current;
-    const layers = layersRef.current;
-    if (!map || !layers) return;
-
-    // Effacer toutes les couches précédentes
-    layers.clearLayers();
-
-    const color     = `#${routeColor}`;
-    const lineColor = isSegmented ? '#E8B23C' : color; // gold si segmenté
-
-    // ── Tracé de la ligne ──
-    if (shape.length > 1) {
-      const latlngs = shape.map((p) => [p.shape_pt_lat, p.shape_pt_lon] as [number, number]);
-
-      L.polyline(latlngs, {
-        color: lineColor,
-        weight: 5,
-        opacity: isSegmented ? 1 : 0.85,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }).addTo(layers);
-
-      // fitBounds avec padding asymétrique pour pousser le tracé vers le haut
-      // et laisser de la place à la liste en dessous
-      const bounds = L.latLngBounds(latlngs);
-      map.fitBounds(bounds, {
-        paddingTopLeft:     [20, 16],
-        paddingBottomRight: [20, 48],
-        animate: false,
-        maxZoom: 15,
+    if (shape.length > 0) {
+      const lons = shape.map(p => p.shape_pt_lon);
+      const lats = shape.map(p => p.shape_pt_lat);
+      map.fitBounds([Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)], {
+        padding: { top: 40, bottom: 80, left: 40, right: 40 },
+        duration: 1000
       });
-    } else if (stops.length > 0) {
-      // Pas de shape : centrer sur les arrêts disponibles
-      const lls = stops.map((s) => [s.stop_lat, s.stop_lon] as [number, number]);
-      map.fitBounds(L.latLngBounds(lls), { padding: [40, 40], animate: false });
     }
+  }, [shape]);
 
-    // ── Marqueurs des arrêts ──
-    stops.forEach((stop, idx) => {
-      const isFirst    = idx === 0;
-      const isLast     = idx === stops.length - 1;
-      const isEndpoint = isFirst || isLast;
-
-      // Départ = Bleu, Arrivée = Vert (identique à la timeline)
-      const bg   = isFirst ? '#1E5BFF' : isLast ? '#0EA85B' : '#ffffff';
-      const size = isEndpoint ? 16 : 8;
-
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:2px solid ${lineColor};box-shadow:0 2px 6px rgba(0,0,0,0.2)"></div>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-      });
-
-      const marker = L.marker([stop.stop_lat, stop.stop_lon], { icon }).addTo(layers);
-      
-      // Infobulle stylisée
-      marker.bindTooltip(`
-        <div style="font-family: var(--font-display, sans-serif); font-weight: 800; font-size: 13px; color: var(--ink, #1a1a1a);">
-          ${stop.stop_name}
-        </div>
-      `, {
-        direction: 'top',
-        offset: [0, -size / 2],
-        className: 'custom-leaflet-tooltip',
-      });
-    });
-  }, [shape, stops, routeColor, isSegmented]);
+  const color = `#${routeColor}`;
+  // Si segmenté, on utilise une couleur "focus" (Gold) pour le segment sélectionné
+  const lineColor = isSegmented ? '#E8B23C' : color;
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ width: '100%', height: '100%', background: 'var(--cream)' }}>
+      <Map
+        ref={mapRef}
+        initialViewState={{
+          longitude: ABIDJAN_CENTER.longitude,
+          latitude: ABIDJAN_CENTER.latitude,
+          zoom: 12
+        }}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        style={{ width: '100%', height: '100%' }}
+        attributionControl={false}
+      >
+        {/* Tracé de la ligne */}
+        {shape.length > 1 && (
+          <Source id="route-shape" type="geojson" data={shapeGeoJSON}>
+            <Layer
+              id="route-line-casing"
+              type="line"
+              paint={{
+                'line-color': '#fff',
+                'line-width': 7,
+                'line-opacity': 0.3
+              }}
+            />
+            <Layer
+              id="route-line"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{
+                'line-color': lineColor,
+                'line-width': 5,
+                'line-opacity': 1
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Marqueurs d'arrêts */}
+        {stops.map((stop, idx) => {
+          const isFirst = idx === 0;
+          const isLast = idx === stops.length - 1;
+          
+          // Style des arrêts : Départ (Bleu), Arrivée (Vert), Intermédiaire (Blanc)
+          const bg = isFirst ? '#1E5BFF' : isLast ? '#0EA85B' : '#ffffff';
+          const size = (isFirst || isLast) ? 14 : 8;
+          const zIndex = (isFirst || isLast) ? 10 : 5;
+
+          return (
+            <Marker
+              key={`${stop.stop_id}-${idx}`}
+              longitude={stop.stop_lon}
+              latitude={stop.stop_lat}
+              anchor="center"
+              style={{ zIndex }}
+            >
+              <div style={{
+                width: size, height: size,
+                borderRadius: '50%',
+                background: bg,
+                border: `2px solid ${lineColor}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                 {/* Petit point interne pour les terminus */}
+                 {(isFirst || isLast) && <div style={{ width: 4, height: 4, background: '#fff', borderRadius: '50%' }} />}
+              </div>
+            </Marker>
+          );
+        })}
+      </Map>
     </div>
   );
 }
