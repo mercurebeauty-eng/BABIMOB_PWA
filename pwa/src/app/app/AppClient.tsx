@@ -402,6 +402,21 @@ function AppPageContent() {
     ? [selected]
     : nearbyStops; // Déjà limité à 5
 
+  const nearbyStopsToPoi = useMemo(() => {
+    if (!selectedPoi) return [];
+    return stops
+      .map(s => ({
+        ...s,
+        distance: Math.sqrt(
+          Math.pow((s.stop_lat - selectedPoi.lat) * 111000, 2) +
+          Math.pow((s.stop_lon - selectedPoi.lon) * 111000 * Math.cos(s.stop_lat * Math.PI / 180), 2)
+        )
+      }))
+      .filter(s => s.distance < 1000) 
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+  }, [selectedPoi, stops]);
+
   const handleSelectStop = useCallback((stop: Stop) => {
     setIsGlobalLoading(true);
     addToRecent({ 
@@ -758,12 +773,30 @@ function AppPageContent() {
                          {isDiscoveryMode ? '🧭' : selectedPoi ? (selectedPoi.logo_emoji || '📍') : activeItinerary ? '🗺️' : '🚌'}
                       </div>
                       <div>
-                        <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
-                          {isDiscoveryMode ? 'Découvre Abidjan' : selectedPoi ? selectedPoi.name : activeItinerary ? 'Ton trajet' : selected?.stop_name}
-                        </h2>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>
-                          {isDiscoveryMode ? 'Sélection aléatoire' : selectedPoi ? (selectedPoi.commune || 'Abidjan') : activeItinerary ? 'Itinéraire optimisé' : (selected?.commune || 'Abidjan')}
-                        </div>
+                        <button 
+                          onClick={() => {
+                            if (selectedPoi) {
+                              setIsGlobalLoading(true);
+                              const isOSM = selectedPoi.source === 'osm' || 
+                                            selectedPoi.id.toString().startsWith('osm-');
+                              const url = isOSM
+                                ? `/app/place/${selectedPoi.id}?lat=${selectedPoi.lat}&lon=${selectedPoi.lon}&name=${encodeURIComponent(selectedPoi.name)}&emoji=${encodeURIComponent(selectedPoi.logo_emoji || '📍')}`
+                                : `/app/place/${selectedPoi.place_id || selectedPoi.id.toString().replace('sp-', '')}`;
+                              router.push(url);
+                            } else if (selected) {
+                              const safeId = encodeURIComponent(selected.stop_id);
+                              router.push(`/app/arret/${safeId}`);
+                            }
+                          }}
+                          style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                        >
+                          <h2 style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
+                            {isDiscoveryMode ? 'Découvre Abidjan' : selectedPoi ? selectedPoi.name : activeItinerary ? 'Ton trajet' : selected?.stop_name}
+                          </h2>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>
+                            {isDiscoveryMode ? 'Sélection aléatoire' : selectedPoi ? (selectedPoi.commune || 'Abidjan') : activeItinerary ? 'Itinéraire optimisé' : (selected?.commune || 'Abidjan')}
+                          </div>
+                        </button>
                       </div>
                    </div>
                     <button 
@@ -846,7 +879,7 @@ function AppPageContent() {
                 </div>
               ) : selectedPoi ? (
                 <div>
-                  {selectedPoi.id ? (<>
+                  <>
                     <button
                       onClick={() => {
                         setIsGlobalLoading(true);
@@ -872,37 +905,55 @@ function AppPageContent() {
                       Voir le profil complet <Ic.Arrow s={18} />
                     </button>
 
-                    {isDiscoveryMode && (
-                      <button
-                        onClick={handleNextDiscovery}
-                        className="press"
-                        style={{
-                          width: '100%', height: 52, background: 'var(--ink)', color: '#fff',
-                          fontWeight: 900, borderRadius: 18, fontSize: 13,
-                          textTransform: 'uppercase', letterSpacing: 1.2,
-                          border: 'none', cursor: 'pointer', marginBottom: 24
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+                      <button 
+                        onClick={() => {
+                          setIsGlobalLoading(true);
+                          // Logique check-in simplifiée pour démo ou réelle si table prête
+                          setTimeout(() => setIsGlobalLoading(false), 800);
                         }}
+                        style={{ flex: 1, height: 44, background: 'var(--ink)', color: '#fff', fontWeight: 800, borderRadius: 14, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                       >
-                        Suivant <Ic.Arrow s={18} />
+                        <Ic.Map s={16} /> J'y suis
                       </button>
-                    )}
-                  </> )
-                  : (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '14px 18px', background: 'rgba(0,0,0,0.04)',
-                      borderRadius: 18, marginBottom: 24,
-                      color: 'var(--muted)',
-                    }}>
-                      <span style={{ fontSize: 18 }}>{selectedPoi.logo_emoji}</span>
-                      <div style={{ flex: 1, fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>
-                        Lieu OpenStreetMap · {selectedPoi.subcategory ?? selectedPoi.category}
-                        <div style={{ fontSize: 10, fontWeight: 600, marginTop: 2, opacity: 0.85 }}>
-                          Pas encore de profil détaillé.
+                      {isDiscoveryMode && (
+                        <button
+                          onClick={handleNextDiscovery}
+                          className="press"
+                          style={{
+                            width: 44, height: 44, background: 'var(--cream)', color: 'var(--ink)',
+                            borderRadius: 14, border: '1px solid var(--line)', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <Ic.Arrow s={20} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Transports à proximité du lieu */}
+                    {nearbyStopsToPoi.length > 0 && (
+                      <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 20, padding: 16, marginBottom: 24 }}>
+                        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Transports à proximité</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {nearbyStopsToPoi.map((st, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleSelectStop(st)}
+                              style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', padding: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                            >
+                              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--cream)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🚌</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{st.stop_name}</div>
+                                <div style={{ fontSize: 10, color: 'var(--muted)' }}>À environ {Math.round(st.distance)}m</div>
+                              </div>
+                              <Ic.Arrow s={14} color="var(--line)" />
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </>
 
                   {/* Infos Promo / Campagne */}
                   {selectedPoi.has_campaign && (
@@ -1279,15 +1330,16 @@ function AppPageContent() {
                                 source: isOSM ? 'osm' : 'supabase'
                               });
 
-                              setPreviewPlace({
+                              setSelectedPoi({
                                 id: fullId,
                                 place_id: isOSM ? undefined : r.id,
                                 name: r.name,
                                 lat: r.lat, lon: r.lon,
-                                emoji: r.logo || '📍',
+                                logo_emoji: r.logo || '📍',
                                 commune: r.commune,
                                 source: isOSM ? 'osm' : 'supabase'
                               });
+                              setSheet('half');
 
                             } else {
                               addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
