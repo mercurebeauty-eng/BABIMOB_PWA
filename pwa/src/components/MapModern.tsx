@@ -40,6 +40,7 @@ type Props = {
   onMapReady?: (map: any) => void;
   pinnedSearch?: PinnedSearch | null;
   onPinnedSearchClear?: () => void;
+  children?: React.ReactNode;
 };
 
 export default function MapModern({
@@ -66,6 +67,7 @@ export default function MapModern({
   onMapReady,
   pinnedSearch = null,
   onPinnedSearchClear,
+  children
 }: Props & { 
   legs?: { coords: [number, number][]; mode?: string; routeColor?: string }[];
   explorers?: any[];
@@ -244,6 +246,7 @@ export default function MapModern({
         }}
         interactiveLayerIds={['stops-clusters', 'poi-clusters']}
       >
+        {children}
         {/* ITINÉRAIRES (TRACÉS VECTORIELS) */}
         {legs.length > 0 && (
           <Source id="legs-source" type="geojson" data={legsGeoJSON}>
