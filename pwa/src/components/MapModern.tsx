@@ -10,6 +10,15 @@ import { Stop } from '@/lib/types';
 const MAP_STYLE_VECTOR = 'https://tiles.openfreemap.org/styles/liberty';
 const ABIDJAN_CENTER = { latitude: 5.345, longitude: -4.020 };
 
+export type PinnedSearch = {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  emoji?: string;
+  subtitle?: string;
+};
+
 type Props = {
   stops?: Stop[];
   center?: [number, number];
@@ -28,6 +37,8 @@ type Props = {
   poiCheckins?: any;
   livePois?: any[];
   onMapReady?: (map: any) => void;
+  pinnedSearch?: PinnedSearch | null;
+  onPinnedSearchClear?: () => void;
 };
 
 export default function MapModern({
@@ -50,8 +61,10 @@ export default function MapModern({
   legs = [],
   explorers = [],
   broadcasts = [],
-  onMapReady
-}: Props & { 
+  onMapReady,
+  pinnedSearch = null,
+  onPinnedSearchClear,
+}: Props & {
   legs?: { coords: [number, number][]; mode?: string; routeColor?: string }[];
   explorers?: any[];
   broadcasts?: any[];
@@ -307,6 +320,38 @@ export default function MapModern({
             </Marker>
           );
         })}
+
+        {/* MARQUEUR ÉPINGLÉ (résultat de recherche OSM) */}
+        {pinnedSearch && (
+          <Marker
+            longitude={pinnedSearch.lon}
+            latitude={pinnedSearch.lat}
+            anchor="bottom"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              onPinnedSearchClear?.();
+            }}
+          >
+            <div className="flex flex-col items-center cursor-pointer">
+              <div
+                className="px-2.5 py-1 mb-1 bg-white rounded-lg shadow-lg whitespace-nowrap border-2 border-orange-500"
+                style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink)' }}
+              >
+                {pinnedSearch.emoji ? <span style={{ marginRight: 4 }}>{pinnedSearch.emoji}</span> : null}
+                {pinnedSearch.name}
+              </div>
+              <svg width="32" height="42" viewBox="0 0 32 42" fill="none">
+                <path
+                  d="M16 0C7.16 0 0 7.16 0 16c0 11 16 26 16 26s16-15 16-26C32 7.16 24.84 0 16 0z"
+                  fill="#F26C1A"
+                  stroke="#fff"
+                  strokeWidth="2"
+                />
+                <circle cx="16" cy="16" r="6" fill="#fff" />
+              </svg>
+            </div>
+          </Marker>
+        )}
 
         <NavigationControl position="bottom-right" showCompass={false} />
       </Map>

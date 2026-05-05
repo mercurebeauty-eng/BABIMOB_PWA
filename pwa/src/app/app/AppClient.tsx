@@ -106,12 +106,13 @@ function AppPageContent() {
     });
   }, []);
 
-  const { 
-    pois, 
-    poiCheckins, 
-    livePois, 
-    liveTickerFeed, 
+  const {
+    pois,
+    poiCheckins,
+    livePois,
+    liveTickerFeed,
     handleMapReady,
+    mapRef,
     userLoc,
     userHeading,
     nearbyStops: allNearbyStops,
@@ -127,6 +128,13 @@ function AppPageContent() {
     setActiveItinerary,
     nearbyTransport: allNearbyTransport,
   } = useDataStore();
+
+  /**
+   * Lieu épinglé suite à une recherche OSM (queryRenderedFeatures ou Nominatim).
+   * Pas en BDD → on l'affiche via un marker temporaire et on flyTo dessus.
+   */
+  type PinnedSearch = { id: string; name: string; lat: number; lon: number; emoji?: string; subtitle?: string };
+  const [pinnedSearch, setPinnedSearch] = useState<PinnedSearch | null>(null);
 
   const nearbyStops = useMemo(() => allNearbyStops.slice(0, 5), [allNearbyStops]);
   const selectedStopList = useMemo(() => {
@@ -150,7 +158,7 @@ function AppPageContent() {
     results,
     searching: isSearching,
     clear: clearSearch,
-  } = useStopSearch();
+  } = useStopSearch({ mapRef });
 
   const handleGetDirections = useCallback((target: { name: string; lat: number; lon: number }) => {
     router.push(`/app/itineraire?toStop=${encodeURIComponent(JSON.stringify({
@@ -405,6 +413,8 @@ function AppPageContent() {
         poiCheckins={poiCheckins}
         livePois={livePois}
         broadcasts={broadcasts}
+        pinnedSearch={pinnedSearch}
+        onPinnedSearchClear={() => setPinnedSearch(null)}
       />
 
       {/* ── Top Floating Badge (Minimalist) ── */}
@@ -941,53 +951,84 @@ function AppPageContent() {
                     Résultats · {results.length}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {results.map((r) => (
-                      <button
-                        key={`${r.type}-${r.id}`}
-                        onClick={() => {
-                          closeSearch();
-                          if (r.type === 'place') {
-                            addToRecent({ id: r.id, name: r.name, type: 'place', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon, logo: r.logo });
-                            router.push(`/app/place/${encodeURIComponent(r.id)}`);
-                          } else {
-                            addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
-                            router.push(`/app/arret/${encodeURIComponent(r.id)}`);
-                          }
-                        }}
-                        className="press"
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 12,
-                          width: '100%', textAlign: 'left',
-                          padding: '12px 14px', background: 'var(--cream)',
-                          border: '1px solid var(--line)', borderRadius: 14, cursor: 'pointer',
-                        }}
-                      >
-                        <div style={{
-                          width: 36, height: 36, borderRadius: 10,
-                          background: r.type === 'place' ? 'var(--orange-pale)' : 'var(--cream-2)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          {r.type === 'place'
-                            ? <span style={{ fontSize: 18 }}>{r.logo ?? '📍'}</span>
-                            : <Ic.Bus s={18} color="var(--orange)" />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {r.name}
+                    {results.map((r) => {
+                      const isOSM = r.source === 'osm-map' || r.source === 'osm-nominatim';
+                      const badgeLabel = isOSM ? 'OSM' : (r.type === 'place' ? 'Lieu' : 'Arrêt');
+                      const badgeColor = isOSM
+                        ? 'var(--ink-2)'
+                        : (r.type === 'place' ? 'var(--orange)' : 'var(--ink-2)');
+                      return (
+                        <button
+                          key={`${r.source}-${r.id}`}
+                          onClick={() => {
+                            // OSM: pas de page détail BDD → on épingle + flyTo
+                            if (isOSM) {
+                              setPinnedSearch({
+                                id: r.id,
+                                name: r.name,
+                                lat: r.lat,
+                                lon: r.lon,
+                                emoji: r.logo,
+                                subtitle: r.subtitle ?? r.commune ?? undefined,
+                              });
+                              mapRef.current?.flyTo({
+                                center: [r.lon, r.lat],
+                                zoom: 17,
+                                duration: 1400,
+                              });
+                              addToRecent({
+                                id: r.id, name: r.name, type: 'place',
+                                commune: r.commune ?? undefined,
+                                lat: r.lat, lon: r.lon, logo: r.logo,
+                              });
+                              closeSearch();
+                              return;
+                            }
+
+                            closeSearch();
+                            if (r.type === 'place') {
+                              addToRecent({ id: r.id, name: r.name, type: 'place', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon, logo: r.logo });
+                              router.push(`/app/place/${encodeURIComponent(r.id)}`);
+                            } else {
+                              addToRecent({ id: r.id, name: r.name, type: 'stop', commune: r.commune ?? undefined, lat: r.lat, lon: r.lon });
+                              router.push(`/app/arret/${encodeURIComponent(r.id)}`);
+                            }
+                          }}
+                          className="press"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            width: '100%', textAlign: 'left',
+                            padding: '12px 14px', background: 'var(--cream)',
+                            border: '1px solid var(--line)', borderRadius: 14, cursor: 'pointer',
+                          }}
+                        >
+                          <div style={{
+                            width: 36, height: 36, borderRadius: 10,
+                            background: r.type === 'place' ? 'var(--orange-pale)' : 'var(--cream-2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            {r.type === 'place'
+                              ? <span style={{ fontSize: 18 }}>{r.logo ?? '📍'}</span>
+                              : <Ic.Bus s={18} color="var(--orange)" />}
                           </div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
-                            {r.commune ?? (r.type === 'place' ? 'Lieu' : 'Arrêt')}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.name}
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.subtitle ?? r.commune ?? (r.type === 'place' ? 'Lieu' : 'Arrêt')}
+                            </div>
                           </div>
-                        </div>
-                        <div style={{
-                          fontSize: 9, fontWeight: 800, color: r.type === 'place' ? 'var(--orange)' : 'var(--ink-2)',
-                          textTransform: 'uppercase', letterSpacing: 0.6,
-                        }}>
-                          {r.type === 'place' ? 'Lieu' : 'Arrêt'}
-                        </div>
-                      </button>
-                    ))}
+                          <div style={{
+                            fontSize: 9, fontWeight: 800, color: badgeColor,
+                            textTransform: 'uppercase', letterSpacing: 0.6,
+                          }}>
+                            {badgeLabel}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}

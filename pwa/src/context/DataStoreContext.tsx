@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { MutableRefObject } from 'react';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import { createClient } from '@/lib/supabase/client';
 import type { POI } from '@/lib/poi';
 import type { ArretProche } from '@/lib/types';
@@ -31,6 +33,7 @@ interface DataStoreContextType {
   loading: boolean;
   locateMe: () => void;
   handleMapReady: (map: any) => void;
+  mapRef: MutableRefObject<MapLibreMap | null>;
   geoLoading: boolean;
   activeItinerary: any;
   setActiveItinerary: (it: any) => void;
@@ -55,7 +58,7 @@ export function DataStoreProvider({ children }: { children: React.ReactNode }) {
   });
 
   // POIs & Map Data
-  const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady } = useMapPois({ logReach });
+  const { pois, poiCheckins, livePois, liveTickerFeed, handleMapReady, mapRef } = useMapPois({ logReach });
   
   // Hotspots
   const { heatMode, setHeatMode, hotspots } = useHotspots();
@@ -84,6 +87,7 @@ export function DataStoreProvider({ children }: { children: React.ReactNode }) {
     loading: geoLoading,
     locateMe,
     handleMapReady,
+    mapRef,
     geoLoading,
     activeItinerary,
     setActiveItinerary,
