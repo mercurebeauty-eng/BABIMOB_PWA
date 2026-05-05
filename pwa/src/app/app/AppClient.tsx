@@ -2,7 +2,7 @@
 
 import NextDynamic from 'next/dynamic';
 import Image from 'next/image';
-import React, { useState, useCallback, Suspense, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import type { Stop } from '@/lib/types';
 import type { POI } from '@/lib/poi';
