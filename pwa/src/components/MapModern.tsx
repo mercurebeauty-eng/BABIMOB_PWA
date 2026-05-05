@@ -391,7 +391,7 @@ export default function MapModern({
             longitude={userLocation[1]}
             latitude={userLocation[0]}
             anchor="center"
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: 100 }}
           >
             <div className="relative flex items-center justify-center" style={{ width: 40, height: 40 }}>
               {/* Halo pulsant externe */}
