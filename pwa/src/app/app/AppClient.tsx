@@ -115,6 +115,7 @@ function AppPageContent() {
     mapRef,
     userLoc,
     userHeading,
+    userAccuracy,
     nearbyStops: allNearbyStops,
     loading: geoLoading,
     locateMe,
@@ -155,6 +156,19 @@ function AppPageContent() {
     return nearbyStops;
   }, [selected, nearbyStops]);
   const nearbyTransport = useNearbyTransport(selectedStopList);
+
+  const hasInitialCenter = useRef(false);
+
+  useEffect(() => {
+    if (userLoc && !hasInitialCenter.current && mapRef.current) {
+      hasInitialCenter.current = true;
+      mapRef.current.flyTo({
+        center: [userLoc[1], userLoc[0]],
+        zoom: 15,
+        duration: 3000
+      });
+    }
+  }, [userLoc]);
 
   const {
     query,
@@ -418,6 +432,7 @@ function AppPageContent() {
         onMapReady={handleMapReady}
         userLocation={userLoc}
         userHeading={userHeading}
+        userAccuracy={userAccuracy}
         legs={activeItinerary?.legs?.map((l: any) => ({ coords: l.coords ?? [], mode: l.mode, routeColor: l.routeColor }))}
         hotspots={heatMode ? hotspots : []}
         explorers={explorers}

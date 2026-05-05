@@ -29,6 +29,7 @@ type Props = {
   satellite?: boolean;
   userLocation?: [number, number] | null;
   userHeading?: number | null;
+  userAccuracy?: number | null;
   pois?: POI[];
   onStopClick?: (stop: any) => void;
   onPoiClick?: (poi: POI) => void;
@@ -51,6 +52,7 @@ export default function MapModern({
   satellite = false,
   userLocation = null,
   userHeading = null,
+  userAccuracy = null,
   pois = [],
   onStopClick,
   onPoiClick,
@@ -64,7 +66,7 @@ export default function MapModern({
   onMapReady,
   pinnedSearch = null,
   onPinnedSearchClear,
-}: Props & {
+}: Props & { 
   legs?: { coords: [number, number][]; mode?: string; routeColor?: string }[];
   explorers?: any[];
   broadcasts?: any[];
@@ -154,6 +156,27 @@ export default function MapModern({
       { id: 'satellite-layer', type: 'raster', source: 'satellite', minzoom: 0, maxzoom: 20 }
     ]
   }), []);
+
+  // Cercle de précision GPS — polygone 64 pts sans dépendance Turf
+  const accuracyGeoJSON = useMemo(() => {
+    if (!userLocation || !userAccuracy || userAccuracy < 5) return null;
+    const [lat, lon] = userLocation;
+    const n = 64;
+    const coords = Array.from({ length: n + 1 }, (_, i) => {
+      const angle = (i / n) * 2 * Math.PI;
+      const dLat = (userAccuracy * Math.cos(angle)) / 111111;
+      const dLon = (userAccuracy * Math.sin(angle)) / (111111 * Math.cos(lat * Math.PI / 180));
+      return [lon + dLon, lat + dLat];
+    });
+    return {
+      type: 'FeatureCollection' as const,
+      features: [{
+        type: 'Feature' as const,
+        geometry: { type: 'Polygon' as const, coordinates: [coords] },
+        properties: {},
+      }],
+    };
+  }, [userLocation, userAccuracy]);
 
   return (
     <div className={className} style={{ width: '100%', height: '100%', background: 'var(--cream)' }}>
@@ -260,34 +283,24 @@ export default function MapModern({
           </Marker>
         ))}
 
-        {/* MARQUEUR UTILISATEUR */}
-        {userLocation && (
-          <Marker longitude={userLocation[1]} latitude={userLocation[0]} anchor="center">
-            <div className="relative flex items-center justify-center">
-              {/* Halo pulsant */}
-              <div className="absolute w-8 h-8 bg-blue-500/30 rounded-full animate-ping" />
-              {/* Point central */}
-              <div className="w-5 h-5 bg-blue-600 border-[3px] border-white rounded-full shadow-[0_0_15px_rgba(30,91,255,0.8)] z-[2000]" />
-              {/* Direction (faisceau) */}
-              {userHeading !== null && (
-                <div 
-                  className="absolute w-16 h-24 pointer-events-none"
-                  style={{ 
-                    transform: `rotate(${userHeading}deg) translateY(-50%)`,
-                    background: 'radial-gradient(ellipse at bottom center, rgba(30, 91, 255, 0.4) 0%, transparent 70%)',
-                    clipPath: 'polygon(50% 100%, 0% 0%, 100% 0%)',
-                    bottom: '100%',
-                    filter: 'blur(4px)'
-                  }}
-                />
-              )}
-            </div>
-          </Marker>
-        )}
+        {/* MARQUEUR UTILISATEUR - Supprimé d'ici car on le déplace à la fin pour le z-index */}
 
-        {/* POIs standards */}
+        {/* POIs — Elite > Pro > Standard
+            Rendu AVANT le user marker pour que le point bleu passe toujours dessus */}
         {pois.map(p => {
           const isElite = p.sponsor_tier === 'elite';
+          const isPro   = p.sponsor_tier === 'pro';
+          const size    = isElite ? 36 : isPro ? 32 : 28;
+          const border  = isElite
+            ? '3px solid #FFD700'
+            : isPro
+              ? '2.5px solid #C0C0FF'
+              : '2px solid #fff';
+          const shadow  = isElite
+            ? '0 0 14px rgba(255,215,0,0.5), 0 4px 10px rgba(0,0,0,0.2)'
+            : isPro
+              ? '0 0 10px rgba(130,100,255,0.35), 0 4px 10px rgba(0,0,0,0.15)'
+              : '0 4px 10px rgba(0,0,0,0.18)';
           return (
             <Marker 
               key={p.id} 
@@ -299,19 +312,20 @@ export default function MapModern({
                 onPoiClick?.(p);
               }}
             >
-              <div className={`group flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-110`}>
-                <div 
-                  className="flex items-center justify-center shadow-lg"
-                  style={{ 
-                    width: isElite ? 36 : 28, 
-                    height: isElite ? 36 : 28, 
-                    background: p.cover_color || 'var(--orange)', 
-                    borderRadius: '50%', 
-                    border: isElite ? '3px solid #FFD700' : '2px solid #fff',
-                    boxShadow: isElite ? '0 0 15px rgba(255,215,0,0.4)' : '0 4px 10px rgba(0,0,0,0.2)'
+              <div className="group flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-110">
+                <div
+                  className="flex items-center justify-center"
+                  style={{
+                    width: size, height: size,
+                    background: p.cover_color || 'var(--orange)',
+                    borderRadius: '50%',
+                    border,
+                    boxShadow: shadow,
                   }}
                 >
-                  <span style={{ fontSize: isElite ? 18 : 14 }}>{p.logo_emoji || '📍'}</span>
+                  <span style={{ fontSize: isElite ? 18 : isPro ? 16 : 14 }}>
+                    {p.logo_emoji || '📍'}
+                  </span>
                 </div>
                 <div className="mt-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm rounded text-[10px] font-black text-black border border-black/5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {p.name}
@@ -354,6 +368,76 @@ export default function MapModern({
         )}
 
         <NavigationControl position="bottom-right" showCompass={false} />
+
+        {/* CERCLE DE PRÉCISION GPS (GeoJSON → scale avec le zoom, rendu sous le point bleu) */}
+        {accuracyGeoJSON && (
+          <Source id="accuracy-source" type="geojson" data={accuracyGeoJSON}>
+            <Layer
+              id="accuracy-fill"
+              type="fill"
+              paint={{ 'fill-color': '#1E5BFF', 'fill-opacity': 0.07 }}
+            />
+            <Layer
+              id="accuracy-stroke"
+              type="line"
+              paint={{ 'line-color': '#1E5BFF', 'line-width': 1.5, 'line-opacity': 0.25 }}
+            />
+          </Source>
+        )}
+
+        {/* MARQUEUR UTILISATEUR — rendu EN DERNIER pour passer au-dessus de tout */}
+        {userLocation && (
+          <Marker
+            longitude={userLocation[1]}
+            latitude={userLocation[0]}
+            anchor="center"
+            style={{ zIndex: 9999 }}
+          >
+            <div className="relative flex items-center justify-center" style={{ width: 40, height: 40 }}>
+              {/* Halo pulsant externe */}
+              <div
+                className="absolute rounded-full animate-ping"
+                style={{
+                  width: 36, height: 36,
+                  background: 'rgba(30, 91, 255, 0.22)',
+                  border: '1px solid rgba(30, 91, 255, 0.4)',
+                }}
+              />
+              {/* Wedge de direction — CSS triangle, pivote autour du centre */}
+              {userHeading !== null && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    width: 0, height: 0,
+                    borderLeft: '10px solid transparent',
+                    borderRight: '10px solid transparent',
+                    borderBottom: '28px solid rgba(30, 91, 255, 0.45)',
+                    bottom: '50%',
+                    left: '50%',
+                    marginLeft: '-10px',
+                    transformOrigin: '50% 100%',
+                    transform: `rotate(${userHeading}deg)`,
+                    filter: 'blur(2px)',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+              {/* Point central bleu vif */}
+              <div
+                style={{
+                  position: 'relative',
+                  width: 18, height: 18,
+                  background: '#1E5BFF',
+                  borderRadius: '50%',
+                  border: '3px solid #fff',
+                  boxShadow: '0 0 0 2px rgba(30,91,255,0.3), 0 4px 12px rgba(30,91,255,0.6)',
+                  zIndex: 2,
+                }}
+              />
+            </div>
+          </Marker>
+        )}
       </Map>
 
       <style jsx global>{`

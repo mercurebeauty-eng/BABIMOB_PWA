@@ -21,6 +21,7 @@ interface DataStoreContextType {
   liveTickerFeed: any[];
   userLoc: [number, number] | null;
   userHeading: number | null;
+  userAccuracy: number | null;
   nearbyStops: ArretProche[];
   heatMode: boolean;
   setHeatMode: (mode: boolean) => void;
@@ -49,6 +50,7 @@ export function DataStoreProvider({ children }: { children: React.ReactNode }) {
   const {
     userLoc,
     userHeading,
+    userAccuracy,
     nearbyStops,
     loading: geoLoading,
     locateMe,
@@ -79,6 +81,7 @@ export function DataStoreProvider({ children }: { children: React.ReactNode }) {
     liveTickerFeed,
     userLoc,
     userHeading,
+    userAccuracy,
     nearbyStops,
     heatMode,
     setHeatMode,
