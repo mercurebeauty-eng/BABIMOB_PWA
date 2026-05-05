@@ -42,9 +42,19 @@ export default async function PlacePage({ params, searchParams }: Props) {
   let userProfile: any = null;
 
   if (isOSM) {
-    // MODE VIRTUEL (OSM)
-    // On construit l'objet place à partir des données de l'URL
-    place = {
+    // 1. On "naturalise" le lieu OSM dans notre table 'places'
+    const { data: osmPlace } = await supabase.rpc('get_or_create_osm_place', {
+      p_osm_id: id,
+      p_name: sParams.name || 'Lieu OSM',
+      p_lat: parseFloat(sParams.lat || '0'),
+      p_lon: parseFloat(sParams.lon || '0'),
+      p_logo_emoji: sParams.emoji || '📍',
+      p_commune: 'Abidjan' // Par défaut
+    });
+    
+    // Si la naturalisation a fonctionné, on utilise l'ID Supabase pour la suite
+    // Sinon on reste sur l'ID OSM virtuel pour l'affichage de base
+    place = (osmPlace && osmPlace[0]) ? osmPlace[0] : {
       id: id,
       name: sParams.name || 'Lieu inconnu',
       lat: parseFloat(sParams.lat || '0'),
@@ -57,44 +67,46 @@ export default async function PlacePage({ params, searchParams }: Props) {
     };
   } else {
     // MODE STANDARD (Supabase)
-    const [
-      { data: dbPlace }, 
-      { data: dbOffers },
-      { data: dbCheckins },
-      { data: dbAdvice },
-      { data: dbUserProfile }
-    ] = await Promise.all([
-      supabase.from('places').select('*').eq('id', id).maybeSingle(),
-      supabase
-        .from('place_offers')
-        .select('*')
-        .eq('place_id', id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('checkins')
-        .select('id, created_at, display_name, avatar_emoji, is_public')
-        .eq('place_id', id)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('place_advice')
-        .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
-        .eq('place_id', id)
-        .order('created_at', { ascending: false })
-        .limit(10),
-      user 
-        ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
-        : Promise.resolve({ data: null }),
-    ]);
-
+    const { data: dbPlace } = await supabase.from('places').select('*').eq('id', id).maybeSingle();
     if (!dbPlace) notFound();
     place = dbPlace;
-    offers = dbOffers || [];
-    checkins = dbCheckins || [];
-    advice = dbAdvice || [];
-    userProfile = dbUserProfile;
   }
+
+  // 2. On charge les données sociales pour TOUS les lieux (OSM naturalisé ou Supabase)
+  // On utilise place.id qui est maintenant soit l'UUID Supabase, soit l'ID OSM
+  const [
+    { data: dbOffers },
+    { data: dbCheckins },
+    { data: dbAdvice },
+    { data: dbUserProfile }
+  ] = await Promise.all([
+    supabase
+      .from('place_offers')
+      .select('*')
+      .eq('place_id', place.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('checkins')
+      .select('id, created_at, display_name, avatar_emoji, is_public')
+      .eq('place_id', place.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('place_advice')
+      .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
+      .eq('place_id', place.id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    user 
+      ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  offers = dbOffers || [];
+  checkins = dbCheckins || [];
+  advice = dbAdvice || [];
+  userProfile = dbUserProfile;
 
   // Les arrêts proches marchent pour tout le monde !
   const { data: nearbyStops } = await supabase.rpc('arrets_proches', {
@@ -127,7 +139,7 @@ export default async function PlacePage({ params, searchParams }: Props) {
               <Ic.Back s={22} />
             </Link>
 
-            {!isOSM && user && (
+            {user && (
               <PoiFavoriteButton 
                 placeId={place.id}
                 placeName={place.name}
@@ -199,18 +211,16 @@ export default async function PlacePage({ params, searchParams }: Props) {
         </div>
 
         {/* CHECK-IN CTA - Hide for OSM for now to avoid ID issues */}
-        {!isOSM && (
-          <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
-            <PoiCheckInButton
-              placeId={place.id}
-              placeName={place.name}
-              commune={place.commune ?? undefined}
-              lat={place.lat}
-              lon={place.lon}
-              sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
-            />
-          </div>
-        )}
+        <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
+          <PoiCheckInButton
+            placeId={place.id}
+            placeName={place.name}
+            commune={place.commune ?? undefined}
+            lat={place.lat}
+            lon={place.lon}
+            sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
+          />
+        </div>
 
         {/* CONTACT QUICK LINKS - MODERNIZED */}
         {(place.phone || place.whatsapp || place.instagram || place.website) && (
@@ -254,7 +264,7 @@ export default async function PlacePage({ params, searchParams }: Props) {
         )}
 
         {/* OFFRES & PROMOS */}
-        {!isOSM && ((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
+        {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
           <div className="slide-up" style={{
             background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
             boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.3s',
@@ -344,20 +354,18 @@ export default async function PlacePage({ params, searchParams }: Props) {
         )}
 
         {/* SECTIONS SOCIALES - Hide for OSM for now */}
-        {!isOSM && (
-          <div className="slide-up" style={{ animationDelay: '0.5s' }}>
-            <PlaceSocialSections 
-              placeId={id} 
-              placeName={place.name}
-              initialCheckins={checkins || []} 
-              initialAdvice={(advice as any[]) || []}
-              userId={user?.id || null}
-              userDisplayName={userProfile?.display_name || 'Un Babi'}
-              userAvatarEmoji={userProfile?.avatar_emoji || '👤'}
-              isVerifiedExplorer={!!userProfile?.is_verified_explorer}
-            />
-          </div>
-        )}
+        <div className="slide-up" style={{ animationDelay: '0.5s' }}>
+          <PlaceSocialSections 
+            placeId={place.id} 
+            placeName={place.name}
+            initialCheckins={checkins || []} 
+            initialAdvice={(advice as any[]) || []}
+            userId={user?.id || null}
+            userDisplayName={userProfile?.display_name || 'Un Babi'}
+            userAvatarEmoji={userProfile?.avatar_emoji || '👤'}
+            isVerifiedExplorer={!!userProfile?.is_verified_explorer}
+          />
+        </div>
 
       </div>
     </div>
