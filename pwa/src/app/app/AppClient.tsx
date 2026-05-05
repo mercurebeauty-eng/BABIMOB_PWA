@@ -88,6 +88,7 @@ function AppPageContent() {
   const [placeReviews, setPlaceReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [discoveryPois, setDiscoveryPois] = useState<POI[]>([]);
+  const [discoveryIndex, setDiscoveryIndex] = useState(0);
   const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
 
   useEffect(() => {
@@ -220,20 +221,49 @@ function AppPageContent() {
   const handleDiscover = useCallback(() => {
     if (pois.length === 0) return;
     
-    // Mélange des POIs avec priorité aux partenaires
+    // Mélange des POIs (Uniquement POI, priorité partenaires)
     const shuffled = [...pois].sort(() => Math.random() - 0.5);
     const partners = shuffled.filter(p => p.is_sponsored || p.sponsor_tier);
     const others = shuffled.filter(p => !p.is_sponsored && !p.sponsor_tier);
     
-    const selection = [...partners, ...others].slice(0, 15);
+    const selection = [...partners, ...others].slice(0, 10);
     
     setDiscoveryPois(selection);
+    setDiscoveryIndex(0);
     setIsDiscoveryMode(true);
-    setSelectedPoi(null);
-    setSelected(null);
-    if (typeof setActiveItinerary === 'function') setActiveItinerary(null);
-    setSheet('half'); // Ouvre le bottom sheet à moitié pour montrer la liste
+    
+    // Afficher le premier
+    const first = selection[0];
+    setPreviewPlace({
+      id: first.id,
+      place_id: first.place_id,
+      name: first.name,
+      lat: first.lat,
+      lon: first.lon,
+      emoji: first.logo_emoji,
+      commune: first.commune,
+      source: first.source === 'osm' ? 'osm' : 'supabase'
+    });
+    setSheet('mini'); // On cache le grand sheet pour voir la bulle
   }, [pois]);
+
+  const handleNextDiscovery = useCallback(() => {
+    if (discoveryPois.length === 0) return;
+    const nextIdx = (discoveryIndex + 1) % discoveryPois.length;
+    setDiscoveryIndex(nextIdx);
+    
+    const nextPoi = discoveryPois[nextIdx];
+    setPreviewPlace({
+      id: nextPoi.id,
+      place_id: nextPoi.place_id,
+      name: nextPoi.name,
+      lat: nextPoi.lat,
+      lon: nextPoi.lon,
+      emoji: nextPoi.logo_emoji,
+      commune: nextPoi.commune,
+      source: nextPoi.source === 'osm' ? 'osm' : 'supabase'
+    });
+  }, [discoveryPois, discoveryIndex]);
 
   // Gestion du paramètre ?discover=1
   useEffect(() => {
@@ -614,7 +644,7 @@ function AppPageContent() {
 
       {/* ── FLOATING INFO POD (ANTIGRAVITY STACK STYLE) ── */}
       <AnimatePresence>
-        {(selected || selectedPoi || activeItinerary || isDiscoveryMode) && (
+        {(selected || selectedPoi || activeItinerary || (isDiscoveryMode && !previewPlace)) && (
           <motion.div
             initial={{ y: 100, opacity: 0, scale: 0.95 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -1335,7 +1365,10 @@ function AppPageContent() {
                 </div>
               </div>
               <button 
-                onClick={() => setPreviewPlace(null)}
+                onClick={() => {
+                  setPreviewPlace(null);
+                  setIsDiscoveryMode(false);
+                }}
                 style={{ 
                   width: 32, height: 32, borderRadius: 16, border: 'none', 
                   background: 'var(--ink-2)', color: 'var(--ink)', 
@@ -1373,8 +1406,28 @@ function AppPageContent() {
             </button>
 
             <div style={{ padding: '0 4px' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
-                Communauté
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Communauté
+                </div>
+                {isDiscoveryMode && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--orange)' }}>
+                      {discoveryIndex + 1} / {discoveryPois.length}
+                    </span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleNextDiscovery(); }}
+                      className="press"
+                      style={{ 
+                        padding: '6px 12px', borderRadius: 10, border: 'none', 
+                        background: 'var(--ink)', color: '#fff', fontSize: 10, fontWeight: 800,
+                        display: 'flex', alignItems: 'center', gap: 6
+                      }}
+                    >
+                      SUIVANT <Ic.Arrow s={12} />
+                    </button>
+                  </div>
+                )}
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
