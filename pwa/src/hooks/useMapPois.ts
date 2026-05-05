@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Map as LeafletMap } from 'leaflet';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { POI } from '@/lib/poi';
 import type { ReachSource } from './useReachTracking';
 
@@ -22,7 +22,7 @@ export function useMapPois({ logReach }: Options) {
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
 
-  const mapRef = useRef<LeafletMap | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
   const moveListenerRef = useRef<(() => void) | null>(null);
 
   const [pois, setPois] = useState<POI[]>([]);
@@ -34,7 +34,7 @@ export function useMapPois({ logReach }: Options) {
   // Keep logReachRef current without adding it to handleMapReady deps
   useCallback(() => { logReachRef.current = logReach; }, [logReach])();
 
-  const handleMapReady = useCallback((map: LeafletMap) => {
+  const handleMapReady = useCallback((map: MapLibreMap) => {
     mapRef.current = map;
 
     // Remove any previously attached listener before re-attaching
