@@ -1017,15 +1017,15 @@ function AppPageContent() {
                           {[1, 2].map(i => (
                             <div key={i} style={{ padding: '16px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.03)', background: 'white' }}>
                               <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                                <Skeleton width={36} height={36} radius={12} />
+                                <Skeleton width="36px" height="36px" radius="12px" />
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                  <Skeleton width="40%" height={12} />
-                                  <Skeleton width="20%" height={10} />
+                                  <Skeleton width="40%" height="12px" />
+                                  <Skeleton width="20%" height="10px" />
                                 </div>
                               </div>
-                              <Skeleton width="90%" height={14} />
+                              <Skeleton width="90%" height="14px" />
                               <div style={{ height: 6 }} />
-                              <Skeleton width="70%" height={14} />
+                              <Skeleton width="70%" height="14px" />
                             </div>
                           ))}
                         </div>
