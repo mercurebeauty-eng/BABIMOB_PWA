@@ -1116,11 +1116,12 @@ function AppPageContent() {
                       )}
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, opacity: 0.6 }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Aucun avis pour l'instant</div>
-                          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>Soyez le premier à partager votre expérience sur ce lieu !</p>
-                        </div>
-                       )}
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Aucun avis pour l'instant</div>
+                        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>Soyez le premier à partager votre expérience sur ce lieu !</p>
+                      </div>
                     </div>
+                     )}
+                  </div>
                   </div>
                 </div>
 
