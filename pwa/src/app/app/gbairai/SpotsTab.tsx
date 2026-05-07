@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { pickWax } from '@/lib/waxPattern';
-import type { HotSpot } from './page';
+import type { HotSpot } from './types';
 
 const SPOT_GRADIENTS = [
   'linear-gradient(135deg, #E5337A 0%, #F26C1A 50%, #E8B23C 100%)',

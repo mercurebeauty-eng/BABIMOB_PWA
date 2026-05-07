@@ -2,7 +2,7 @@
 
 import { Ic } from '@/components/ui/Ic';
 import { pickWax } from '@/lib/waxPattern';
-import type { Quest, CollectiveQuest } from './page';
+import type { Quest, CollectiveQuest } from './types';
 
 function timeLeft(iso: string): string {
   const ms = new Date(iso).getTime() - Date.now();
