@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+.env
+.env.example
+.env.local
+.env.production
+*.log
+.DS_Store
+.vercel
+next-env.d.ts
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map

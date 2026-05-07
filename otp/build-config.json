@@ -1,0 +1,21 @@
+{
+  "osmDefaults": {
+    "osmTagMapping": "default",
+    "timeZone": "Africa/Abidjan"
+  },
+  "osm": [
+    { "source": "file:/otp/graphs/abidjan/cote-d-ivoire-latest.osm.pbf" }
+  ],
+  "transitFeeds": [
+    {
+      "type": "gtfs",
+      "source": "file:/otp/graphs/abidjan/abidjan-gtfs.zip"
+    }
+  ],
+  "streetOnly": false,
+  "staticBikeRental": false,
+  "staticParkAndRide": false,
+  "transitServiceStart": "2023-01-01",
+  "transitServiceEnd":   "2099-12-31",
+  "distanceBetweenElevationSamples": 10
+}
