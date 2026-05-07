@@ -84,9 +84,9 @@ function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
       <div style={{ padding: '0 16px', marginBottom: 20 }}>
         <EmptyState 
           emoji="🎙️"
-          title="Pas de salon vocal" 
+          title="Pas de salon vocal actif" 
           description="C'est calme ici. Pourquoi ne pas lancer ton propre Gbairai ?" 
-          action={{ label: "Lancer un salon", onClick: () => alert("Arrive bientôt !") }}
+          action={{ label: "Lancer un salon", onClick: () => window.location.href = '/app/voice/create' }}
         />
       </div>
     );
@@ -123,9 +123,9 @@ function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
               </div>
 
               <button
-                onClick={() => setNotice('Les salons vocaux arrivent bientôt 👀')}
+                onClick={() => window.location.href = `/app/voice/${room.id}`}
                 style={{ width: '100%', padding: '12px', borderRadius: 14, border: 'none', background: '#fff', color: '#E5337A', fontSize: 14, fontWeight: 900, cursor: 'pointer' }}>
-                Entrer
+                Rejoindre le Gbairai
               </button>
               {notice && <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, opacity: 0.95 }}>{notice}</div>}
             </div>
@@ -293,7 +293,11 @@ function EventsSection({ events }: { events: Event[] }) {
   );
 }
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms, quests, collectiveQuest, crews }: Props) {
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms: initialVoiceRooms = [], quests, collectiveQuest, crews }: Props) {
+  const [voiceRooms, setVoiceRooms] = useState<VoiceRoom[]>(initialVoiceRooms.length > 0 ? initialVoiceRooms : [
+    { id: '1', title: 'On gère le Gbairai de Babi 🇨🇮', participants_count: 12, emoji: '🎙️', is_live: true },
+    { id: '2', title: 'Debrief Match de hier ⚽', participants_count: 5, emoji: '⚽', is_live: true }
+  ]);
   const [tab, setTab] = useState<string>('vibe');
   const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
   const [showComposer, setShowComposer] = useState(false);
