@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
 import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew, Event, VoiceRoom, ReportCategory } from './types';
@@ -16,6 +18,8 @@ import CrewsTab from './CrewsTab';
 import EmptyState from './EmptyState';
 import { pickWax } from '@/lib/waxPattern';
 import { Ic } from '@/components/ui/Ic';
+import { getLevel } from '@/lib/levels';
+import PlusBubble from '@/components/ui/PlusBubble';
 
 type Props = {
   initialPosts: GbairaiPost[];
@@ -41,9 +45,6 @@ const TABS = [
   { id: 'quetes', l: 'Quêtes' },
   { id: 'crews', l: 'Crews' },
 ] as const;
-
-import PlusBubble from '@/components/ui/PlusBubble';
-import { useRouter } from 'next/navigation';
 
 const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--gold)', rouge: '#FF3B30' };
 const AVATAR_COLORS = ['#FF6B00', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
@@ -514,7 +515,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                   onClick={() => setSelectedCommune(null)}
                   className="press"
                   style={{
-                    flexShrink: 0, padding: '8px 16px', borderRadius: 12, border: 'none',
+                    flexShrink: 0, padding: '8px 16px', borderRadius: 12,
                     background: selectedCommune === null ? 'var(--ink)' : 'var(--cream-2)',
                     color: selectedCommune === null ? '#fff' : 'var(--ink)',
                     fontSize: 13, fontWeight: 800, cursor: 'pointer', border: '1.5px solid var(--line)'
@@ -528,7 +529,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                     onClick={() => setSelectedCommune(c)}
                     className="press"
                     style={{
-                      flexShrink: 0, padding: '8px 16px', borderRadius: 12, border: 'none',
+                      flexShrink: 0, padding: '8px 16px', borderRadius: 12,
                       background: selectedCommune === c ? 'var(--ink)' : 'var(--cream-2)',
                       color: selectedCommune === c ? '#fff' : 'var(--ink)',
                       fontSize: 13, fontWeight: 800, cursor: 'pointer', border: '1.5px solid var(--line)'

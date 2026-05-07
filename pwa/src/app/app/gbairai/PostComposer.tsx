@@ -30,7 +30,7 @@ function extractHashtags(text: string): string[] {
   return [...new Set(matches.map(m => m.slice(1).toLowerCase()))];
 }
 
-export default function PostComposer({ userId, displayName, avatarEmoji, commune, onClose }: Props) {
+export default function PostComposer({ userId, displayName, avatarEmoji, commune, onClose, onSuccess }: Props) {
   const [type, setType] = useState<string>('vibe');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
