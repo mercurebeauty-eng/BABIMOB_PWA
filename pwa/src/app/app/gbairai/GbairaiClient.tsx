@@ -14,6 +14,8 @@ import SpotsTab from './SpotsTab';
 import QuetesTab from './QuetesTab';
 import CrewsTab from './CrewsTab';
 import EmptyState from './EmptyState';
+import { pickWax } from '@/lib/waxPattern';
+import { Ic } from '@/components/ui/Ic';
 
 type Props = {
   initialPosts: GbairaiPost[];
