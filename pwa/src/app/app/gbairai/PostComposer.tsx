@@ -21,6 +21,7 @@ type Props = {
   avatarEmoji: string;
   commune: string | null;
   onClose: () => void;
+  onSuccess: () => void;
 };
 
 function extractHashtags(text: string): string[] {
@@ -84,6 +85,7 @@ export default function PostComposer({ userId, displayName, avatarEmoji, commune
       toast.success("Publié sur le Gbairai !", {
         description: "+30 XP gagnés"
       });
+      onSuccess();
       onClose();
     }
   }

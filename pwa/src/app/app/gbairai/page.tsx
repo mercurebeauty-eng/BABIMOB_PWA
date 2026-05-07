@@ -3,96 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import GbairaiClient from './GbairaiClient';
 
-export type Story = {
-  id: string;
-  user_id: string;
-  display_name: string | null;
-  avatar_emoji: string | null;
-  media_url: string | null;
-  media_type: 'image' | 'video' | 'text';
-  content: string | null;
-  created_at: string;
-  expires_at: string;
-};
-
-export type GbairaiPost = {
-  id: string;
-  user_id: string;
-  display_name: string;
-  avatar_emoji: string;
-  post_type: 'vibe' | 'tarif' | 'alerte' | 'bouffe' | 'evenement' | 'bon_plan';
-  content: string;
-  hashtags: string[];
-  commune: string | null;
-  place_name: string | null;
-  lat: number | null;
-  lon: number | null;
-  metadata: Record<string, any>;
-  likes_count: number;
-  comments_count: number;
-  created_at: string;
-};
-
-export type HotSpot = {
-  place_id: string;
-  place_name: string;
-  commune: string | null;
-  logo_emoji: string;
-  cover_color: string;
-  checkin_count: number;
-  category: string | null;
-  price_range: string | null;
-  rating: number | null;
-  is_new: boolean;
-  friends_count: number;
-  lat: number;
-  lon: number;
-};
-
-export type CollectiveQuest = {
-  id: string;
-  title: string;
-  description: string | null;
-  target_count: number;
-  current_count: number;
-  reward_xp: number;
-  reward_badge: string | null;
-  ends_at: string;
-};
-
-export type Quest = {
-  id: string;
-  title: string;
-  description: string | null;
-  icon: string;
-  color: string;
-  xp_reward: number;
-  quest_type: string;
-  target_count: number;
-};
-
-export type Crew = {
-  id: string;
-  name: string;
-  description: string | null;
-  emoji: string | null;
-  color_from: string | null;
-  color_to: string | null;
-  commune: string | null;
-  member_count: number;
-  is_member: boolean;
-};
-
-export type ReportCategory = 'trafic' | 'incident' | 'travaux' | 'ambiance';
-
-export type CommunePulse = {
-  commune: string;
-  report_count: number;
-  checkin_count: number;
-  status: 'vert' | 'orange' | 'rouge';
-  /** Catégorie dominante des C'comment actifs sur la commune (hors tarif). */
-  top_category: ReportCategory | null;
-};
+import type { Story, GbairaiPost, HotSpot, CollectiveQuest, Quest, Crew, ReportCategory, CommunePulse } from './types';
 
 export default async function GbairaiPage() {
   const supabase = await createClient();
@@ -111,14 +22,12 @@ export default async function GbairaiPage() {
   const oneDayAgo = new Date(now.getTime() - 86400000).toISOString();
   const oneWeekAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
-  // 1. Démarrage des requêtes indépendantes en parallèle
   const [
     { data: posts },
     { data: hotSpotsRaw },
     { data: events },
     { data: voiceRooms },
-    { data: reportsRaw },
-    { data: recentCheckins },
+    { data: pulseRaw },
     { data: storiesRaw },
     { data: questsRaw },
     { data: collectiveRaw },
@@ -128,22 +37,20 @@ export default async function GbairaiPage() {
     supabase.rpc('get_hot_spots', { limit_count: 10 }),
     supabase.from('events').select('*').order('start_at', { ascending: true }).limit(5),
     supabase.from('voice_rooms').select('*').eq('is_live', true).limit(3),
-    supabase.from('stop_reports').select('stop_id, category, expires_at').gte('created_at', oneDayAgo).neq('category', 'tarif').gt('expires_at', nowIso),
-    supabase.from('checkins').select('place_id, place_name, commune, lat, lon').gte('created_at', oneWeekAgo).eq('is_public', true).not('place_id', 'is', null),
+    supabase.from('commune_pulse').select('*'),
     supabase.from('gbairai_stories').select('*, profiles(display_name, avatar_emoji, total_points)').gt('expires_at', nowIso).order('created_at', { ascending: false }).limit(40),
     supabase.from('quests').select('id, title, description, icon, color, xp_reward, quest_type, target_count, is_secret, sort_order').eq('is_secret', false).order('sort_order', { ascending: true }),
     supabase.from('collective_quest').select('*').gt('ends_at', nowIso).order('ends_at', { ascending: true }).limit(1).maybeSingle(),
     supabase.from('crews').select('id, name, description, emoji, color_from, color_to, commune').order('created_at', { ascending: false }).limit(20)
   ]);
 
-  // 2. Requêtes dépendantes (likes, following, etc.)
+  // 2. Requêtes dépendantes
   let myLikes: string[] = [];
   let followingIds: string[] = [];
   let myReactions: Record<string, string[]> = {};
   let storyReactions: any[] = [];
   let crewMembers: any[] = [];
   let currentCount: number = 0;
-  let stopsMeta: any[] = [];
 
   if (user) {
     const [likesRes, followsRes] = await Promise.all([
@@ -155,22 +62,19 @@ export default async function GbairaiPage() {
   }
 
   const storyIds = (storiesRaw ?? []).map(s => s.id);
-  const reportedStopIds = Array.from(new Set((reportsRaw ?? []).map(r => r.stop_id))).filter(Boolean);
   const crewIds = (crewsRaw ?? []).map(c => c.id);
 
-  const [reactionsRes, crewMembersRes, collectiveCountRes, stopsMetaRes] = await Promise.all([
+  const [reactionsRes, crewMembersRes, collectiveCountRes] = await Promise.all([
     storyIds.length > 0 ? supabase.from('gbairai_story_reactions').select('story_id, reaction_emoji, user_id').in('story_id', storyIds) : Promise.resolve({ data: [] }),
     crewIds.length > 0 ? supabase.from('crew_members').select('crew_id, user_id').in('crew_id', crewIds) : Promise.resolve({ data: [] }),
-    collectiveRaw ? supabase.from('checkins').select('id', { count: 'exact', head: true }).gte('created_at', collectiveRaw.created_at) : Promise.resolve({ count: 0 }),
-    reportedStopIds.length > 0 ? supabase.from('gtfs_stops').select('stop_id, commune').in('stop_id', reportedStopIds) : Promise.resolve({ data: [] })
+    collectiveRaw ? supabase.from('checkins').select('id', { count: 'exact', head: true }).gte('created_at', collectiveRaw.created_at) : Promise.resolve({ count: 0 })
   ]);
 
   storyReactions = reactionsRes.data ?? [];
   crewMembers = crewMembersRes.data ?? [];
   currentCount = collectiveCountRes.count ?? 0;
-  stopsMeta = stopsMetaRes.data ?? [];
 
-  // 3. Traitement des données (logique identique mais optimisée)
+  // 3. Traitement des données
   let reactionsByStory: Record<string, Record<string, number>> = {};
   storyReactions.forEach(r => {
     const m = (reactionsByStory[r.story_id] ??= {});
@@ -180,22 +84,8 @@ export default async function GbairaiPage() {
     }
   });
 
-  const stopToCommune = new Map((stopsMeta ?? []).map(s => [s.stop_id, s.commune]));
-  const communeReports = new Map<string, number>();
-  const communeCats = new Map<string, Map<ReportCategory, number>>();
-  (reportsRaw ?? []).forEach(r => {
-    const com = stopToCommune.get(r.stop_id);
-    if (!com) return;
-    communeReports.set(com, (communeReports.get(com) ?? 0) + 1);
-    const cat = r.category as ReportCategory;
-    const inner = communeCats.get(com) ?? new Map<ReportCategory, number>();
-    inner.set(cat, (inner.get(cat) ?? 0) + 1);
-    communeCats.set(com, inner);
-  });
-
   const hotSpotIds = (hotSpotsRaw ?? []).map((s: any) => s.id);
   const friendsByPlace = new Map<string, number>();
-  // Optionnel: On pourrait aussi paralléliser le fetch des friends checkins
   if (user && hotSpotIds.length > 0 && followingIds.length > 0) {
     const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
     const { data: friendCheckins } = await supabase
@@ -226,24 +116,14 @@ export default async function GbairaiPage() {
     lon: Number(s.lon || -4.016),
   }));
 
-  const communeCheckins = new Map<string, number>();
-  (recentCheckins ?? []).forEach(c => {
-    if (c.commune) communeCheckins.set(c.commune, (communeCheckins.get(c.commune) ?? 0) + 1);
-  });
+  const pulse: CommunePulse[] = (pulseRaw ?? []).map((p: any) => ({
+    commune: p.commune,
+    report_count: Number(p.report_count),
+    checkin_count: 0, // Optionnel, peut être agrégé si besoin
+    status: p.status,
+    top_category: p.top_category as ReportCategory
+  }));
 
-  const MAIN_COMMUNES = ['Cocody', 'Plateau', 'Yopougon', 'Adjamé', 'Marcory', 'Treichville'];
-  const pulse: CommunePulse[] = MAIN_COMMUNES.map(commune => {
-    const cc = communeCheckins.get(commune) ?? 0;
-    const reportCount = communeReports.get(commune) ?? 0;
-    const cats = communeCats.get(commune);
-    let topCategory: ReportCategory | null = null;
-    if (cats && cats.size > 0) {
-      let best = -1;
-      cats.forEach((n, cat) => { if (n > best) { best = n; topCategory = cat; } });
-    }
-    const status: 'vert' | 'orange' | 'rouge' = reportCount >= 2 ? 'rouge' : reportCount >= 1 || cc > 5 ? 'orange' : 'vert';
-    return { commune, report_count: reportCount, checkin_count: cc, status, top_category: topCategory };
-  });
 
   const filteredStories: Story[] = (storiesRaw ?? []).filter(s => {
     const p = s.profiles as any;

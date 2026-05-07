@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Ic } from '@/components/ui/Ic';
-import { getLevel } from '@/lib/levels';
-import { pickWax } from '@/lib/waxPattern';
+import Image from 'next/image';
+import { useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
-import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew } from './page';
+import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew, Event, VoiceRoom, ReportCategory } from './types';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
 import StoryComposer from './StoryComposer';
@@ -14,25 +13,7 @@ import StoryViewer from './StoryViewer';
 import SpotsTab from './SpotsTab';
 import QuetesTab from './QuetesTab';
 import CrewsTab from './CrewsTab';
-
-export type Event = {
-  id: string;
-  title: string;
-  description: string | null;
-  start_at: string;
-  location_name: string | null;
-  price_label: string | null;
-  category: string | null;
-  image_url: string | null;
-};
-
-export type VoiceRoom = {
-  id: string;
-  title: string;
-  participants_count: number;
-  emoji: string;
-  is_live: boolean;
-};
+import EmptyState from './EmptyState';
 
 type Props = {
   initialPosts: GbairaiPost[];
@@ -63,8 +44,8 @@ import PlusBubble from '@/components/ui/PlusBubble';
 import { useRouter } from 'next/navigation';
 
 const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--gold)', rouge: '#FF3B30' };
-const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
-const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'var(--orange)'];
+const AVATAR_COLORS = ['#FF6B00', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
+const TAG_COLORS = ['#FF6B00', '#1E5BFF', '#0EA85B', '#E5337A', '#F26C1A'];
 
 // ── Components ──
 
@@ -94,7 +75,19 @@ function pulseHeadline(pulse: CommunePulse[]): string {
 
 function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
   const [notice, setNotice] = useState<string | null>(null);
-  if (rooms.length === 0) return null;
+  
+  if (rooms.length === 0) {
+    return (
+      <div style={{ padding: '0 16px', marginBottom: 20 }}>
+        <EmptyState 
+          emoji="🎙️"
+          title="Pas de salon vocal" 
+          description="C'est calme ici. Pourquoi ne pas lancer ton propre Gbairai ?" 
+          action={{ label: "Lancer un salon", onClick: () => alert("Arrive bientôt !") }}
+        />
+      </div>
+    );
+  }
   return (
     <div style={{ padding: '0 16px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {rooms.map(room => {
@@ -240,7 +233,17 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
 }
 
 function EventsSection({ events }: { events: Event[] }) {
-  if (events.length === 0) return null;
+  if (events.length === 0) {
+    return (
+      <div style={{ padding: '0 16px', marginBottom: 20 }}>
+        <EmptyState 
+          emoji="🎫"
+          title="Pas d'événements" 
+          description="Rien de prévu cette semaine ? Reviens plus tard pour les bons plans." 
+        />
+      </div>
+    );
+  }
   const GRADIENTS = [
     'linear-gradient(135deg, #1E5BFF 0%, #1540B3 100%)',
     'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
@@ -289,26 +292,56 @@ function EventsSection({ events }: { events: Event[] }) {
 
 export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms, quests, collectiveQuest, crews }: Props) {
   const [tab, setTab] = useState<string>('vibe');
+  const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [heatMode, setHeatMode] = useState(false);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('gbairai_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gbairai_posts' },
+        () => {
+          router.refresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, router]);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
 
-  // Couleur du pouls global = pire statut courant
-  const overallStatus: 'vert' | 'orange' | 'rouge' =
-    pulse.some(p => p.status === 'rouge')  ? 'rouge'
-    : pulse.some(p => p.status === 'orange') ? 'orange'
-    : 'vert';
+  const overallStatus = useMemo(() => {
+    if (pulse.some(p => p.status === 'rouge')) return 'rouge';
+    if (pulse.some(p => p.status === 'orange')) return 'orange';
+    return 'vert';
+  }, [pulse]);
+
+  const filteredPosts = useMemo(() => {
+    if (!selectedCommune) return initialPosts;
+    return initialPosts.filter(p => p.commune === selectedCommune);
+  }, [initialPosts, selectedCommune]);
+
+  const communes = useMemo(() => {
+    return Array.from(new Set(pulse.map(p => p.commune))).sort();
+  }, [pulse]);
+
   const PULSE_GRADIENTS = {
     vert:   'linear-gradient(135deg, #0EA85B 0%, #0A8A4A 100%)',
-    orange: 'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
+    orange: 'linear-gradient(135deg, #FF6B00 0%, #C4582E 100%)',
     rouge:  'linear-gradient(135deg, #FF3B30 0%, #B22A22 100%)',
   } as const;
+
   const pulseWax = pickWax(`pulse-${overallStatus}`, { rotate: true });
 
   return (
@@ -379,10 +412,10 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                   className="press" 
                   style={{ flexShrink: 0, textAlign: 'center', width: 64, cursor: 'pointer' }}
                 >
-                  <div style={{ width: 64, height: 64, borderRadius: 24, padding: 3, background: 'linear-gradient(135deg, #F26C1A, #E5337A)' }}>
-                    <div style={{ width: '100%', height: '100%', borderRadius: 21, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 24, padding: 3, background: 'linear-gradient(135deg, #FF6B00, #E5337A)' }}>
+                    <div style={{ width: '100%', height: '100%', borderRadius: 21, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                       {s.media_url ? (
-                        <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" />
+                        <Image src={s.media_url} fill style={{ objectFit: 'cover' }} alt="story" />
                       ) : (
                         <div style={{ fontSize: 24 }}>{s.avatar_emoji || '👤'}</div>
                       )}
@@ -400,37 +433,49 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
             {/* Pulse card */}
             <div style={{ padding: '0 16px', marginBottom: 14 }}>
-              <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', background: PULSE_GRADIENTS[overallStatus], color: '#fff', padding: 18 }}>
-                <div className={pulseWax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.13 }} />
-                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ 
+                borderRadius: 24, 
+                overflow: 'hidden', 
+                position: 'relative', 
+                background: PULSE_GRADIENTS[overallStatus], 
+                color: '#fff', 
+                padding: 20,
+                boxShadow: `0 12px 32px rgba(${overallStatus === 'rouge' ? '255,59,48' : overallStatus === 'orange' ? '255,107,0' : '14,168,91'}, 0.25)`
+              }}>
+                <div className={pulseWax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+                <div className="pulse-glow" style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', filter: 'blur(30px)' }} />
                 <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, opacity: 0.9, letterSpacing: 0.7 }}>
-                    <span className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
-                    POULS · MAINTENANT
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>
+                    <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', boxShadow: '0 0 10px #fff' }} />
+                    POULS D&apos;ABIDJAN
                   </div>
-                  <div className="font-display" style={{ fontSize: 24, marginTop: 6, lineHeight: 1.05 }}>
+                  <div className="font-display" style={{ fontSize: 28, marginTop: 10, lineHeight: 1.05 }}>
                     {pulseHeadline(pulse)}
                   </div>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.85, marginTop: 4, letterSpacing: 0.2 }}>
-                    Basé sur les C&apos;comment actifs des arrêts · hors tarif
+                  <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.9, marginTop: 6 }}>
+                    Directement depuis le terrain · {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                     {pulse.slice(0, 3).map((p, i) => {
                       const cat = p.top_category ? CATEGORY_META[p.top_category] : null;
                       return (
-                        <div key={i} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.7, letterSpacing: 0.4 }}>{p.commune.toUpperCase()}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
-                            {cat && <span style={{ fontSize: 13 }}>{cat.emoji}</span>}
-                            <span style={{ fontSize: 13, fontWeight: 900, color: STATUS_COLORS[p.status], textTransform: 'capitalize' }}>
-                              {cat ? cat.label.toLowerCase() : p.status}
+                        <div key={i} style={{ 
+                          flex: 1, 
+                          padding: '10px', 
+                          borderRadius: 14, 
+                          background: 'rgba(255,255,255,0.15)', 
+                          backdropFilter: 'blur(10px)',
+                          textAlign: 'center', 
+                          position: 'relative',
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                          <div style={{ fontSize: 9, fontWeight: 900, opacity: 0.8, letterSpacing: 0.5 }}>{p.commune.toUpperCase()}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
+                            {cat && <span style={{ fontSize: 14 }}>{cat.emoji}</span>}
+                            <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                              {cat ? cat.label : p.status}
                             </span>
                           </div>
-                          {p.report_count > 0 && (
-                            <div style={{ position: 'absolute', top: 4, right: 6, fontSize: 9, fontWeight: 900, color: '#fff', opacity: 0.9 }}>
-                              {p.report_count}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -459,8 +504,53 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               </div>
             )}
 
+            {/* Commune Filter */}
+            <div style={{ padding: '0 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, marginBottom: 10 }}>OÙ ÇA SE PASSE ?</div>
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -16px', padding: '0 16px' }}>
+                <button 
+                  onClick={() => setSelectedCommune(null)}
+                  className="press"
+                  style={{
+                    flexShrink: 0, padding: '8px 16px', borderRadius: 12, border: 'none',
+                    background: selectedCommune === null ? 'var(--ink)' : 'var(--cream-2)',
+                    color: selectedCommune === null ? '#fff' : 'var(--ink)',
+                    fontSize: 13, fontWeight: 800, cursor: 'pointer', border: '1.5px solid var(--line)'
+                  }}
+                >
+                  Tout Babi
+                </button>
+                {communes.map(c => (
+                  <button 
+                    key={c}
+                    onClick={() => setSelectedCommune(c)}
+                    className="press"
+                    style={{
+                      flexShrink: 0, padding: '8px 16px', borderRadius: 12, border: 'none',
+                      background: selectedCommune === c ? 'var(--ink)' : 'var(--cream-2)',
+                      color: selectedCommune === c ? '#fff' : 'var(--ink)',
+                      fontSize: 13, fontWeight: 800, cursor: 'pointer', border: '1.5px solid var(--line)'
+                    }}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Masonry Feed */}
-            <GbairaiFeed initialPosts={initialPosts} myLikes={myLikes} userId={userId} />
+            {filteredPosts.length > 0 ? (
+              <GbairaiFeed initialPosts={filteredPosts} myLikes={myLikes} userId={userId} />
+            ) : (
+              <div style={{ padding: '0 16px' }}>
+                <EmptyState 
+                  emoji="🔎"
+                  title="Aucun post ici" 
+                  description={`Personne n'a encore gbairai sur ${selectedCommune}. Sois le premier !`}
+                  action={{ label: "Lancer le gbairai", onClick: () => setShowComposer(true) }}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -482,6 +572,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
           avatarEmoji={profile.avatar_emoji ?? '🧭'}
           commune={profile.origin_commune}
           onClose={() => setShowComposer(false)}
+          onSuccess={() => router.refresh()}
         />
       )}
 
@@ -490,7 +581,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         <StoryComposer 
           userId={userId} 
           onClose={() => setShowStoryComposer(false)} 
-          onSuccess={() => window.location.reload()} 
+          onSuccess={() => router.refresh()} 
         />
       )}
 
