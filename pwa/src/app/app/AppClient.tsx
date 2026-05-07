@@ -89,6 +89,7 @@ export default function AppClient() {
 function AppPageContent() {
 
   const router = useRouter();
+  const supabase = createClient();
 
   type LastDestination = { name: string; commune: string | null; lat: number; lon: number };
 
