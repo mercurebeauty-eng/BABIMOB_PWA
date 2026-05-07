@@ -268,7 +268,7 @@ function AppPageContent() {
       lat: poi.lat,
       lon: poi.lon,
       category: poi.category || 'other',
-      logo_emoji: poi.logo_emoji || poi.logo || '📍',
+      logo_emoji: poi.logo_emoji || '📍',
       cover_color: poi.cover_color || 'var(--orange)',
       is_sponsored: poi.is_sponsored || false,
       sponsor_tier: poi.sponsor_tier || null,
@@ -281,7 +281,7 @@ function AppPageContent() {
       name: poi.name,
       lat: poi.lat,
       lon: poi.lon,
-      emoji: poi.logo || '📍',
+      emoji: poi.logo_emoji || '📍',
       source: 'supabase'
     });
     setSheet('half');
