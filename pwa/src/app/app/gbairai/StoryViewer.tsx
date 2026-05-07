@@ -4,17 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from '@/components/ui/Ic';
 import { createClient } from '@/lib/supabase/client';
-
-type Story = {
-  id: string;
-  user_id: string;
-  display_name: string | null;
-  avatar_emoji: string | null;
-  media_url: string | null;
-  media_type: 'image' | 'video' | 'text';
-  content: string | null;
-  created_at: string;
-};
+import { pickWax } from '@/lib/waxPattern';
+import type { Story } from './types';
 
 type Props = {
   stories: Story[];
@@ -217,7 +208,7 @@ export default function StoryViewer({
           )
         ) : (
           <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #F26C1A, #E5337A)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, position: 'relative' }}>
-            <div className="wax-bg" style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
+            <div className={pickWax(`story-${currentStory.id}`, { rotate: true })} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.18 }} />
             <div style={{ position: 'relative', color: '#fff', fontSize: 24, fontWeight: 900, textAlign: 'center', lineHeight: 1.3 }}>
               {currentStory.content}
             </div>
