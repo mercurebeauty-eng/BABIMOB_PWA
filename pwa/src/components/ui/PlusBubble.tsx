@@ -95,7 +95,7 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
             style={{
               position: 'fixed',
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
-              right: 16,
+              right: 'max(16px, calc((100vw - 400px) / 2 + 16px))',
               width: 240,
               background: 'rgba(255, 255, 255, 0.85)',
               backdropFilter: 'blur(40px) saturate(200%)',

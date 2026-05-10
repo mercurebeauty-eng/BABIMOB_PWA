@@ -98,7 +98,7 @@ function AppPageContent() {
   const [selected, setSelected] = useState<Stop | null>(null);
   const [sheet, setSheet] = useState<'mini' | 'peek' | 'half' | 'full'>('mini');
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null);
-  const [poiSocialStats, setPoiSocialStats] = useState<{ checkins: number; advice: number } | null>(null);
+  const [poiSocialStats, setPoiSocialStats] = useState<{ checkins: number; advice: number; avg_rating: number; total_reviews: number } | null>(null);
   const [isDiscoveryMode, setIsDiscoveryMode] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [lastDestination, setLastDestination] = useState<LastDestination | null>(() => {
@@ -245,14 +245,18 @@ function AppPageContent() {
 
       const since = new Date(Date.now() - 7 * 86400000).toISOString();
       
-      const [checkRes, adviceRes] = await Promise.all([
+      const [checkRes, adviceRes, statsRes] = await Promise.all([
         supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('place_id', id).gte('created_at', since),
-        supabase.from('place_advice').select('*', { count: 'exact', head: true }).eq('place_id', id)
+        supabase.from('place_advice').select('*', { count: 'exact', head: true }).eq('place_id', id),
+        supabase.rpc('get_place_social_stats', { p_place_id: id })
       ]);
 
+      const stats = statsRes.data?.[0];
       setPoiSocialStats({
         checkins: checkRes.count || 0,
-        advice: adviceRes.count || 0
+        advice: adviceRes.count || 0,
+        avg_rating: stats?.avg_rating || 0,
+        total_reviews: stats?.total_reviews || 0
       });
     }
 
@@ -626,7 +630,7 @@ function AppPageContent() {
       </div>
 
       {/* ── FAB Stack (Right) ── */}
-      <div className="desktop-center" style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
+      <div style={{ position: 'fixed', right: 'max(16px, calc((100vw - 500px) / 2 + 16px))', top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
         {(
           [
             { icon: <Ic.Layers s={18} />, action: () => {
@@ -932,8 +936,25 @@ function AppPageContent() {
                     <h1 className="font-display" style={{ fontSize: 28, margin: '8px 0', fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>
                       {selectedPoi.name}
                     </h1>
+                    {/* ── Rating stars ── */}
+                    {poiSocialStats && poiSocialStats.avg_rating > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 2 }}>
+                          {[1,2,3,4,5].map((s) => (
+                            <Ic.Star
+                              key={s}
+                              s={13}
+                              fill={s <= Math.round(poiSocialStats.avg_rating)}
+                              color={s <= Math.round(poiSocialStats.avg_rating) ? 'var(--orange)' : 'rgba(0,0,0,0.15)'}
+                            />
+                          ))}
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--ink)' }}>{poiSocialStats.avg_rating.toFixed(1)}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)' }}>({poiSocialStats.total_reviews || poiSocialStats.advice} avis)</span>
+                      </div>
+                    )}
                     {poiSocialStats && (poiSocialStats.checkins > 0 || poiSocialStats.advice > 0) && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                         {poiSocialStats.checkins > 0 && (
                           <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--orange-pale)', padding: '6px 12px', borderRadius: 12 }}>
                             🔥 {poiSocialStats.checkins} BABIS SONT PASSÉS PAR ICI
