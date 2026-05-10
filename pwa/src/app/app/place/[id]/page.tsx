@@ -24,7 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 function formatDist(m: number) {
-  return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
+  return m < 1000 ? `${Math.round(m)}m` : `${((m / 1000)).toFixed(1)}km`;
 }
 
 export default async function PlacePage({ params, searchParams }: Props) {
@@ -39,21 +39,20 @@ export default async function PlacePage({ params, searchParams }: Props) {
   let offers: any[] = [];
   let checkins: any[] = [];
   let advice: any[] = [];
+  let photos: any[] = [];
   let userProfile: any = null;
+  let socialStats: any = null;
 
   if (isOSM) {
-    // 1. On "naturalise" le lieu OSM dans notre table 'places'
     const { data: osmPlace } = await supabase.rpc('get_or_create_osm_place', {
       p_osm_id: id,
-      p_name: sParams.name || 'Lieu OSM',
+      p_name: sParams.name || 'Lieu',
       p_lat: parseFloat(sParams.lat || '0'),
       p_lon: parseFloat(sParams.lon || '0'),
       p_logo_emoji: sParams.emoji || '📍',
-      p_commune: 'Abidjan' // Par défaut
+      p_commune: 'Abidjan'
     });
     
-    // Si la naturalisation a fonctionné, on utilise l'ID Supabase pour la suite
-    // Sinon on reste sur l'ID OSM virtuel pour l'affichage de base
     place = (osmPlace && osmPlace[0]) ? osmPlace[0] : {
       id: id,
       name: sParams.name || 'Lieu inconnu',
@@ -62,23 +61,23 @@ export default async function PlacePage({ params, searchParams }: Props) {
       logo_emoji: sParams.emoji || '📍',
       category: 'other',
       address: '',
-      description: 'Lieu identifié via OpenStreetMap.',
+      description: '',
       is_sponsored: false,
     };
   } else {
-    // MODE STANDARD (Supabase)
     const { data: dbPlace } = await supabase.from('places').select('*').eq('id', id).maybeSingle();
     if (!dbPlace) notFound();
     place = dbPlace;
   }
 
-  // 2. On charge les données sociales pour TOUS les lieux (OSM naturalisé ou Supabase)
-  // On utilise place.id qui est maintenant soit l'UUID Supabase, soit l'ID OSM
+  // Fetch all related data
   const [
     { data: dbOffers },
     { data: dbCheckins },
     { data: dbAdvice },
-    { data: dbUserProfile }
+    { data: dbPhotos },
+    { data: dbUserProfile },
+    { data: dbStats }
   ] = await Promise.all([
     supabase
       .from('place_offers')
@@ -91,24 +90,31 @@ export default async function PlacePage({ params, searchParams }: Props) {
       .select('id, created_at, display_name, avatar_emoji, is_public')
       .eq('place_id', place.id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(10),
     supabase
       .from('place_advice')
-      .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
+      .select('id, content, created_at, is_question, rating, profiles(display_name, avatar_emoji)')
       .eq('place_id', place.id)
       .order('created_at', { ascending: false })
-      .limit(10),
+      .limit(20),
+    supabase
+      .from('place_photos')
+      .select('*')
+      .eq('place_id', place.id)
+      .order('created_at', { ascending: false }),
     user 
       ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
       : Promise.resolve({ data: null }),
+    supabase.rpc('get_place_social_stats', { p_place_id: place.id })
   ]);
 
   offers = dbOffers || [];
   checkins = dbCheckins || [];
   advice = dbAdvice || [];
+  photos = dbPhotos || [];
   userProfile = dbUserProfile;
+  socialStats = dbStats?.[0] || { avg_rating: 0, total_reviews: 0, total_photos: 0 };
 
-  // Les arrêts proches marchent pour tout le monde !
   const { data: nearbyStops } = await supabase.rpc('arrets_proches', {
     p_lat: place.lat,
     p_lon: place.lon,
@@ -124,11 +130,9 @@ export default async function PlacePage({ params, searchParams }: Props) {
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* MAP HERO */}
       <div style={{ position: 'relative', height: '45vh', minHeight: 300 }}>
         <PlaceHeroMap lat={place.lat} lon={place.lon} emoji={place.logo_emoji ?? '📍'} name={place.name} id={place.id} />
 
-        {/* TOP HEADER OVERLAY */}
         <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
           <div style={{ display: 'flex', gap: 12 }}>
             <Link href="/app" className="press" style={{ 
@@ -164,13 +168,11 @@ export default async function PlacePage({ params, searchParams }: Props) {
           )}
         </div>
 
-        {/* Bottom Fade */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to top, var(--cream), transparent)', zIndex: 2 }} />
       </div>
 
       <div className="no-scrollbar" style={{ position: 'relative', marginTop: -60, padding: '0 16px 120px 16px', zIndex: 5 }}>
         
-        {/* TITLE CARD — dark ink header */}
         <div className="slide-up" style={{
           background: 'var(--ink)', padding: 24, borderRadius: 32,
           boxShadow: '0 20px 60px rgba(26,20,16,0.25)',
@@ -189,16 +191,37 @@ export default async function PlacePage({ params, searchParams }: Props) {
                 {place.logo_emoji ?? '📍'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, marginBottom: 6, textTransform: 'uppercase' }}>
-                  {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                    {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
+                  </div>
+                  {socialStats.avg_rating > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 8 }}>
+                      <Ic.Star s={12} fill color="var(--orange)" />
+                      <span style={{ color: '#fff', fontSize: 12, fontWeight: 900 }}>{socialStats.avg_rating.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
                 <h1 className="font-display" style={{ fontSize: 26, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>{place.name}</h1>
-                {(place.address || isOSM) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                    <Ic.Pin s={14} color="rgba(255,255,255,0.5)" />
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{place.address || 'Source: OpenStreetMap'}</div>
-                  </div>
-                )}
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                   {(place.address || isOSM) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Ic.Pin s={12} color="rgba(255,255,255,0.5)" />
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.address || 'Abidjan'}</div>
+                    </div>
+                  )}
+                  {socialStats.total_reviews > 0 && (
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)' }}>
+                      {socialStats.total_reviews} AVIS
+                    </div>
+                  )}
+                  {socialStats.total_photos > 0 && (
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Ic.Camera s={12} /> {socialStats.total_photos} PHOTOS
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -210,7 +233,6 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {/* CHECK-IN CTA - Hide for OSM for now to avoid ID issues */}
         <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
           <PoiCheckInButton
             placeId={place.id}
@@ -222,7 +244,6 @@ export default async function PlacePage({ params, searchParams }: Props) {
           />
         </div>
 
-        {/* CONTACT QUICK LINKS - MODERNIZED */}
         {(place.phone || place.whatsapp || place.instagram || place.website) && (
           <div className="slide-up" style={{ 
             display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28,
@@ -263,7 +284,6 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* OFFRES & PROMOS */}
         {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
           <div className="slide-up" style={{
             background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
@@ -315,7 +335,6 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* ARRÊTS PROCHES - DESIGN REVISITÉ */}
         {nearbyStops && nearbyStops.length > 0 && (
           <div className="slide-up" style={{
             background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
@@ -353,13 +372,13 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* SECTIONS SOCIALES - Hide for OSM for now */}
         <div className="slide-up" style={{ animationDelay: '0.5s' }}>
           <PlaceSocialSections 
             placeId={place.id} 
             placeName={place.name}
             initialCheckins={checkins || []} 
             initialAdvice={(advice as any[]) || []}
+            initialPhotos={photos || []}
             userId={user?.id || null}
             userDisplayName={userProfile?.display_name || 'Un Babi'}
             userAvatarEmoji={userProfile?.avatar_emoji || '👤'}

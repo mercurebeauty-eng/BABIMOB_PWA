@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Ic } from './ui/Ic';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlaceReviewModal from './PlaceReviewModal';
+import PlacePhotoGallery from './PlacePhotoGallery';
 
 type Checkin = {
   id: string;
@@ -19,10 +20,19 @@ type Advice = {
   content: string;
   created_at: string;
   is_question: boolean;
+  rating?: number;
   profiles: {
     display_name: string;
     avatar_emoji: string;
   } | null;
+};
+
+type Photo = {
+  id: string;
+  url: string;
+  caption?: string;
+  source: 'user' | 'partner' | 'pro';
+  is_verified: boolean;
 };
 
 type Props = {
@@ -30,6 +40,7 @@ type Props = {
   placeName: string;
   initialCheckins: Checkin[];
   initialAdvice: Advice[];
+  initialPhotos: Photo[];
   userId: string | null;
   userDisplayName: string;
   userAvatarEmoji: string;
@@ -49,21 +60,55 @@ export default function PlaceSocialSections({
   placeName, 
   initialCheckins, 
   initialAdvice, 
+  initialPhotos,
   userId, 
   userDisplayName,
   userAvatarEmoji,
   isVerifiedExplorer 
 }: Props) {
   const [advice, setAdvice] = useState<Advice[]>(initialAdvice);
+  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialAdvice.length === 20);
+
+  const supabase = createClient();
 
   const publicCheckins = initialCheckins.filter(c => c.is_public);
+
+  async function loadMoreAdvice() {
+    if (isLoadingMore || !hasMore || advice.length === 0) return;
+    setIsLoadingMore(true);
+
+    try {
+      const lastAdvice = advice[advice.length - 1];
+      
+      const { data, error } = await supabase
+        .from('place_advice')
+        .select('id, content, created_at, is_question, rating, profiles(display_name, avatar_emoji)')
+        .eq('place_id', placeId)
+        .lt('created_at', lastAdvice.created_at)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setAdvice(prev => [...prev, ...data as any]);
+        setHasMore(data.length === 20);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error('Error loading more advice:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
 
   async function handleNewAdvice(newEntry: any) {
     if (!newEntry || !userId) return;
 
-    // Plus besoin de requêter Supabase ici pour le profil, 
-    // on l'a déjà via les props, ce qui évite l'erreur de récursion RLS.
     const completeEntry: Advice = {
       ...newEntry,
       profiles: {
@@ -73,12 +118,21 @@ export default function PlaceSocialSections({
     };
 
     setAdvice(prev => [completeEntry, ...prev]);
+    
+    // If a photo was added, we might want to refresh photos list or just wait for next load
+    // For now, let's just keep it simple. If we want dynamic photos, we'd need more logic.
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       
-      {/* 1. SOCIAL TRACES - MODERNIZED */}
+      {/* 1. PHOTO GALLERY SECTION */}
+      <PlacePhotoGallery 
+        photos={photos} 
+        onAddPhoto={userId ? () => setModalOpen(true) : undefined} 
+      />
+
+      {/* 2. SOCIAL TRACES */}
       <div style={{ 
         background: '#fff', padding: 24, borderRadius: 32,
         boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
@@ -138,7 +192,7 @@ export default function PlaceSocialSections({
          )}
       </div>
 
-      {/* 2. COMMUNITY Q&A - MODERNIZED WITH MODAL */}
+      {/* 3. REVIEWS & QUESTIONS */}
       <div style={{ 
         background: '#fff', padding: 24, borderRadius: 32,
         boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
@@ -149,7 +203,7 @@ export default function PlaceSocialSections({
               <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Ic.Chat s={18} color="var(--blue)" />
               </div>
-              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>C'COMMENT</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>AVIS & QUESTIONS</h2>
             </div>
             
             {userId && (
@@ -162,7 +216,7 @@ export default function PlaceSocialSections({
                   cursor: 'pointer', boxShadow: '0 4px 12px rgba(242,108,26,0.2)'
                 }}
               >
-                DONNER MON AVIS
+                NOTER CE LIEU
               </button>
             )}
          </div>
@@ -176,16 +230,16 @@ export default function PlaceSocialSections({
             </div>
          )}
 
-         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <AnimatePresence initial={false}>
               {advice.map((item) => (
                 <motion.div 
                   layout
-                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   key={item.id} 
-                  style={{ display: 'flex', gap: 16, overflow: 'hidden' }}
+                  style={{ display: 'flex', gap: 16 }}
                 >
                     <div style={{ 
                       width: 44, height: 44, borderRadius: 14, background: 'var(--cream-2)', 
@@ -195,9 +249,18 @@ export default function PlaceSocialSections({
                       {item.profiles?.avatar_emoji ?? '👤'}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'Anonyme'}</span>
-                          <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.profiles?.display_name ?? 'Anonyme'}</span>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)' }}>{timeAgo(item.created_at)}</span>
+                          </div>
+                          {item.rating && (
+                            <div style={{ display: 'flex', gap: 2 }}>
+                               {[1, 2, 3, 4, 5].map(s => (
+                                 <Ic.Star key={s} s={10} fill={s <= item.rating!} color={s <= item.rating! ? 'var(--orange)' : 'var(--line-strong)'} />
+                               ))}
+                            </div>
+                          )}
                       </div>
                       <div style={{ 
                         background: 'var(--cream-2)', padding: '16px 20px', borderRadius: 24,
@@ -215,6 +278,24 @@ export default function PlaceSocialSections({
               <div style={{ textAlign: 'center', padding: '32px 0', opacity: 0.5 }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
                 <p style={{ fontSize: 12, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Aucun avis pour le moment</p>
+              </div>
+            )}
+
+            {hasMore && advice.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                <button
+                  onClick={loadMoreAdvice}
+                  disabled={isLoadingMore}
+                  className="press"
+                  style={{
+                    background: 'var(--cream-2)', color: 'var(--ink)', border: '1px solid rgba(0,0,0,0.05)',
+                    padding: '12px 24px', borderRadius: 20, fontSize: 12, fontWeight: 900,
+                    cursor: isLoadingMore ? 'wait' : 'pointer', transition: 'all 0.2s',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  {isLoadingMore ? 'CHARGEMENT...' : "VOIR PLUS D'AVIS"}
+                </button>
               </div>
             )}
          </div>
