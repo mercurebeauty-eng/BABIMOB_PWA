@@ -23,15 +23,17 @@ type Props = {
   initialConsent?: boolean;
   initialVisibility?: boolean;
   initialCommune?: string;
+  initialPseudo?: string;
 };
 
 export default function ProfileEditor({
   userId, initialName, initialEmoji,
   initialPhone = '', initialConsent = false, initialVisibility = false,
-  initialCommune = '',
+  initialCommune = '', initialPseudo = '',
 }: Props) {
   const supabase = createClient();
   const [name, setName] = useState(initialName);
+  const [pseudo, setPseudo] = useState(initialPseudo);
   const [emoji, setEmoji] = useState(initialEmoji);
   const [phone, setPhone] = useState(initialPhone);
   const [commune, setCommune] = useState(initialCommune);
@@ -51,7 +53,9 @@ export default function ProfileEditor({
 
   async function handleSave() {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    const trimmedPseudo = pseudo.trim();
+    if (!trimmed || !trimmedPseudo || !phone.trim() || !commune) return;
+    
     if (phone && !validateCIPhone(phone)) {
       setPhoneError('Numéro invalide.');
       return;
@@ -61,6 +65,7 @@ export default function ProfileEditor({
     const payload: Record<string, unknown> = {
       id: userId,
       display_name: trimmed,
+      pseudo: trimmedPseudo,
       avatar_emoji: emoji,
       phone_number: phone || null,
       phone_marketing_consent: consent,
@@ -73,6 +78,7 @@ export default function ProfileEditor({
       .upsert(payload, { onConflict: 'id' });
 
     if (error) {
+      console.error('Save error:', error);
       setStatus('error');
       setTimeout(() => setStatus('idle'), 3000);
       return;
@@ -104,6 +110,12 @@ export default function ProfileEditor({
     outline: 'none',
     transition: 'border-color 0.2s',
   };
+
+  const isFormValid = name.trim().length >= 2 && 
+                      pseudo.trim().length >= 3 && 
+                      phone.trim().length >= 8 && 
+                      !!commune && 
+                      !phoneError;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -152,7 +164,36 @@ export default function ProfileEditor({
           />
         </div>
         <div>
-          <label style={labelStyle}>Commune</label>
+          <label style={labelStyle}>Pseudo <span style={{ color: 'var(--orange)' }}>*</span></label>
+          <input
+            type="text"
+            value={pseudo}
+            onChange={(e) => setPseudo(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+            maxLength={15}
+            placeholder="ton_pseudo"
+            style={inputStyle}
+            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--orange)'}
+            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div>
+          <label style={labelStyle}>Téléphone <span style={{ color: 'var(--orange)' }}>*</span></label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            placeholder="07 01 02 03 04"
+            style={{ ...inputStyle, borderColor: phoneError ? '#ff4444' : 'var(--line)' }}
+            onFocus={(e) => !phoneError && (e.currentTarget.style.borderColor = 'var(--orange)')}
+            onBlur={(e) => !phoneError && (e.currentTarget.style.borderColor = 'var(--line)')}
+          />
+          {phoneError && <div style={{ fontSize: 10, color: '#ff4444', marginTop: 4, fontWeight: 700 }}>{phoneError}</div>}
+        </div>
+        <div>
+          <label style={labelStyle}>Commune <span style={{ color: 'var(--orange)' }}>*</span></label>
           <select
             value={commune}
             onChange={(e) => setCommune(e.target.value)}
@@ -166,20 +207,6 @@ export default function ProfileEditor({
             ))}
           </select>
         </div>
-      </div>
-
-      <div>
-        <label style={labelStyle}>Téléphone <span style={{ color: 'var(--orange)' }}>*</span></label>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => handlePhoneChange(e.target.value)}
-          placeholder="07 01 02 03 04"
-          style={{ ...inputStyle, borderColor: phoneError ? '#ff4444' : 'var(--line)' }}
-          onFocus={(e) => !phoneError && (e.currentTarget.style.borderColor = 'var(--orange)')}
-          onBlur={(e) => !phoneError && (e.currentTarget.style.borderColor = 'var(--line)')}
-        />
-        {phoneError && <div style={{ fontSize: 10, color: '#ff4444', marginTop: 4, fontWeight: 700 }}>{phoneError}</div>}
       </div>
 
       {/* Switches Style Wax */}
@@ -226,28 +253,28 @@ export default function ProfileEditor({
 
       <button
         onClick={handleSave}
-        disabled={status === 'saving' || !name.trim() || !phone.trim() || !!phoneError}
+        disabled={status === 'saving' || !isFormValid}
         className="press font-display"
         style={{
           width: '100%',
           padding: '16px',
           borderRadius: 20,
           border: 'none',
-          background: status === 'saved' ? 'var(--green)' : (!name.trim() || !phone.trim() ? 'var(--line)' : 'var(--orange)'),
+          background: status === 'saved' ? 'var(--green)' : (!isFormValid ? 'var(--line)' : 'var(--orange)'),
           color: '#fff',
           fontSize: 16,
           letterSpacing: 0.5,
-          cursor: (!name.trim() || !phone.trim()) ? 'not-allowed' : 'pointer',
+          cursor: !isFormValid ? 'not-allowed' : 'pointer',
           boxShadow: status === 'saved' ? '0 8px 20px rgba(14,168,91,0.3)' : '0 8px 20px rgba(242,108,26,0.3)',
           transition: 'all 0.3s'
         }}
       >
-        {status === 'saving' ? 'SAUVEGARDE...' : status === 'saved' ? '✓ PROFIL MIS À JOUR' : (!name.trim() || !phone.trim() ? 'REMPLIR LES CHAMPS *' : 'ENREGISTRER')}
+        {status === 'saving' ? 'SAUVEGARDE...' : status === 'saved' ? '✓ PROFIL MIS À JOUR' : (!isFormValid ? 'REMPLIR TOUT LE PROFIL 🔓' : 'ENREGISTRER ET DÉVERROUILLER')}
       </button>
 
       {status === 'error' && (
         <div style={{ textAlign: 'center', color: '#ff4444', fontSize: 12, fontWeight: 700 }}>
-          Oups, une erreur est survenue.
+          Oups, une erreur est survenue lors de l'enregistrement.
         </div>
       )}
     </div>

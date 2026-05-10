@@ -11,6 +11,9 @@ import type { ReachSource } from './useReachTracking';
 export type UserProfile = {
   id: string;
   display_name: string | null;
+  pseudo: string | null;
+  origin_commune: string | null;
+  phone_number: string | null;
   avatar_emoji: string | null;
   sub_tier: SubTier | null;
   is_admin: boolean;
@@ -83,7 +86,7 @@ export function useCommunityData({ logReach }: Options) {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('id, display_name, avatar_emoji, sub_tier, is_admin, is_public_visits, total_points')
+          .select('id, display_name, pseudo, origin_commune, phone_number, avatar_emoji, sub_tier, is_admin, is_public_visits, total_points')
           .eq('id', user.id)
           .single();
         if (!cancelled && data) setProfile({ ...(data as Omit<UserProfile, 'sub_tier'> & { sub_tier: string | null }), sub_tier: toSubTier(data.sub_tier) });
