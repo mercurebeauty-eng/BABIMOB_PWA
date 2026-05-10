@@ -7,23 +7,37 @@ import { useRouter } from 'next/navigation';
 export default function VoiceTestPage() {
   const router = useRouter();
 
+  const mockRoom = {
+    id: 'test', title: 'Débrief Match de hier au Plateau ⚽', emoji: '⚽',
+    creator_id: '1', participants_count: 9, is_live: true, is_private: false,
+    room_mode: 'classic' as const, upvote_threshold: 10, max_speak_secs: 120,
+    topic: 'Sport', created_at: new Date().toISOString()
+  };
+
   const mockParticipants = [
-    { id: '1', name: 'Zokora', avatar_emoji: '🦁', is_speaking: true, is_muted: false, role: 'host' as const },
-    { id: '2', name: 'Awa', avatar_emoji: '💃', is_speaking: false, is_muted: true, role: 'speaker' as const },
-    { id: '3', name: 'Bakayoko', avatar_emoji: '⚽', is_speaking: true, is_muted: false, role: 'speaker' as const },
-    { id: '4', name: 'Cissé', avatar_emoji: '👳', is_speaking: false, is_muted: false, role: 'speaker' as const },
-    { id: '10', name: 'Moussa', avatar_emoji: '🤠', is_speaking: false, is_muted: false, role: 'listener' as const },
-    { id: '11', name: 'Tidiane', avatar_emoji: '👔', is_speaking: false, is_muted: false, role: 'listener' as const },
-    { id: '12', name: 'Fatou', avatar_emoji: '✨', is_speaking: false, is_muted: false, role: 'listener' as const },
-    { id: '13', name: 'Gnon', avatar_emoji: '🐒', is_speaking: false, is_muted: false, role: 'listener' as const },
-    { id: '14', name: 'Kouakou', avatar_emoji: '🚜', is_speaking: false, is_muted: false, role: 'listener' as const },
+    { id: '1', user_id: 'u1', room_id: 'test', display_name: 'Zokora', avatar_emoji: '🦁', is_speaking: true, is_muted: false, role: 'host' as const, speak_time_secs: 45, joined_at: new Date().toISOString() },
+    { id: '2', user_id: 'u2', room_id: 'test', display_name: 'Awa', avatar_emoji: '💃', is_speaking: false, is_muted: true, role: 'speaker' as const, speak_time_secs: 12, joined_at: new Date().toISOString() },
+    { id: '3', user_id: 'u3', room_id: 'test', display_name: 'Bakayoko', avatar_emoji: '⚽', is_speaking: true, is_muted: false, role: 'speaker' as const, speak_time_secs: 89, joined_at: new Date().toISOString() },
+    { id: '10', user_id: 'u10', room_id: 'test', display_name: 'Moussa', avatar_emoji: '🤠', is_speaking: false, is_muted: false, role: 'listener' as const, speak_time_secs: 0, joined_at: new Date().toISOString() },
   ];
 
   return (
     <VoiceRoomUI 
-      title="Débrief Match de hier au Plateau ⚽"
+      room={mockRoom}
       participants={mockParticipants}
-      onClose={() => router.back()}
+      comments={[]}
+      requests={[]}
+      userId="u1"
+      isHost={true}
+      myRole="host"
+      canRequestSpeak={false}
+      myUpvotedComments={[]}
+      onUpvoteComment={async () => {}}
+      onPostComment={async () => {}}
+      onRequestSpeak={async () => {}}
+      onApproveRequest={async () => {}}
+      onTogglePrivacy={async () => {}}
+      onLeave={() => router.back()}
     />
   );
 }
