@@ -61,7 +61,7 @@ export function useStopSearch(options: Options = {}) {
     }
 
     // 1) Résultats instantanés depuis les tuiles MapLibre déjà rendues.
-    const renderedHits = searchRenderedFeatures(mapRef?.current ?? null, trimmed, 6);
+    const renderedHits = searchRenderedFeatures(mapRef?.current ?? null, trimmed, 10);
     const renderedResults: SearchResult[] = renderedHits.map((h) => ({
       id: h.id,
       name: h.name,
@@ -101,12 +101,12 @@ export function useStopSearch(options: Options = {}) {
           .from('gtfs_stops')
           .select('stop_id, stop_name, stop_lat, stop_lon, commune')
           .or(stopFilter)
-          .limit(8),
+          .limit(15),
         supabase
           .from('places')
           .select('id, name, lat, lon, commune, logo_emoji')
           .or(placeFilter)
-          .limit(8),
+          .limit(15),
       ]);
 
       const stops: SearchResult[] = (stopsReq.data ?? []).map((s) => ({
@@ -143,7 +143,7 @@ export function useStopSearch(options: Options = {}) {
       const controller = new AbortController();
       nominatimAbortRef.current = controller;
       nominatimTimerRef.current = setTimeout(async () => {
-        const hits = await searchNominatim(trimmed, controller.signal, 6);
+        const hits = await searchNominatim(trimmed, controller.signal, 10);
         const nominatimResults: SearchResult[] = hits.map((h) => ({
           id: h.id,
           name: h.name,

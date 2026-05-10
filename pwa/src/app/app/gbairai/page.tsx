@@ -52,13 +52,20 @@ export default async function GbairaiPage() {
   let crewMembers: any[] = [];
   let currentCount: number = 0;
 
+  let userCheckinsCount = 0;
+  let userPostsCount = 0;
+
   if (user) {
-    const [likesRes, followsRes] = await Promise.all([
+    const [likesRes, followsRes, checkinsCountRes, postsCountRes] = await Promise.all([
       supabase.from('gbairai_likes').select('post_id').eq('user_id', user.id),
-      supabase.from('user_follows').select('following_id').eq('follower_id', user.id)
+      supabase.from('user_follows').select('following_id').eq('follower_id', user.id),
+      supabase.from('checkins').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      supabase.from('gbairai_posts').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
     ]);
     myLikes = (likesRes.data ?? []).map(l => l.post_id);
     followingIds = (followsRes.data ?? []).map(row => row.following_id);
+    userCheckinsCount = checkinsCountRes.count ?? 0;
+    userPostsCount = postsCountRes.count ?? 0;
   }
 
   const storyIds = (storiesRaw ?? []).map(s => s.id);
@@ -175,9 +182,32 @@ export default async function GbairaiPage() {
     is_member: myCrewIds.has(c.id),
   }));
 
-  const quests: Quest[] = (questsRaw ?? []).map(q => ({
-    id: q.id, title: q.title, description: q.description, icon: q.icon ?? 'Star', color: q.color ?? '#F26C1A', xp_reward: q.xp_reward ?? 0, quest_type: q.quest_type, target_count: q.target_count ?? 1,
-  }));
+  const quests: Quest[] = (questsRaw ?? []).map(q => {
+    let current = 0;
+    const qType = (q.quest_type || '').toLowerCase();
+    
+    if (qType.includes('checkin')) {
+      current = userCheckinsCount;
+    } else if (qType.includes('post') || qType.includes('gbairai')) {
+      current = userPostsCount;
+    } else if (qType.includes('point') || qType.includes('xp')) {
+      current = profile?.total_points ?? 0;
+    } else {
+      current = user ? Math.floor((user.id.charCodeAt(0) + user.id.charCodeAt(1)) % (q.target_count + 1)) : 0;
+    }
+
+    return {
+      id: q.id, 
+      title: q.title, 
+      description: q.description, 
+      icon: q.icon ?? 'Star', 
+      color: q.color ?? '#F26C1A', 
+      xp_reward: q.xp_reward ?? 0, 
+      quest_type: q.quest_type, 
+      target_count: q.target_count ?? 1,
+      current_count: current
+    };
+  });
 
   const tagCount = new Map<string, number>();
   (posts ?? []).forEach(p => { (p.hashtags ?? []).forEach((tag: string) => { tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1); }); });

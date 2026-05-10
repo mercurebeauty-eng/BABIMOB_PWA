@@ -64,6 +64,7 @@ export type Quest = {
   xp_reward: number;
   quest_type: string;
   target_count: number;
+  current_count: number;
 };
 
 export type Crew = {
