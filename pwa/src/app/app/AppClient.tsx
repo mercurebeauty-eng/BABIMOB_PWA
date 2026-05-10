@@ -1527,30 +1527,42 @@ function AppPageContent() {
         )}
       </AnimatePresence>
 
-      <BottomNav 
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        heatMode={heatMode}
-        nearbyStopsCount={nearbyStops.length}
-        onCycleNearby={() => {
-          if (nearbyStops.length > 0) {
-            const nextIdx = (nearbyIndex + 1) % nearbyStops.length;
-            setNearbyIndex(nextIdx);
-            handleSelectStop(nearbyStops[nextIdx]);
-          }
-        }}
-        onDiscover={handleDiscover}
-        isAdmin={profile?.role === 'admin'}
-        isPlusOpen={isPlusOpen}
-        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
-      />
-      <PlusBubble 
-        isOpen={isPlusOpen} 
-        onClose={() => setIsPlusOpen(false)}
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        onDiscover={handleDiscover}
-        heatMode={heatMode}
-        isAdmin={profile?.role === 'admin'}
-      />
+      <AnimatePresence>
+        {!searchOpen && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
+          >
+            <BottomNav 
+              onToggleHeatmap={() => setHeatMode(!heatMode)}
+              heatMode={heatMode}
+              nearbyStopsCount={nearbyStops.length}
+              onCycleNearby={() => {
+                if (nearbyStops.length > 0) {
+                  const nextIdx = (nearbyIndex + 1) % nearbyStops.length;
+                  setNearbyIndex(nextIdx);
+                  handleSelectStop(nearbyStops[nextIdx]);
+                }
+              }}
+              onDiscover={handleDiscover}
+              isAdmin={profile?.role === 'admin'}
+              isPlusOpen={isPlusOpen}
+              onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+            />
+            <PlusBubble 
+              isOpen={isPlusOpen} 
+              onClose={() => setIsPlusOpen(false)}
+              onToggleHeatmap={() => setHeatMode(!heatMode)}
+              onDiscover={handleDiscover}
+              heatMode={heatMode}
+              isAdmin={profile?.role === 'admin'}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

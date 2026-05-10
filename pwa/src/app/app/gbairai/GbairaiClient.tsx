@@ -674,23 +674,34 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         />
       )}
 
-      <BottomNav 
-        onToggleHeatmap={() => setHeatMode(!heatMode)} 
-        heatMode={heatMode} 
-        isPlusOpen={isPlusOpen}
-        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
-        isAdmin={profile?.is_admin}
-      />
-
-      <PlusBubble 
-        isOpen={isPlusOpen} 
-        onClose={() => setIsPlusOpen(false)} 
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        onDiscover={() => router.push('/app?discover=1')}
-        onVoiceCreate={() => setShowVoiceComposer(true)}
-        heatMode={heatMode}
-        isAdmin={profile?.is_admin}
-      />
+      <AnimatePresence>
+        {!showComposer && !showStoryComposer && !showVoiceComposer && viewingStoryIndex === null && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
+          >
+            <BottomNav 
+              onToggleHeatmap={() => setHeatMode(!heatMode)} 
+              heatMode={heatMode} 
+              isPlusOpen={isPlusOpen}
+              onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+              isAdmin={profile?.is_admin}
+            />
+            <PlusBubble 
+              isOpen={isPlusOpen} 
+              onClose={() => setIsPlusOpen(false)} 
+              onToggleHeatmap={() => setHeatMode(!heatMode)}
+              onDiscover={() => router.push('/app?discover=1')}
+              onVoiceCreate={() => setShowVoiceComposer(true)}
+              heatMode={heatMode}
+              isAdmin={profile?.is_admin}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
