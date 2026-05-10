@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
 import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew, Event, VoiceRoom, ReportCategory } from './types';
@@ -344,6 +344,16 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
     };
   }, [supabase, router]);
 
+  // Ouvrir modal vocal si ?voice=1 dans l'URL (depuis PlusBubble)
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('voice') === '1') {
+      setShowVoiceComposer(true);
+      // Nettoyer le param de l'URL
+      router.replace('/app/gbairai');
+    }
+  }, [searchParams, router]);
+
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
 
@@ -549,8 +559,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               </div>
             </div>
 
-            {/* Salons Vocaux */}
-            <VoiceRoomSection rooms={voiceRooms} onCreate={() => setShowVoiceComposer(true)} />
+
 
             {/* Trending Sections */}
             <TrendingSection spots={hotSpots} />
@@ -678,6 +687,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         {!showComposer && !showStoryComposer && !showVoiceComposer && viewingStoryIndex === null && (
           <>
             {/* Floating Search FAB */}
+            {!isPlusOpen && (
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -709,6 +719,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                 <Ic.Search s={24} />
               </button>
             </motion.div>
+            )}
 
             <motion.div
               initial={{ y: 100, opacity: 0 }}

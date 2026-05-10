@@ -611,8 +611,8 @@ function AppPageContent() {
       />
 
       {/* ── Live Pulse Capsule (Premium) ── */}
-      {!searchOpen && (
-        <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 64px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      {!searchOpen && !isPlusOpen && (
+        <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 80px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -646,7 +646,7 @@ function AppPageContent() {
       )}
 
       {/* ── FAB Stack (Right) ── */}
-      <div style={{ position: 'fixed', right: 'max(16px, calc((100vw - 500px) / 2 + 16px))', top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
+      <div style={{ position: 'fixed', right: 'max(16px, calc((100vw - 500px) / 2 + 16px))', top: 'calc(env(safe-area-inset-top,0px) + 80px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
         {(
           [
             { icon: <Ic.Layers s={18} />, action: () => {
