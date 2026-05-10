@@ -4,6 +4,8 @@ import React from 'react';
 import VoiceRoomUI from '@/components/voice/VoiceRoomUI';
 import { useRouter } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default function VoiceTestPage() {
   const router = useRouter();
 
