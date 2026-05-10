@@ -2,7 +2,7 @@
 
 import { Ic } from '@/components/ui/Ic';
 import { pickWax } from '@/lib/waxPattern';
-import type { Quest, CollectiveQuest } from './page';
+import type { Quest, CollectiveQuest } from './types';
 
 function timeLeft(iso: string): string {
   const ms = new Date(iso).getTime() - Date.now();
@@ -77,22 +77,45 @@ const ICON_MAP: Record<string, keyof typeof Ic> = {
 
 function QuestRow({ q }: { q: Quest }) {
   const Comp: any = Ic[ICON_MAP[q.icon] ?? 'Star'] ?? Ic.Star;
+  const pct = Math.min(100, Math.round((q.current_count / q.target_count) * 100));
+  const isCompleted = q.current_count >= q.target_count;
+
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: 14, borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)'
+      display: 'flex', flexDirection: 'column', gap: 12,
+      padding: 16, borderRadius: 20, background: isCompleted ? 'color-mix(in oklab, var(--cream-2) 40%, transparent)' : 'var(--cream-2)', 
+      border: isCompleted ? '1px solid rgba(14,168,91,0.3)' : '1px solid var(--line)',
+      opacity: isCompleted ? 0.7 : 1, transition: 'all 0.2s ease',
     }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 12, background: q.color,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0
-      }}>
-        <Comp s={20} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 14, background: isCompleted ? '#0EA85B' : q.color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0,
+          boxShadow: isCompleted ? '0 4px 12px rgba(14,168,91,0.2)' : 'none'
+        }}>
+          {isCompleted ? <Ic.Check s={24} /> : <Comp s={24} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink)' }}>{q.title}</div>
+          {q.description && <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginTop: 2 }}>{q.description}</div>}
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 900, color: isCompleted ? '#0EA85B' : q.color }}>+{q.xp_reward} XP</div>
+          {isCompleted && <div style={{ fontSize: 10, fontWeight: 800, color: '#0EA85B', background: 'rgba(14,168,91,0.1)', padding: '2px 6px', borderRadius: 4, marginTop: 4 }}>COMPLÉTÉE</div>}
+        </div>
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--ink)' }}>{q.title}</div>
-        {q.description && <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>{q.description}</div>}
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 900, color: q.color, flexShrink: 0 }}>+{q.xp_reward} XP</div>
+      
+      {!isCompleted && (
+        <div style={{ marginTop: 2 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 800, color: 'var(--muted)', marginBottom: 6 }}>
+            <span>Progression</span>
+            <span>{q.current_count} / {q.target_count}</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}>
+            <div style={{ width: `${pct}%`, height: '100%', background: q.color, borderRadius: 4, transition: 'width 0.5s ease-out' }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 import { pickWax } from '@/lib/waxPattern';
-import type { Crew } from './page';
+import type { Crew } from './types';
 
 export default function CrewsTab({ crews: initial, userId }: { crews: Crew[]; userId: string | null }) {
   const [crews, setCrews] = useState<Crew[]>(initial);

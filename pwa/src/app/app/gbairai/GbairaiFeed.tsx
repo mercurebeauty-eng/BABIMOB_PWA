@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { Ic } from '@/components/ui/Ic';
 import { Pill } from '@/components/ui/Pill';
 import { pickWax } from '@/lib/waxPattern';
-import type { GbairaiPost } from './page';
+import type { GbairaiPost } from './types';
+import EmptyState from './EmptyState';
 
-const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#FF3B30', '#C4582E'];
+const AVATAR_COLORS = ['#FF6B00', '#0EA85B', '#1E5BFF', '#E8B23C', '#FF3B30', '#C4582E'];
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -28,28 +30,26 @@ export default function GbairaiFeed({ initialPosts, myLikes: initialMyLikes, use
   const [liked, setLiked] = useState<Set<string>>(new Set(initialMyLikes));
   const supabase = createClient();
 
-  // Realtime subscription
   useEffect(() => {
-    const channel = supabase
-      .channel('gbairai-feed')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gbairai_posts' }, (payload) => {
-        const p = payload.new as GbairaiPost;
-        setPosts(prev => [p, ...prev].slice(0, 40));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase]);
+    setPosts(initialPosts);
+  }, [initialPosts]);
 
   async function toggleLike(postId: string) {
     if (!userId) return;
     const isLiked = liked.has(postId);
+    
     // Optimistic update
     setLiked(prev => {
       const next = new Set(prev);
       isLiked ? next.delete(postId) : next.add(postId);
       return next;
     });
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) } : p));
+
+    setPosts(prev => prev.map(p => 
+      p.id === postId 
+        ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) } 
+        : p
+    ));
 
     if (isLiked) {
       await supabase.from('gbairai_likes').delete().eq('post_id', postId).eq('user_id', userId);
@@ -60,19 +60,29 @@ export default function GbairaiFeed({ initialPosts, myLikes: initialMyLikes, use
 
   if (posts.length === 0) {
     return (
-      <div style={{ padding: '40px 20px', textAlign: 'center', margin: '0 16px', borderRadius: 18, background: 'var(--cream-2)', border: '1px solid var(--line)' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🗣️</div>
-        <div className="font-display" style={{ fontSize: 20, marginBottom: 8 }}>Gbairai est calme...</div>
-        <p style={{ fontSize: 13, color: 'var(--muted)' }}>Sois le premier à dire c&apos;comment !</p>
-      </div>
+      <EmptyState 
+        emoji="🗣️"
+        title="Gbairai est calme..." 
+        description="Sois le premier à dire c'est comment !" 
+      />
     );
   }
 
   return (
     <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-      {posts.map((p, idx) => (
-        <PostCard key={p.id} post={p} idx={idx} isLiked={liked.has(p.id)} onLike={() => toggleLike(p.id)} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {posts.map((p, idx) => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3, delay: idx * 0.05 }}
+          >
+            <PostCard post={p} idx={idx} isLiked={liked.has(p.id)} onLike={() => toggleLike(p.id)} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
