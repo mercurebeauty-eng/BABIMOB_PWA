@@ -686,7 +686,7 @@ export default function CompteClient({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 14 }}>
             {[
               { v: streak.toString(), l: 'Série', c: 'var(--orange)' },
-              { v: badges.length.toString(), l: 'Badges', c: '#0EA85B' },
+              { v: new Set(badges.map(b => b.badge_key)).size.toString(), l: 'Badges', c: '#0EA85B' },
               { v: `${explorationPct}%`, l: 'Babi', c: '#1E5BFF' },
               { v: points.toLocaleString(), l: 'Points', c: '#E8B23C' },
             ].map((s, i) => (
