@@ -1,228 +1,246 @@
 'use client';
-
-import React, { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ic } from '@/components/ui/Ic';
+import type { VoiceRoom, VoiceParticipant, VoiceRoomComment, VoiceSpeakerRequest } from '@/app/app/gbairai/types';
 
-interface Participant {
-  id: string;
-  name: string;
-  avatar_emoji: string;
-  is_speaking: boolean;
-  is_muted: boolean;
-  role: 'host' | 'speaker' | 'listener';
-}
+const CRED_BADGE: Record<string, string> = { bronze: '🥉', silver: '🥈', gold: '🥇', legend: '👑' };
+const MODE_LABEL: Record<string, string> = { classic: '🎙️ Classic', debate: '⚔️ Débat', hot_seat: '🔥 Hot Seat', lightning: '⚡ Lightning' };
 
-interface VoiceRoomUIProps {
-  title: string;
-  participants: Participant[];
-  onClose: () => void;
-}
-
-export default function VoiceRoomUI({ title, participants, onClose }: VoiceRoomUIProps) {
-  const [isMuted, setIsMuted] = useState(true);
-  const [showReactions, setShowReactions] = useState(false);
-
-  const host = participants.find(p => p.role === 'host');
-  const speakers = participants.filter(p => p.role === 'speaker').slice(0, 4);
-  const listeners = participants.filter(p => p.role === 'listener');
-
-  const containerStyle: React.CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    background: '#0A0D14',
-    zIndex: 9999,
-    display: 'flex',
-    flexDirection: 'column',
-    color: '#fff',
-    fontFamily: 'Inter, sans-serif'
-  };
-
-  const headerStyle: React.CSSProperties = {
-    padding: '20px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%)'
-  };
-
-  const controlsStyle: React.CSSProperties = {
-    padding: '24px 16px calc(env(safe-area-inset-bottom, 20px) + 10px)',
-    background: 'rgba(10, 13, 20, 0.95)',
-    backdropFilter: 'blur(10px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTop: '1px solid rgba(255,255,255,0.1)'
-  };
-
+function SpeakingRing({ active }: { active: boolean }) {
   return (
-    <motion.div 
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      style={containerStyle}
-    >
-      {/* Header */}
-      <div style={headerStyle}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#fff', padding: 8 }}>
-          <Ic.ChevronDown s={24} />
-        </button>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: '#F26C1A', letterSpacing: 1, marginBottom: 2 }}>LIVE GBAIRAI</div>
-          <div className="font-display" style={{ fontSize: 18, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {title}
-          </div>
-        </div>
-        <button style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 12, padding: '6px 12px', fontSize: 12, fontWeight: 800 }}>
-          PARTAGER
-        </button>
-      </div>
-
-      {/* Main Content (Scrollable) */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
-        
-        {/* Speakers Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 40 }}>
-          {/* Host */}
-          {host && <SpeakerAvatar participant={host} isHost />}
-          
-          {/* Other Speakers */}
-          {speakers.map(s => (
-            <SpeakerAvatar key={s.id} participant={s} />
-          ))}
-
-          {/* Empty Slots if < 5 total speakers */}
-          {Array.from({ length: 4 - speakers.length }).map((_, i) => (
-            <div key={`empty-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.3 }}>
-              <div style={{ width: 80, height: 80, borderRadius: 32, border: '2px dashed #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                ➕
-              </div>
-              <div style={{ fontSize: 11, marginTop: 8, fontWeight: 700 }}>Libre</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Listeners Section */}
-        <div>
-          <h4 style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>AUDITEURS ({listeners.length})</h4>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            {listeners.map(l => (
-              <div key={l.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 48 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 18, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                  {l.avatar_emoji}
-                </div>
-                <div style={{ fontSize: 9, marginTop: 4, fontWeight: 600, width: '100%', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {l.name.split(' ')[0]}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Controls */}
-      <div style={controlsStyle}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button 
-            onClick={() => setIsMuted(!isMuted)}
-            className="press"
-            style={{ 
-              width: 56, height: 56, borderRadius: 28, border: 'none',
-              background: isMuted ? 'rgba(255,255,255,0.1)' : '#F26C1A',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: isMuted ? 'none' : '0 0 20px rgba(242,108,26,0.4)'
-            }}
-          >
-            {isMuted ? <Ic.MicOff s={24} /> : <Ic.Mic s={24} />}
-          </button>
-          
-          <button 
-            onClick={() => setShowReactions(!showReactions)}
-            className="press"
-            style={{ 
-              width: 56, height: 56, borderRadius: 28, border: 'none',
-              background: 'rgba(255,255,255,0.1)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}
-          >
-            <span style={{ fontSize: 24 }}>😊</span>
-          </button>
-        </div>
-
-        <button 
-          className="press"
-          style={{ 
-            padding: '0 24px', height: 56, borderRadius: 28, border: 'none',
-            background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: 800, fontSize: 14
-          }}
-        >
-          ✋ LEVER LA MAIN
-        </button>
-
-        <button 
-          onClick={onClose}
-          className="press"
-          style={{ 
-            padding: '0 24px', height: 56, borderRadius: 28, border: 'none',
-            background: '#FF3B30', color: '#fff', fontWeight: 800, fontSize: 14
-          }}
-        >
-          QUITTER
-        </button>
-      </div>
-    </motion.div>
+    <div style={{ position: 'absolute', inset: -4, borderRadius: '50%', border: `2px solid ${active ? '#E5337A' : 'transparent'}`, transition: 'all 0.3s' }}>
+      {active && <div style={{ position: 'absolute', inset: -4, borderRadius: '50%', border: '2px solid rgba(229,51,122,0.3)', animation: 'ping 1.5s infinite' }} />}
+    </div>
   );
 }
 
-function SpeakerAvatar({ participant, isHost = false }: { participant: Participant, isHost?: boolean }) {
+function UpvoteGauge({ score, threshold }: { score: number; threshold: number }) {
+  const pct = Math.min(100, (score / threshold) * 100);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-      <div style={{ position: 'relative', width: 80, height: 80 }}>
-        {/* Animated Voice Waves */}
-        {participant.is_speaking && (
-          <motion.div 
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            style={{ 
-              position: 'absolute', inset: -8, borderRadius: 36, 
-              border: `2px solid ${isHost ? '#F26C1A' : '#E5337A'}`,
-              zIndex: 0
-            }} 
-          />
-        )}
-        
-        <div style={{ 
-          position: 'relative', zIndex: 1, width: '100%', height: '100%', 
-          borderRadius: 32, background: 'rgba(255,255,255,0.1)', 
-          border: `3px solid ${participant.is_speaking ? (isHost ? '#F26C1A' : '#E5337A') : 'transparent'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36,
-          boxShadow: participant.is_speaking ? `0 0 20px ${isHost ? 'rgba(242,108,26,0.3)' : 'rgba(229,51,122,0.3)'}` : 'none'
-        }}>
-          {participant.avatar_emoji}
-          
-          {/* Muted Badge */}
-          {participant.is_muted && (
-            <div style={{ 
-              position: 'absolute', bottom: -4, right: -4, width: 24, height: 24, 
-              borderRadius: 12, background: '#1A1D23', border: '2px solid #0A0D14',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Ic.MicOff s={12} />
-            </div>
+    <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', overflow: 'hidden', marginTop: 4 }}>
+      <motion.div animate={{ width: `${pct}%` }} style={{ height: '100%', background: pct >= 100 ? '#0EA85B' : '#E5337A', borderRadius: 2 }} />
+    </div>
+  );
+}
+
+interface Props {
+  room: VoiceRoom;
+  participants: VoiceParticipant[];
+  comments: VoiceRoomComment[];
+  requests: VoiceSpeakerRequest[];
+  userId: string | null;
+  isHost: boolean;
+  myRole: 'host' | 'speaker' | 'listener' | null;
+  canRequestSpeak: boolean;
+  myUpvotedComments: Set<string>;
+  onUpvoteComment: (id: string, isHost: boolean) => void;
+  onPostComment: (text: string) => void;
+  onRequestSpeak: () => void;
+  onApproveRequest: (reqId: string) => void;
+  onTogglePrivacy: () => void;
+  onLeave: () => void;
+}
+
+export default function VoiceRoomUI({
+  room, participants, comments, requests,
+  userId, isHost, myRole, canRequestSpeak, myUpvotedComments,
+  onUpvoteComment, onPostComment, onRequestSpeak, onTogglePrivacy, onLeave, onApproveRequest,
+}: Props) {
+  const [commentText, setCommentText] = useState('');
+  const [showRequests, setShowRequests] = useState(false);
+  const [hostToast, setHostToast] = useState<string | null>(null);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const speakers = participants.filter(p => p.role === 'host' || p.role === 'speaker');
+  const listeners = participants.filter(p => p.role === 'listener');
+
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [comments.length]);
+
+  const handleUpvote = (comment: VoiceRoomComment) => {
+    onUpvoteComment(comment.id, isHost);
+    if (isHost && !comment.host_upvoted) {
+      setHostToast(`👆 ${comment.display_name} peut maintenant demander la parole !`);
+      setTimeout(() => setHostToast(null), 4000);
+    }
+  };
+
+  const handleSendComment = () => {
+    if (!commentText.trim()) return;
+    onPostComment(commentText);
+    setCommentText('');
+  };
+
+  return (
+    <div style={{ minHeight: '100dvh', background: 'linear-gradient(160deg, #0D0D1A 0%, #1A0A2E 50%, #0D1A0D 100%)', color: '#fff', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
+
+      {/* ── Header ── */}
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 20 }}>
+        <button onClick={onLeave} style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{MODE_LABEL[room.room_mode]}</div>
+          <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.1 }}>{room.emoji} {room.title}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isHost && (
+            <button onClick={onTogglePrivacy} style={{ padding: '6px 12px', borderRadius: 20, border: 'none', background: room.is_private ? 'rgba(229,51,122,0.3)' : 'rgba(14,168,91,0.3)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              {room.is_private ? '🔒 Privé' : '🌍 Public'}
+            </button>
+          )}
+          {isHost && requests.length > 0 && (
+            <button onClick={() => setShowRequests(true)} style={{ position: 'relative', width: 36, height: 36, borderRadius: 12, background: 'rgba(229,183,0,0.25)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18 }}>
+              🙋
+              <span style={{ position: 'absolute', top: -4, right: -4, background: '#E5337A', borderRadius: '50%', width: 16, height: 16, fontSize: 9, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{requests.length}</span>
+            </button>
           )}
         </div>
       </div>
-      
-      <div style={{ marginTop: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>
-          {participant.name} {isHost && '👑'}
-        </div>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
-          {isHost ? 'Hôte' : 'Speaker'}
+
+      {/* ── Host toast ── */}
+      <AnimatePresence>
+        {hostToast && (
+          <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
+            style={{ margin: '8px 16px', padding: '10px 16px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(229,183,0,0.25), rgba(229,51,122,0.2))', border: '1px solid rgba(229,183,0,0.3)', fontSize: 13, fontWeight: 700 }}>
+            {hostToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Stage (Speakers) ── */}
+      <div style={{ padding: '24px 20px 16px', background: 'rgba(255,255,255,0.03)' }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 20 }}>SCÈNE · {speakers.length} SPEAKER{speakers.length > 1 ? 'S' : ''}</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center' }}>
+          {speakers.map(p => (
+            <div key={p.user_id} style={{ textAlign: 'center', width: 70 }}>
+              <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 8px' }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #E5337A, #C12763)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, position: 'relative', zIndex: 1, border: p.role === 'host' ? '2px solid #E8B23C' : '2px solid transparent' }}>
+                  {p.avatar_emoji || '👤'}
+                </div>
+                <SpeakingRing active={!p.is_muted} />
+                {p.is_muted && <div style={{ position: 'absolute', bottom: 0, right: 0, background: '#FF3B30', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, zIndex: 2 }}>🔇</div>}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: p.role === 'host' ? '#E8B23C' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.display_name || 'Anonyme'}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{p.role === 'host' ? '👑 Host' : '🎙️'}</div>
+              <UpvoteGauge score={p.upvote_score} threshold={room.upvote_threshold} />
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* ── Listeners count ── */}
+      {listeners.length > 0 && (
+        <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>👥 {listeners.length} auditeur{listeners.length > 1 ? 's' : ''}</div>
+        </div>
+      )}
+
+      {/* ── Comments (public room only) ── */}
+      {!room.is_private && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {comments.map(c => {
+              const alreadyUpvoted = myUpvotedComments.has(c.id);
+              const isMe = c.user_id === userId;
+              return (
+                <motion.div key={c.id} initial={{ opacity: 0, x: isMe ? 20 : -20 }} animate={{ opacity: 1, x: 0 }}
+                  style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{c.avatar_emoji}</div>
+                  <div style={{ maxWidth: '70%' }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: c.host_upvoted ? '#E8B23C' : 'rgba(255,255,255,0.5)', marginBottom: 2, textAlign: isMe ? 'right' : 'left' }}>
+                      {c.display_name} {c.host_upvoted && '⭐'}
+                    </div>
+                    <div style={{ padding: '8px 12px', borderRadius: isMe ? '16px 4px 16px 16px' : '4px 16px 16px 16px', background: isMe ? 'rgba(229,51,122,0.25)' : 'rgba(255,255,255,0.08)', border: `1px solid ${isMe ? 'rgba(229,51,122,0.3)' : 'rgba(255,255,255,0.1)'}`, fontSize: 13, lineHeight: 1.4 }}>{c.content}</div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4, justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'center' }}>
+                      {!isMe && (
+                        <button onClick={() => handleUpvote(c)} disabled={alreadyUpvoted}
+                          style={{ background: 'none', border: 'none', cursor: alreadyUpvoted ? 'default' : 'pointer', fontSize: 13, color: alreadyUpvoted ? '#E8B23C' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', borderRadius: 8, transition: 'all 0.2s' }}>
+                          {alreadyUpvoted ? '❤️' : '🤍'} <span style={{ fontSize: 11, fontWeight: 700 }}>{c.upvotes}</span>
+                        </button>
+                      )}
+                      {isHost && !c.host_upvoted && !isMe && (
+                        <button onClick={() => handleUpvote(c)}
+                          style={{ padding: '2px 8px', borderRadius: 8, border: '1px solid rgba(232,178,60,0.4)', background: 'rgba(232,178,60,0.1)', color: '#E8B23C', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>
+                          ⭐ Créditer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+            {comments.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 13, padding: '32px 0' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+                Sois le premier à commenter.<br />Upvote tes commentaires pour demander la parole !
+              </div>
+            )}
+            <div ref={commentsEndRef} />
+          </div>
+
+          {/* Comment input */}
+          <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10, alignItems: 'center' }}>
+            <input
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSendComment()}
+              placeholder="Réagis en direct..."
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 14, outline: 'none' }}
+            />
+            <button onClick={handleSendComment} style={{ width: 40, height: 40, borderRadius: 12, background: '#E5337A', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↑</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bottom actions ── */}
+      <div style={{ padding: '16px 20px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 12 }}>
+        {myRole === 'listener' && !isHost && (
+          <motion.button
+            onClick={onRequestSpeak}
+            disabled={!canRequestSpeak}
+            whileTap={{ scale: 0.97 }}
+            style={{ flex: 1, padding: '14px', borderRadius: 18, border: 'none', background: canRequestSpeak ? 'linear-gradient(135deg, #E5337A, #C12763)' : 'rgba(255,255,255,0.08)', color: canRequestSpeak ? '#fff' : 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: 900, cursor: canRequestSpeak ? 'pointer' : 'not-allowed', boxShadow: canRequestSpeak ? '0 8px 24px rgba(229,51,122,0.4)' : 'none', transition: 'all 0.3s' }}>
+            {canRequestSpeak ? '🎙️ Demander la parole' : `🤍 ${(room.upvote_threshold)} upvotes pour parler`}
+          </motion.button>
+        )}
+        {(myRole === 'host' || myRole === 'speaker') && (
+          <motion.button whileTap={{ scale: 0.95 }} style={{ flex: 1, padding: '14px', borderRadius: 18, border: 'none', background: 'linear-gradient(135deg, #E5337A, #C12763)', color: '#fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', boxShadow: '0 8px 24px rgba(229,51,122,0.4)' }}>
+            🎙️ {myRole === 'host' ? 'Animer le salon' : 'Je parle'}
+          </motion.button>
+        )}
+        <button onClick={onLeave} style={{ width: 52, height: 52, borderRadius: 18, background: 'rgba(255,59,48,0.2)', border: '1px solid rgba(255,59,48,0.3)', color: '#FF3B30', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+      </div>
+
+      {/* ── Speaker Requests modal ── */}
+      <AnimatePresence>
+        {showRequests && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowRequests(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              onClick={e => e.stopPropagation()}
+              style={{ width: '100%', background: 'linear-gradient(180deg, #1A0A2E, #0D0D1A)', borderRadius: '24px 24px 0 0', padding: '24px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
+              <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>🙋 Demandes de parole ({requests.length})</div>
+              {requests.map(req => (
+                <div key={req.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{req.display_name || req.user_id}</div>
+                  <button onClick={() => { onApproveRequest(req.id); setShowRequests(false); }}
+                    style={{ padding: '8px 16px', borderRadius: 12, background: 'linear-gradient(135deg, #0EA85B, #0A6E3D)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                    ✅ Accepter
+                  </button>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        @keyframes ping {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
