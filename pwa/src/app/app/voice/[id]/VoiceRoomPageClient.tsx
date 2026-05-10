@@ -21,7 +21,7 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
     requestSpeak, approveRequest, togglePrivacy,
   } = useVoiceRoomHook(roomId, userId);
 
-  const { setActiveRoom, setJoined, isMiniPlayer, token } = useVoiceRoomContext();
+  const { setActiveRoom, setJoined, isMiniPlayer, token, error: roomError } = useVoiceRoomContext();
 
   if (loading || !room) {
     return (
@@ -31,6 +31,24 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Chargement du salon…</div>
         </div>
         <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      </div>
+    );
+  }
+
+  if (roomError) {
+    return (
+      <div style={{ minHeight: '100dvh', background: 'linear-gradient(160deg, #1A0A0A, #2E0B0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+        <div style={{ textAlign: 'center', padding: 20 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>Erreur LiveKit</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', maxWidth: 300 }}>{roomError}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{ marginTop: 24, padding: '10px 20px', borderRadius: 20, border: 'none', background: '#fff', color: '#000', fontWeight: 'bold' }}
+          >
+            Réessayer
+          </button>
+        </div>
       </div>
     );
   }
