@@ -16,7 +16,7 @@ interface PlusBubbleProps {
   isAdmin?: boolean;
 }
 
-export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscover, heatMode, isAdmin }: PlusBubbleProps) {
+export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscover, onVoiceCreate, heatMode, isAdmin }: PlusBubbleProps) {
   const router = useRouter();
 
   const menuItems = [
