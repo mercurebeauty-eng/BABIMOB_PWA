@@ -549,6 +549,9 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               </div>
             </div>
 
+            {/* Salons Vocaux */}
+            <VoiceRoomSection rooms={voiceRooms} onCreate={() => setShowVoiceComposer(true)} />
+
             {/* Trending Sections */}
             <TrendingSection spots={hotSpots} />
             <EventsSection events={events} />
