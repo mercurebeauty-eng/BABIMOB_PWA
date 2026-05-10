@@ -15,10 +15,10 @@ export default function VoiceTestPage() {
   };
 
   const mockParticipants = [
-    { id: '1', user_id: 'u1', room_id: 'test', display_name: 'Zokora', avatar_emoji: '🦁', is_speaking: true, is_muted: false, role: 'host' as const, speak_time_secs: 45, joined_at: new Date().toISOString() },
-    { id: '2', user_id: 'u2', room_id: 'test', display_name: 'Awa', avatar_emoji: '💃', is_speaking: false, is_muted: true, role: 'speaker' as const, speak_time_secs: 12, joined_at: new Date().toISOString() },
-    { id: '3', user_id: 'u3', room_id: 'test', display_name: 'Bakayoko', avatar_emoji: '⚽', is_speaking: true, is_muted: false, role: 'speaker' as const, speak_time_secs: 89, joined_at: new Date().toISOString() },
-    { id: '10', user_id: 'u10', room_id: 'test', display_name: 'Moussa', avatar_emoji: '🤠', is_speaking: false, is_muted: false, role: 'listener' as const, speak_time_secs: 0, joined_at: new Date().toISOString() },
+    { id: '1', user_id: 'u1', room_id: 'test', display_name: 'Zokora', avatar_emoji: '🦁', is_speaking: true, is_muted: false, role: 'host' as const, speak_time_secs: 45, joined_at: new Date().toISOString(), upvote_score: 50, invited_by: null },
+    { id: '2', user_id: 'u2', room_id: 'test', display_name: 'Awa', avatar_emoji: '💃', is_speaking: false, is_muted: true, role: 'speaker' as const, speak_time_secs: 12, joined_at: new Date().toISOString(), upvote_score: 10, invited_by: 'u1' },
+    { id: '3', user_id: 'u3', room_id: 'test', display_name: 'Bakayoko', avatar_emoji: '⚽', is_speaking: true, is_muted: false, role: 'speaker' as const, speak_time_secs: 89, joined_at: new Date().toISOString(), upvote_score: 25, invited_by: null },
+    { id: '10', user_id: 'u10', room_id: 'test', display_name: 'Moussa', avatar_emoji: '🤠', is_speaking: false, is_muted: false, role: 'listener' as const, speak_time_secs: 0, joined_at: new Date().toISOString(), upvote_score: 0, invited_by: null },
   ];
 
   return (
