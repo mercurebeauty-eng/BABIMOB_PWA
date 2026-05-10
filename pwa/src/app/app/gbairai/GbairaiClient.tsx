@@ -694,7 +694,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               exit={{ scale: 0, opacity: 0 }}
               style={{
                 position: 'fixed',
-                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
                 right: 'max(16px, calc((100vw - 420px) / 2 + 16px))',
                 zIndex: 9001,
               }}

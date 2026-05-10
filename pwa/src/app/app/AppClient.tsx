@@ -612,7 +612,7 @@ function AppPageContent() {
 
       {/* ── Live Pulse Capsule (Premium) ── */}
       {!searchOpen && !isPlusOpen && (
-        <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 80px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+        <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 100px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -646,7 +646,8 @@ function AppPageContent() {
       )}
 
       {/* ── FAB Stack (Right) ── */}
-      <div style={{ position: 'fixed', right: 'max(16px, calc((100vw - 500px) / 2 + 16px))', top: 'calc(env(safe-area-inset-top,0px) + 80px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
+      {!isPlusOpen && (
+      <div style={{ position: 'fixed', right: 'max(16px, calc((100vw - 500px) / 2 + 16px))', top: 'calc(env(safe-area-inset-top,0px) + 100px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 9000 }}>
         {(
           [
             { icon: <Ic.Layers s={18} />, action: () => {
@@ -671,6 +672,7 @@ function AppPageContent() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Ticker and Search Bubble removed - Integrated in BottomNav */}
 
@@ -1467,7 +1469,7 @@ function AppPageContent() {
               exit={{ scale: 0, opacity: 0 }}
               style={{
                 position: 'fixed',
-                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
                 right: 'max(16px, calc((100vw - 420px) / 2 + 16px))',
                 zIndex: 9001,
               }}
