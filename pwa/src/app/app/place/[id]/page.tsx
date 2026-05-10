@@ -191,29 +191,42 @@ export default async function PlacePage({ params, searchParams }: Props) {
                 {place.logo_emoji ?? '📍'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                    {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
-                  </div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>
+                  {CATEGORY_LABELS[place.category] ?? 'LIEU'}
+                </div>
+                <h1 className="font-display" style={{ fontSize: 28, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>{place.name}</h1>
+                
+                {/* ── Rating & Commune Row ── */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 10 }}>
                   {socialStats.avg_rating > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 8 }}>
-                      <Ic.Star s={12} fill color="var(--orange)" />
-                      <span style={{ color: '#fff', fontSize: 12, fontWeight: 900 }}>{socialStats.avg_rating.toFixed(1)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Ic.Star 
+                            key={s} 
+                            s={14} 
+                            fill={s <= Math.round(socialStats.avg_rating)} 
+                            color={s <= Math.round(socialStats.avg_rating) ? "var(--orange)" : "rgba(255,255,255,0.2)"} 
+                          />
+                        ))}
+                      </div>
+                      <span style={{ color: '#fff', fontSize: 14, fontWeight: 900 }}>{socialStats.avg_rating.toFixed(1)}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>({socialStats.total_reviews} avis)</span>
+                    </div>
+                  )}
+                  {place.commune && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 20 }}>
+                      <Ic.Locate s={12} color="var(--orange)" />
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textTransform: 'uppercase' }}>{place.commune}</span>
                     </div>
                   )}
                 </div>
-                <h1 className="font-display" style={{ fontSize: 26, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>{place.name}</h1>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
                    {(place.address || isOSM) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Ic.Pin s={12} color="rgba(255,255,255,0.5)" />
                       <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.address || 'Abidjan'}</div>
-                    </div>
-                  )}
-                  {socialStats.total_reviews > 0 && (
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)' }}>
-                      {socialStats.total_reviews} AVIS
                     </div>
                   )}
                   {socialStats.total_photos > 0 && (
