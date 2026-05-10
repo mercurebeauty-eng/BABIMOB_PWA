@@ -21,11 +21,17 @@ export const Ic = {
   Mic: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M5 11a7 7 0 0014 0M12 18v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></P>
   ),
+  MicOff: ({ s = 20, color }: IconProps) => (
+    <P s={s} color={color}><path d="M1 1l22 22M9 9v3a3 3 0 005.12 2.12M15 9.34V6a3 3 0 00-5.94-.6M17 16.95A7 7 0 015 11M19 11a7 7 0 01-1.42 4.1M12 18v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></P>
+  ),
   Send: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><path d="M3 12l18-9-7 18-3-7-8-2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="currentColor" fillOpacity="0.15"/></P>
   ),
   Back: ({ s = 20, color }: IconProps) => (
     <P s={s} color={color}><path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></P>
+  ),
+  ChevronDown: ({ s = 20, color }: IconProps) => (
+    <P s={s} color={color}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></P>
   ),
   Arrow: ({ s = 20, dir = 'right', color }: IconProps) => (
     <P s={s} color={color} style={{ transform: dir === 'down' ? 'rotate(90deg)' : dir === 'up' ? 'rotate(-90deg)' : dir === 'left' ? 'rotate(180deg)' : 'none' }}>
