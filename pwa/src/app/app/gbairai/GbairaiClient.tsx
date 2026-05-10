@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { Ic } from '@/components/ui/Ic';
-import { getLevel } from '@/lib/levels';
-import { pickWax } from '@/lib/waxPattern';
+import Image from 'next/image';
+import { useMemo, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/ui/BottomNav';
-import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew } from './page';
+import type { GbairaiPost, HotSpot, CommunePulse, Story, Quest, CollectiveQuest, Crew, Event, VoiceRoom, ReportCategory } from './types';
 import GbairaiFeed from './GbairaiFeed';
 import PostComposer from './PostComposer';
 import StoryComposer from './StoryComposer';
@@ -14,25 +15,13 @@ import StoryViewer from './StoryViewer';
 import SpotsTab from './SpotsTab';
 import QuetesTab from './QuetesTab';
 import CrewsTab from './CrewsTab';
-
-export type Event = {
-  id: string;
-  title: string;
-  description: string | null;
-  start_at: string;
-  location_name: string | null;
-  price_label: string | null;
-  category: string | null;
-  image_url: string | null;
-};
-
-export type VoiceRoom = {
-  id: string;
-  title: string;
-  participants_count: number;
-  emoji: string;
-  is_live: boolean;
-};
+import EmptyState from './EmptyState';
+import CreateVoiceRoomModal from './CreateVoiceRoomModal';
+import { pickWax } from '@/lib/waxPattern';
+import { Ic } from '@/components/ui/Ic';
+import { getLevel } from '@/lib/levels';
+import { useProfileGating } from '@/hooks/useProfileGating';
+import PlusBubble from '@/components/ui/PlusBubble';
 
 type Props = {
   initialPosts: GbairaiPost[];
@@ -50,6 +39,7 @@ type Props = {
   quests: Quest[];
   collectiveQuest: CollectiveQuest | null;
   crews: Crew[];
+  initialTab?: string;
 };
 
 const TABS = [
@@ -59,12 +49,9 @@ const TABS = [
   { id: 'crews', l: 'Crews' },
 ] as const;
 
-import PlusBubble from '@/components/ui/PlusBubble';
-import { useRouter } from 'next/navigation';
-
 const STATUS_COLORS: Record<string, string> = { vert: '#9DEFC4', orange: 'var(--gold)', rouge: '#FF3B30' };
-const AVATAR_COLORS = ['#F26C1A', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
-const TAG_COLORS = ['var(--gold)', 'var(--blue)', 'var(--green)', '#E5337A', 'var(--orange)'];
+const AVATAR_COLORS = ['#FF6B00', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A', '#C4582E'];
+const TAG_COLORS = ['#FF6B00', '#1E5BFF', '#0EA85B', '#E5337A', '#F26C1A'];
 
 // ── Components ──
 
@@ -92,11 +79,29 @@ function pulseHeadline(pulse: CommunePulse[]): string {
   return 'Abidjan respire.';
 }
 
-function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
+function VoiceRoomSection({ rooms, onCreate }: { rooms: VoiceRoom[], onCreate: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
-  if (rooms.length === 0) return null;
+  
+  if (rooms.length === 0) {
+    return (
+      <div style={{ padding: '0 16px', marginBottom: 20 }}>
+        <EmptyState 
+          emoji="🎙️"
+          title="Pas de salon vocal actif" 
+          description="C'est calme ici. Pourquoi ne pas lancer ton propre Gbairai ?" 
+          action={{ label: "Lancer un salon", onClick: onCreate }}
+        />
+      </div>
+    );
+  }
   return (
     <div style={{ padding: '0 16px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', letterSpacing: 1 }}>SALONS VOCAUX EN DIRECT</div>
+        <button onClick={onCreate} className="press" style={{ background: 'var(--cream-2)', border: '1px solid var(--line)', borderRadius: 10, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Ic.Plus s={12} /> Lancer
+        </button>
+      </div>
       {rooms.map(room => {
         const wax = pickWax(`vroom-${room.id}`, { rotate: true });
         const visibleAvatars = Math.min(4, Math.max(1, room.participants_count));
@@ -127,9 +132,9 @@ function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
               </div>
 
               <button
-                onClick={() => setNotice('Les salons vocaux arrivent bientôt 👀')}
+                onClick={() => window.location.href = `/app/voice/${room.id}`}
                 style={{ width: '100%', padding: '12px', borderRadius: 14, border: 'none', background: '#fff', color: '#E5337A', fontSize: 14, fontWeight: 900, cursor: 'pointer' }}>
-                Entrer
+                Rejoindre le Gbairai
               </button>
               {notice && <div style={{ marginTop: 10, fontSize: 11, fontWeight: 700, opacity: 0.95 }}>{notice}</div>}
             </div>
@@ -240,7 +245,17 @@ function TrendingSection({ spots }: { spots: HotSpot[] }) {
 }
 
 function EventsSection({ events }: { events: Event[] }) {
-  if (events.length === 0) return null;
+  if (events.length === 0) {
+    return (
+      <div style={{ padding: '0 16px', marginBottom: 20 }}>
+        <EmptyState 
+          emoji="🎫"
+          title="Pas d'événements" 
+          description="Rien de prévu cette semaine ? Reviens plus tard pour les bons plans." 
+        />
+      </div>
+    );
+  }
   const GRADIENTS = [
     'linear-gradient(135deg, #1E5BFF 0%, #1540B3 100%)',
     'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
@@ -287,28 +302,72 @@ function EventsSection({ events }: { events: Event[] }) {
   );
 }
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms, quests, collectiveQuest, crews }: Props) {
-  const [tab, setTab] = useState<string>('vibe');
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms: initialVoiceRooms = [], quests, collectiveQuest, crews, initialTab = 'vibe' }: Props) {
+  const [voiceRooms, setVoiceRooms] = useState<VoiceRoom[]>(initialVoiceRooms.length > 0 ? initialVoiceRooms : [
+    { 
+      id: '1', title: 'On gère le Gbairai de Babi 🇨🇮', participants_count: 12, emoji: '🎙️', is_live: true, 
+      creator_id: null, is_private: false, room_mode: 'classic', upvote_threshold: 15, max_speak_secs: 120, 
+      topic: 'Culture & Lifestyle', created_at: new Date().toISOString() 
+    },
+    { 
+      id: '2', title: 'Debrief Match de hier ⚽', participants_count: 5, emoji: '⚽', is_live: true, 
+      creator_id: null, is_private: false, room_mode: 'debate', upvote_threshold: 10, max_speak_secs: 60, 
+      topic: 'Sport', created_at: new Date().toISOString() 
+    }
+  ]);
+  const [tab, setTab] = useState(initialTab);
+  const { isComplete, loading: profileLoading } = useProfileGating();
+  const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
+  const [showVoiceComposer, setShowVoiceComposer] = useState(false);
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [heatMode, setHeatMode] = useState(false);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('gbairai_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gbairai_posts' },
+        () => {
+          router.refresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, router]);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
 
-  // Couleur du pouls global = pire statut courant
-  const overallStatus: 'vert' | 'orange' | 'rouge' =
-    pulse.some(p => p.status === 'rouge')  ? 'rouge'
-    : pulse.some(p => p.status === 'orange') ? 'orange'
-    : 'vert';
+  const overallStatus = useMemo(() => {
+    if (pulse.some(p => p.status === 'rouge')) return 'rouge';
+    if (pulse.some(p => p.status === 'orange')) return 'orange';
+    return 'vert';
+  }, [pulse]);
+
+  const filteredPosts = useMemo(() => {
+    if (!selectedCommune) return initialPosts;
+    return initialPosts.filter(p => p.commune === selectedCommune);
+  }, [initialPosts, selectedCommune]);
+
+  const communes = useMemo(() => {
+    return Array.from(new Set(pulse.map(p => p.commune))).sort();
+  }, [pulse]);
+
   const PULSE_GRADIENTS = {
     vert:   'linear-gradient(135deg, #0EA85B 0%, #0A8A4A 100%)',
-    orange: 'linear-gradient(135deg, #F26C1A 0%, #C4582E 100%)',
+    orange: 'linear-gradient(135deg, #FF6B00 0%, #C4582E 100%)',
     rouge:  'linear-gradient(135deg, #FF3B30 0%, #B22A22 100%)',
   } as const;
+
   const pulseWax = pickWax(`pulse-${overallStatus}`, { rotate: true });
 
   return (
@@ -356,9 +415,48 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
       {/* ── CONTENT ── */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
+        
+        {/* Profile Gating Overlay for Social Features */}
+        {!isComplete && (tab === 'vibe' || tab === 'crews') && (
+          <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+             <div style={{ 
+               background: 'var(--cream-2)', 
+               borderRadius: 32, 
+               padding: '32px 24px', 
+               border: '2px dashed var(--line)',
+               display: 'flex',
+               flexDirection: 'column',
+               alignItems: 'center'
+             }}>
+               <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+               <h3 className="font-display" style={{ fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>Profil Incomplet</h3>
+               <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+                 Pour accéder au <b>Gbairai</b> et aux <b>Crews</b>, tu dois renseigner ton <b>Nom</b> et ton <b>Téléphone</b> dans tes paramètres.
+               </p>
+               <button
+                 onClick={() => router.push('/app/compte')}
+                 className="press font-display"
+                 style={{
+                   width: '100%',
+                   padding: '16px',
+                   borderRadius: 18,
+                   border: 'none',
+                   background: 'var(--orange)',
+                   color: '#fff',
+                   fontSize: 15,
+                   fontWeight: 800,
+                   boxShadow: '0 8px 20px rgba(242,108,26,0.25)',
+                   cursor: 'pointer'
+                 }}
+               >
+                 COMPLÉTER MON PROFIL
+               </button>
+             </div>
+          </div>
+        )}
 
         {/* TAB — POUR TOI */}
-        {tab === 'vibe' && (
+        {tab === 'vibe' && isComplete && (
           <>
             {/* Stories row */}
             <div className="no-scrollbar" style={{ display: 'flex', gap: 12, padding: '12px 16px 14px', overflowX: 'auto' }}>
@@ -379,10 +477,10 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                   className="press" 
                   style={{ flexShrink: 0, textAlign: 'center', width: 64, cursor: 'pointer' }}
                 >
-                  <div style={{ width: 64, height: 64, borderRadius: 24, padding: 3, background: 'linear-gradient(135deg, #F26C1A, #E5337A)' }}>
-                    <div style={{ width: '100%', height: '100%', borderRadius: 21, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 24, padding: 3, background: 'linear-gradient(135deg, #FF6B00, #E5337A)' }}>
+                    <div style={{ width: '100%', height: '100%', borderRadius: 21, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                       {s.media_url ? (
-                        <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="avatar" />
+                        <Image src={s.media_url} fill style={{ objectFit: 'cover' }} alt="story" />
                       ) : (
                         <div style={{ fontSize: 24 }}>{s.avatar_emoji || '👤'}</div>
                       )}
@@ -396,41 +494,53 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
             </div>
 
             {/* Voice Rooms (If any) */}
-            <VoiceRoomSection rooms={voiceRooms} />
+            <VoiceRoomSection rooms={voiceRooms} onCreate={() => setShowVoiceComposer(true)} />
 
             {/* Pulse card */}
             <div style={{ padding: '0 16px', marginBottom: 14 }}>
-              <div style={{ borderRadius: 20, overflow: 'hidden', position: 'relative', background: PULSE_GRADIENTS[overallStatus], color: '#fff', padding: 18 }}>
-                <div className={pulseWax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.13 }} />
-                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ 
+                borderRadius: 24, 
+                overflow: 'hidden', 
+                position: 'relative', 
+                background: PULSE_GRADIENTS[overallStatus], 
+                color: '#fff', 
+                padding: 20,
+                boxShadow: `0 12px 32px rgba(${overallStatus === 'rouge' ? '255,59,48' : overallStatus === 'orange' ? '255,107,0' : '14,168,91'}, 0.25)`
+              }}>
+                <div className={pulseWax} style={{ position: 'absolute', inset: 0, color: '#fff', opacity: 0.15 }} />
+                <div className="pulse-glow" style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', filter: 'blur(30px)' }} />
                 <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, opacity: 0.9, letterSpacing: 0.7 }}>
-                    <span className="shimmer" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
-                    POULS · MAINTENANT
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>
+                    <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', boxShadow: '0 0 10px #fff' }} />
+                    POULS D&apos;ABIDJAN
                   </div>
-                  <div className="font-display" style={{ fontSize: 24, marginTop: 6, lineHeight: 1.05 }}>
+                  <div className="font-display" style={{ fontSize: 28, marginTop: 10, lineHeight: 1.05 }}>
                     {pulseHeadline(pulse)}
                   </div>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.85, marginTop: 4, letterSpacing: 0.2 }}>
-                    Basé sur les C&apos;comment actifs des arrêts · hors tarif
+                  <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.9, marginTop: 6 }}>
+                    Directement depuis le terrain · {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                     {pulse.slice(0, 3).map((p, i) => {
                       const cat = p.top_category ? CATEGORY_META[p.top_category] : null;
                       return (
-                        <div key={i} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.7, letterSpacing: 0.4 }}>{p.commune.toUpperCase()}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
-                            {cat && <span style={{ fontSize: 13 }}>{cat.emoji}</span>}
-                            <span style={{ fontSize: 13, fontWeight: 900, color: STATUS_COLORS[p.status], textTransform: 'capitalize' }}>
-                              {cat ? cat.label.toLowerCase() : p.status}
+                        <div key={i} style={{ 
+                          flex: 1, 
+                          padding: '10px', 
+                          borderRadius: 14, 
+                          background: 'rgba(255,255,255,0.15)', 
+                          backdropFilter: 'blur(10px)',
+                          textAlign: 'center', 
+                          position: 'relative',
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                          <div style={{ fontSize: 9, fontWeight: 900, opacity: 0.8, letterSpacing: 0.5 }}>{p.commune.toUpperCase()}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
+                            {cat && <span style={{ fontSize: 14 }}>{cat.emoji}</span>}
+                            <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                              {cat ? cat.label : p.status}
                             </span>
                           </div>
-                          {p.report_count > 0 && (
-                            <div style={{ position: 'absolute', top: 4, right: 6, fontSize: 9, fontWeight: 900, color: '#fff', opacity: 0.9 }}>
-                              {p.report_count}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -438,6 +548,9 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                 </div>
               </div>
             </div>
+
+            {/* Salons Vocaux */}
+            <VoiceRoomSection rooms={voiceRooms} onCreate={() => setShowVoiceComposer(true)} />
 
             {/* Trending Sections */}
             <TrendingSection spots={hotSpots} />
@@ -459,8 +572,53 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
               </div>
             )}
 
+            {/* Commune Filter */}
+            <div style={{ padding: '0 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', letterSpacing: 0.7, marginBottom: 10 }}>OÙ ÇA SE PASSE ?</div>
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -16px', padding: '0 16px' }}>
+                <button 
+                  onClick={() => setSelectedCommune(null)}
+                  className="press"
+                  style={{
+                    flexShrink: 0, padding: '8px 16px', borderRadius: 12,
+                    background: selectedCommune === null ? 'var(--ink)' : 'var(--cream-2)',
+                    color: selectedCommune === null ? '#fff' : 'var(--ink)',
+                    fontSize: 13, fontWeight: 800, cursor: 'pointer', border: '1.5px solid var(--line)'
+                  }}
+                >
+                  Tout Babi
+                </button>
+                {communes.map(c => (
+                  <button 
+                    key={c}
+                    onClick={() => setSelectedCommune(c)}
+                    className="press"
+                    style={{
+                      flexShrink: 0, padding: '8px 16px', borderRadius: 12,
+                      background: selectedCommune === c ? 'var(--ink)' : 'var(--cream-2)',
+                      color: selectedCommune === c ? '#fff' : 'var(--ink)',
+                      fontSize: 13, fontWeight: 800, cursor: 'pointer', border: '1.5px solid var(--line)'
+                    }}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Masonry Feed */}
-            <GbairaiFeed initialPosts={initialPosts} myLikes={myLikes} userId={userId} />
+            {filteredPosts.length > 0 ? (
+              <GbairaiFeed initialPosts={filteredPosts} myLikes={myLikes} userId={userId} />
+            ) : (
+              <div style={{ padding: '0 16px' }}>
+                <EmptyState 
+                  emoji="🔎"
+                  title="Aucun post ici" 
+                  description={`Personne n'a encore gbairai sur ${selectedCommune}. Sois le premier !`}
+                  action={{ label: "Lancer le gbairai", onClick: () => setShowComposer(true) }}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -471,7 +629,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         {tab === 'quetes' && <QuetesTab quests={quests} collective={collectiveQuest} />}
 
         {/* TAB — CREWS */}
-        {tab === 'crews' && <CrewsTab crews={crews} userId={userId} />}
+        {tab === 'crews' && isComplete && <CrewsTab crews={crews} userId={userId} />}
       </div>
 
       {/* Post Composer Modal */}
@@ -482,6 +640,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
           avatarEmoji={profile.avatar_emoji ?? '🧭'}
           commune={profile.origin_commune}
           onClose={() => setShowComposer(false)}
+          onSuccess={() => router.refresh()}
         />
       )}
 
@@ -490,7 +649,16 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         <StoryComposer 
           userId={userId} 
           onClose={() => setShowStoryComposer(false)} 
-          onSuccess={() => window.location.reload()} 
+          onSuccess={() => router.refresh()} 
+        />
+      )}
+
+      {/* Voice Room Composer Modal */}
+      {showVoiceComposer && userId && (
+        <CreateVoiceRoomModal
+          userId={userId}
+          onClose={() => setShowVoiceComposer(false)}
+          onSuccess={(roomId) => router.push(`/app/voice/${roomId}`)}
         />
       )}
 
@@ -506,22 +674,34 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         />
       )}
 
-      <BottomNav 
-        onToggleHeatmap={() => setHeatMode(!heatMode)} 
-        heatMode={heatMode} 
-        isPlusOpen={isPlusOpen}
-        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
-        isAdmin={profile?.is_admin}
-      />
-
-      <PlusBubble 
-        isOpen={isPlusOpen} 
-        onClose={() => setIsPlusOpen(false)} 
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        onDiscover={() => router.push('/app?discover=1')}
-        heatMode={heatMode}
-        isAdmin={profile?.is_admin}
-      />
+      <AnimatePresence>
+        {!showComposer && !showStoryComposer && !showVoiceComposer && viewingStoryIndex === null && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
+          >
+            <BottomNav 
+              onToggleHeatmap={() => setHeatMode(!heatMode)} 
+              heatMode={heatMode} 
+              isPlusOpen={isPlusOpen}
+              onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+              isAdmin={profile?.is_admin}
+            />
+            <PlusBubble 
+              isOpen={isPlusOpen} 
+              onClose={() => setIsPlusOpen(false)} 
+              onToggleHeatmap={() => setHeatMode(!heatMode)}
+              onDiscover={() => router.push('/app?discover=1')}
+              onVoiceCreate={() => setShowVoiceComposer(true)}
+              heatMode={heatMode}
+              isAdmin={profile?.is_admin}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

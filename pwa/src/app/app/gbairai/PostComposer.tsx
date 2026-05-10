@@ -21,6 +21,7 @@ type Props = {
   avatarEmoji: string;
   commune: string | null;
   onClose: () => void;
+  onSuccess: () => void;
 };
 
 function extractHashtags(text: string): string[] {
@@ -29,7 +30,7 @@ function extractHashtags(text: string): string[] {
   return [...new Set(matches.map(m => m.slice(1).toLowerCase()))];
 }
 
-export default function PostComposer({ userId, displayName, avatarEmoji, commune, onClose }: Props) {
+export default function PostComposer({ userId, displayName, avatarEmoji, commune, onClose, onSuccess }: Props) {
   const [type, setType] = useState<string>('vibe');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,7 @@ export default function PostComposer({ userId, displayName, avatarEmoji, commune
       toast.success("Publié sur le Gbairai !", {
         description: "+30 XP gagnés"
       });
+      onSuccess();
       onClose();
     }
   }

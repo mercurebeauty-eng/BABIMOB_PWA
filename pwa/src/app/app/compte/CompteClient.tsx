@@ -42,19 +42,23 @@ type Props = {
   children?: React.ReactNode;
 };
 
-const BADGE_META: Record<string, { label: string; color: string; rare: string }> = {
-  first_checkin: { label: 'Pied-à-terre', color: 'var(--orange)', rare: 'C' },
-  explorer_5:    { label: 'Premier Gbaka', color: '#0EA85B', rare: 'C' },
-  pioneer_10:    { label: 'Connaisseur', color: '#E8B23C', rare: 'R' },
-  gbaka_master:  { label: 'Pont d\'or', color: '#1E5BFF', rare: 'R' },
-  commune_3:     { label: 'Côte Sud', color: 'var(--muted)', rare: 'R' },
-  commune_5:     { label: '100 Babis', color: 'var(--muted)', rare: 'SR' },
-  points_500:    { label: 'Zo de nuit', color: 'var(--muted)', rare: 'SR' },
-  verified:      { label: 'Empereur', color: 'var(--muted)', rare: 'SSR' },
-  streak_7:      { label: 'Fidèle', color: 'var(--orange)', rare: 'C' },
-  commune_all:   { label: 'Maître Babi', color: '#1E5BFF', rare: 'SSR' },
-  posts_10:      { label: 'Informateur', color: '#0EA85B', rare: 'R' },
-  top_1:         { label: 'Légende', color: '#E8B23C', rare: 'SSR' },
+const BADGE_META: Record<string, { label: string; color: string; rare: string; desc: string }> = {
+  first_checkin: { label: 'Pied-à-terre', color: 'var(--orange)', rare: 'C', desc: 'Ton premier check-in sur Babi.' },
+  explorer_5:    { label: 'Premier Gbaka', color: '#0EA85B', rare: 'C', desc: '5 lieux explorés en Gbaka.' },
+  pioneer_10:    { label: 'Connaisseur', color: '#E8B23C', rare: 'R', desc: '10 explorations réussies.' },
+  gbaka_master:  { label: 'Pont d\'or', color: '#1E5BFF', rare: 'R', desc: 'Maître incontesté des trajets.' },
+  commune_3:     { label: 'Côte Sud', color: 'var(--muted)', rare: 'R', desc: 'A visité 3 communes.' },
+  commune_5:     { label: '100 Babis', color: 'var(--muted)', rare: 'SR', desc: 'A visité 5 communes différentes.' },
+  points_500:    { label: 'Zo de nuit', color: 'var(--muted)', rare: 'SR', desc: 'Cumulé 500 points d\'expérience.' },
+  verified:      { label: 'Empereur', color: 'var(--muted)', rare: 'SSR', desc: 'A vérifié son compte.' },
+  streak_7:      { label: 'Fidèle', color: 'var(--orange)', rare: 'C', desc: 'Série de 7 jours de connexion.' },
+  commune_all:   { label: 'Maître Babi', color: '#1E5BFF', rare: 'SSR', desc: 'A exploré les 13 communes d\'Abidjan.' },
+  posts_10:      { label: 'Informateur', color: '#0EA85B', rare: 'R', desc: 'A posté 10 Gbairais pertinents.' },
+  top_1:         { label: 'Légende', color: '#E8B23C', rare: 'SSR', desc: 'Classé numéro 1 des explorateurs.' },
+  early_adopter: { label: 'Précurseur', color: '#E5337A', rare: 'SR', desc: 'A rejoint BabiMob dès le début.' },
+  voice_host:    { label: 'Grand Parleur', color: '#FF6B00', rare: 'R', desc: 'A hosté un salon vocal.' },
+  social_butterfly:{ label: 'Papillon', color: '#0EA85B', rare: 'C', desc: 'A ajouté 5 proches à son Crew.' },
+  night_owl:     { label: 'Oiseau de Nuit', color: '#1A1410', rare: 'SR', desc: 'A exploré la ville très tard la nuit.' },
 };
 
 const BADGE_ICONS: Record<string, React.ReactNode> = {
@@ -70,6 +74,10 @@ const BADGE_ICONS: Record<string, React.ReactNode> = {
   commune_all:   <Ic.Map s={22} />,
   posts_10:      <Ic.Chat s={22} />,
   top_1:         <Ic.Star s={22} fill />,
+  early_adopter: <Ic.Bolt s={22} />,
+  voice_host:    <Ic.Mic s={22} fill />,
+  social_butterfly:<Ic.Users s={22} />,
+  night_owl:     <Ic.Moon s={22} />,
 };
 
 const ACTIVITY_ICONS = ['var(--orange)', '#0EA85B', '#1E5BFF', '#E8B23C', '#E5337A'];
@@ -295,8 +303,9 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
         <h3 className="font-display" style={{ fontSize: 24, margin: 0 }}>
           Album de badges
         </h3>
-        <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--orange)' }}>
-          {badges.length} / {Object.keys(BADGE_META).length} →
+        <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)', background: 'var(--orange-pale)', padding: '6px 12px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>{badges.length} / {Object.keys(BADGE_META).length}</span>
+          <span style={{ fontSize: 14 }}>{badges.length === Object.keys(BADGE_META).length ? '🏆' : '→'}</span>
         </div>
       </div>
       <div style={{ gridTemplateColumns: 'repeat(4, 1fr)', display: 'grid', gap: 10, marginBottom: 24 }}>
@@ -774,29 +783,39 @@ export default function CompteClient({
                   const unlocked = badges.some(b => b.badge_key === key);
                   return (
                     <div key={key} style={{ 
-                      padding: 20, borderRadius: 20, background: unlocked ? 'var(--cream)' : 'rgba(255,255,255,0.05)', 
+                      padding: '24px 16px', borderRadius: 24, background: unlocked ? 'var(--cream)' : 'rgba(255,255,255,0.05)', 
                       border: unlocked ? '2px solid var(--orange)' : '1px solid rgba(255,255,255,0.1)',
-                      textAlign: 'center', opacity: unlocked ? 1 : 0.6,
-                      position: 'relative', overflow: 'hidden'
+                      textAlign: 'center', opacity: unlocked ? 1 : 0.5,
+                      position: 'relative', overflow: 'hidden',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      boxShadow: unlocked ? '0 10px 30px rgba(242,108,26,0.2)' : 'none',
                     }}>
-                      <div style={{ fontSize: 40, marginBottom: 10 }}>
-                        {unlocked ? BADGE_ICONS[key as keyof typeof BADGE_ICONS] : '🔒'}
+                      {unlocked && <div style={{ position: 'absolute', top: -30, right: -30, width: 80, height: 80, background: 'radial-gradient(circle, rgba(242,108,26,0.3), transparent 70%)', borderRadius: '50%' }} />}
+                      <div style={{ width: 56, height: 56, borderRadius: '50%', background: unlocked ? 'color-mix(in oklab, var(--orange) 15%, transparent)' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: unlocked ? 'var(--orange)' : 'rgba(255,255,255,0.5)', marginBottom: 12 }}>
+                        {unlocked ? BADGE_ICONS[key] : <span>🔒</span>}
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 900, color: unlocked ? 'var(--ink)' : '#fff', textTransform: 'uppercase', marginBottom: 4 }}>
+                      <div style={{ fontSize: 15, fontWeight: 900, color: unlocked ? 'var(--ink)' : '#fff', textTransform: 'uppercase', marginBottom: 4, lineHeight: 1.1 }}>
                         {meta.label}
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: meta.rare === 'SSR' ? 'gold' : meta.rare === 'SR' ? '#E5337A' : '#1E5BFF', color: '#fff', display: 'inline-block' }}>
-                        {meta.rare}
+                      <div style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 8, background: meta.rare === 'SSR' ? 'gold' : meta.rare === 'SR' ? '#E5337A' : meta.rare === 'R' ? '#1E5BFF' : '#0EA85B', color: '#fff', display: 'inline-block', marginBottom: 8, letterSpacing: 0.5 }}>
+                        {meta.rare === 'SSR' ? 'MTHYQUE' : meta.rare === 'SR' ? 'ÉPIQUE' : meta.rare === 'R' ? 'RARE' : 'COMMUN'}
                       </div>
-                      {!unlocked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>Vérifie les défis pour débloquer</div>}
+                      <div style={{ fontSize: 10, color: unlocked ? 'var(--muted)' : 'rgba(255,255,255,0.5)', lineHeight: 1.3, fontWeight: 600 }}>
+                        {unlocked ? meta.desc : 'Verrouillé. Remplis les conditions pour obtenir ce badge.'}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <div style={{ marginTop: 20, textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
-              Total débloqués : <b style={{ color: 'var(--orange)' }}>{badges.length} / {Object.keys(BADGE_META).length}</b>
+            <div style={{ marginTop: 24, textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 14, background: 'rgba(255,255,255,0.08)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <div style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, color: 'rgba(255,255,255,0.5)' }}>PROGRESSION DE L'ALBUM</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 24, fontWeight: 900 }}>
+                <span style={{ color: 'var(--orange)' }}>{badges.length}</span>
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }}>/</span>
+                <span>{Object.keys(BADGE_META).length}</span>
+              </div>
             </div>
           </motion.div>
         )}
