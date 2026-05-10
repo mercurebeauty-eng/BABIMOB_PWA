@@ -143,6 +143,7 @@ export default async function ComptePage() {
         initialConsent={profile?.phone_marketing_consent}
         initialVisibility={profile?.is_public_visits}
         initialCommune={commune}
+        initialPseudo={profile?.pseudo || ''}
       />
       <PreferencesEditor userId={user.id} initialPreferences={prefs} />
       <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>

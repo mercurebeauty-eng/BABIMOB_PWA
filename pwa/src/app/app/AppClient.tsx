@@ -609,24 +609,37 @@ function AppPageContent() {
         onPinnedSearchClear={() => setPinnedSearch(null)}
       />
 
-      {/* ── Top Floating Badge (Minimalist) ── */}
-      <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, zIndex: 10 }}>
-        <div style={{ background: 'var(--cream)', padding: '6px 12px', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>
-          <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-          <span>LIVE · </span>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={onlineCount}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              style={{ display: 'inline-block', minWidth: 20 }}
-            >
-              {onlineCount}
-            </motion.span>
-          </AnimatePresence>
-          <span> MOBEURS</span>
-        </div>
+      {/* ── Live Pulse Capsule (Premium) ── */}
+      <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          style={{
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            padding: '6px 12px',
+            borderRadius: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            pointerEvents: 'auto'
+          }}
+        >
+          <div style={{ position: 'relative', width: 8, height: 8 }}>
+            <div style={{ position: 'absolute', inset: 0, background: '#0EA85B', borderRadius: '50%' }} />
+            <motion.div
+              animate={{ scale: [1, 2], opacity: [0.5, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              style={{ position: 'absolute', inset: 0, background: '#0EA85B', borderRadius: '50%' }}
+            />
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>
+            {onlineCount} <span style={{ opacity: 0.7 }}>MOBEURS EN DIRECT</span>
+          </span>
+        </motion.div>
       </div>
 
       {/* ── FAB Stack (Right) ── */}
@@ -656,116 +669,7 @@ function AppPageContent() {
         ))}
       </div>
 
-      {/* ── Live Ticker ── */}
-      <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 62px)', left: 0, right: 0, zIndex: 5, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
-          {TICKER.concat(TICKER).map(([place, status, c], i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
-              <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
-              <span style={{ fontWeight: 700 }}>{place}</span>
-              <span style={{ color: 'var(--muted)' }}>· {status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── FLOATING ICE BUBBLE (iOS SEARCH STYLE) ── */}
-      <AnimatePresence>
-        {!selected && !selectedPoi && !activeItinerary && !searchOpen && (
-          <motion.div 
-            initial={{ y: 20, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 20, opacity: 0, scale: 0.9 }}
-            style={{ 
-              position: 'absolute', 
-              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
-              left: 0, 
-              right: 0, 
-              zIndex: 8500,
-              display: 'flex', 
-              justifyContent: 'center', 
-              pointerEvents: 'none' 
-            }}
-            className="desktop-center"
-          >
-            {/* Recherche (tap) + Heatmap (swipe ≥ 60 px) */}
-            {(() => {
-              const dragMag = Math.abs(bubbleDragX);
-              const willToggleHeat = dragMag > SWIPE_HEAT_THRESHOLD;
-              const dragProgress = Math.min(dragMag / SWIPE_HEAT_THRESHOLD, 1);
-              const isDragging = dragMag > 2;
-              const label = willToggleHeat
-                ? (heatMode ? 'Relâche pour désactiver' : 'Relâche pour la heatmap')
-                : isDragging
-                  ? (heatMode ? 'Continue pour désactiver' : 'Continue → heatmap')
-                  : (heatMode ? 'Heatmap active' : 'Recherche');
-              return (
-                <motion.button
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.5}
-                  onDrag={(_, info) => setBubbleDragX(info.offset.x)}
-                  onDragEnd={(_, info) => {
-                    setBubbleDragX(0);
-                    if (Math.abs(info.offset.x) > SWIPE_HEAT_THRESHOLD) {
-                      setHeatMode(!heatMode);
-                    }
-                  }}
-                  onClick={openSearch}
-                  className="press"
-                  aria-label={heatMode ? 'Recherche (heatmap active, swipe pour désactiver)' : 'Recherche (swipe pour activer la heatmap)'}
-                  style={{
-                    pointerEvents: 'auto',
-                    height: 36,
-                    padding: '0 18px',
-                    borderRadius: 18,
-                    border: 'none',
-                    background: heatMode ? 'var(--orange)' : 'rgba(255, 255, 255, 0.45)',
-                    color: heatMode ? '#fff' : 'var(--ink)',
-                    backdropFilter: 'blur(20px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                    boxShadow: willToggleHeat
-                      ? '0 10px 24px rgba(242,108,26,0.45)'
-                      : heatMode
-                        ? '0 8px 20px rgba(242,108,26,0.3)'
-                        : '0 4px 12px rgba(0,0,0,0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    cursor: 'pointer',
-                    transition: isDragging ? 'none' : 'background 0.3s, box-shadow 0.3s',
-                    position: 'relative',
-                    transform: heatMode ? 'scale(1.05)' : 'scale(1)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {/* Trail de progression remplissant la pilule pendant le drag */}
-                  {isDragging && (
-                    <span
-                      aria-hidden
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: willToggleHeat ? 'var(--orange)' : 'rgba(242,108,26,0.18)',
-                        transformOrigin: bubbleDragX < 0 ? 'right' : 'left',
-                        transform: `scaleX(${dragProgress})`,
-                        transition: 'background 0.15s',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  <Ic.Search s={16} />
-                  <span style={{ fontSize: 13, fontWeight: 800, position: 'relative', zIndex: 1 }}>{label}</span>
-                  <div aria-hidden style={{ display: 'flex', gap: 4, marginLeft: 4, position: 'relative', zIndex: 1 }}>
-                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.8 }} />
-                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', opacity: 0.3 }} />
-                  </div>
-                </motion.button>
-              );
-            })()}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Ticker and Search Bubble removed - Integrated in BottomNav */}
 
       {/* ── FLOATING INFO POD (ANTIGRAVITY STACK STYLE) ── */}
       <AnimatePresence>
@@ -1559,8 +1463,6 @@ function AppPageContent() {
             style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
           >
             <BottomNav 
-              onToggleHeatmap={() => setHeatMode(!heatMode)}
-              heatMode={heatMode}
               nearbyStopsCount={nearbyStops.length}
               onCycleNearby={() => {
                 if (nearbyStops.length > 0) {
@@ -1569,18 +1471,9 @@ function AppPageContent() {
                   handleSelectStop(nearbyStops[nextIdx]);
                 }
               }}
-              onDiscover={handleDiscover}
-              isAdmin={profile?.role === 'admin'}
-              isPlusOpen={isPlusOpen}
-              onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
-            />
-            <PlusBubble 
-              isOpen={isPlusOpen} 
-              onClose={() => setIsPlusOpen(false)}
+              onToggleSearch={openSearch}
               onToggleHeatmap={() => setHeatMode(!heatMode)}
-              onDiscover={handleDiscover}
               heatMode={heatMode}
-              isAdmin={profile?.role === 'admin'}
             />
           </motion.div>
         )}
