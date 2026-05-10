@@ -131,6 +131,15 @@ export type VoiceParticipant = {
   upvote_score: number;
   joined_at: string;
   invited_by: string | null;
+  cred_level?: VoiceCredLevel;
+  is_speaking?: boolean;
+};
+
+export type FloatingReaction = {
+  id: string;
+  emoji: string;
+  user_id: string;
+  created_at: number;
 };
 
 export type VoiceRoomComment = {

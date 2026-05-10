@@ -1,6 +1,8 @@
 'use client';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useVoiceRoom } from '@/hooks/useVoiceRoom';
+import { useVoiceRoom as useVoiceRoomHook } from '@/hooks/useVoiceRoom';
+import { useVoiceRoom as useVoiceRoomContext } from '@/context/VoiceRoomContext';
 import VoiceRoomUI from '@/components/voice/VoiceRoomUI';
 
 interface Props {
@@ -17,7 +19,7 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
     loading, myRole, isHost, canRequestSpeak, myUpvotedComments,
     joinRoom, leaveRoom, postComment, upvoteComment,
     requestSpeak, approveRequest, togglePrivacy,
-  } = useVoiceRoom(roomId, userId);
+  } = useVoiceRoomHook(roomId, userId);
 
   if (loading || !room) {
     return (
@@ -27,6 +29,24 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Connexion au salon…</div>
         </div>
         <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      </div>
+    );
+  }
+
+  const { setActiveRoom, setJoined, isMiniPlayer } = useVoiceRoomContext();
+
+  useEffect(() => {
+    if (room) {
+      setActiveRoom(room);
+      setJoined(true);
+    }
+  }, [room, setActiveRoom, setJoined]);
+
+  // If MiniPlayer is active, don't render the full UI to avoid duplicating the audio simulation
+  if (isMiniPlayer) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+        Lecture en arrière-plan...
       </div>
     );
   }
