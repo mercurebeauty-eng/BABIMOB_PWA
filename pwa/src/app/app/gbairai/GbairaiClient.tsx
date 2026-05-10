@@ -676,19 +676,65 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
       <AnimatePresence>
         {!showComposer && !showStoryComposer && !showVoiceComposer && viewingStoryIndex === null && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
-          >
-            <BottomNav 
-              onToggleHeatmap={() => setHeatMode(!heatMode)} 
-              heatMode={heatMode} 
-              onToggleSearch={() => router.push('/app?search=1')}
-            />
-          </motion.div>
+          <>
+            {/* Floating Search FAB */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              style={{
+                position: 'fixed',
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+                right: 'max(16px, calc((100vw - 420px) / 2 + 16px))',
+                zIndex: 9001,
+              }}
+            >
+              <button
+                onClick={() => router.push('/app?search=1')}
+                className="press"
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 20,
+                  background: 'var(--cream)',
+                  border: '1px solid var(--line)',
+                  color: 'var(--orange)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  cursor: 'pointer',
+                }}
+              >
+                <Ic.Search s={24} />
+              </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
+            >
+              <BottomNav 
+                onToggleHeatmap={() => setHeatMode(!heatMode)} 
+                heatMode={heatMode} 
+                onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+                isPlusOpen={isPlusOpen}
+                isAdmin={profile?.is_admin}
+              />
+              <PlusBubble 
+                isOpen={isPlusOpen} 
+                onClose={() => setIsPlusOpen(false)} 
+                onToggleHeatmap={() => setHeatMode(!heatMode)}
+                onDiscover={() => router.push('/app?discover=1')}
+                onVoiceCreate={() => router.push('/app?voice=1')}
+                heatMode={heatMode}
+                isAdmin={profile?.is_admin}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

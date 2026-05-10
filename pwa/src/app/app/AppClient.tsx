@@ -113,6 +113,7 @@ function AppPageContent() {
   const [discoveryIndex, setDiscoveryIndex] = useState(0);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [onlineCount, setOnlineCount] = useState(247);
+  const [showVoiceComposer, setShowVoiceComposer] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -610,7 +611,8 @@ function AppPageContent() {
       />
 
       {/* ── Live Pulse Capsule (Premium) ── */}
-      <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      {!searchOpen && (
+        <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 64px)', left: 0, right: 0, zIndex: 9000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -640,7 +642,8 @@ function AppPageContent() {
             {onlineCount} <span style={{ opacity: 0.7 }}>MOBEURS EN DIRECT</span>
           </span>
         </motion.div>
-      </div>
+        </div>
+      )}
 
       {/* ── FAB Stack (Right) ── */}
       <div style={{ position: 'fixed', right: 'max(16px, calc((100vw - 500px) / 2 + 16px))', top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
@@ -1192,7 +1195,7 @@ function AppPageContent() {
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Chercher un arrêt, un lieu…"
+                  placeholder="Tu vas quelque part ?"
                   type="search"
                   inputMode="search"
                   enterKeyHint="search"
@@ -1202,7 +1205,7 @@ function AppPageContent() {
                   spellCheck={false}
                   aria-label="Champ de recherche"
                   style={{
-                    flex: 1, fontSize: 15, fontWeight: 600,
+                    flex: 1, fontSize: 16, fontWeight: 600,
                     border: 'none', outline: 'none', background: 'transparent',
                     color: 'var(--ink)',
                   }}
@@ -1455,27 +1458,71 @@ function AppPageContent() {
 
       <AnimatePresence>
         {!searchOpen && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
-          >
-            <BottomNav 
-              nearbyStopsCount={nearbyStops.length}
-              onCycleNearby={() => {
-                if (nearbyStops.length > 0) {
-                  const nextIdx = (nearbyIndex + 1) % nearbyStops.length;
-                  setNearbyIndex(nextIdx);
-                  handleSelectStop(nearbyStops[nextIdx]);
-                }
+          <>
+            {/* Floating Search FAB */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              style={{
+                position: 'fixed',
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+                right: 'max(16px, calc((100vw - 420px) / 2 + 16px))',
+                zIndex: 9001,
               }}
-              onToggleSearch={openSearch}
-              onToggleHeatmap={() => setHeatMode(!heatMode)}
-              heatMode={heatMode}
-            />
-          </motion.div>
+            >
+              <button
+                onClick={openSearch}
+                className="press"
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 20,
+                  background: 'var(--cream)',
+                  border: '1px solid var(--line)',
+                  color: 'var(--orange)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  cursor: 'pointer',
+                }}
+              >
+                <Ic.Search s={24} />
+              </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
+            >
+              <BottomNav 
+                nearbyStopsCount={nearbyStops.length}
+                onCycleNearby={() => {
+                  if (nearbyStops.length > 0) {
+                    const nextIdx = (nearbyIndex + 1) % nearbyStops.length;
+                    setNearbyIndex(nextIdx);
+                    handleSelectStop(nearbyStops[nextIdx]);
+                  }
+                }}
+                onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
+                isPlusOpen={isPlusOpen}
+                isAdmin={profile?.is_admin}
+              />
+              <PlusBubble 
+                isOpen={isPlusOpen} 
+                onClose={() => setIsPlusOpen(false)} 
+                onToggleHeatmap={() => setHeatMode(!heatMode)}
+                onDiscover={() => setIsDiscoveryMode(true)}
+                onVoiceCreate={() => setShowVoiceComposer(true)}
+                heatMode={heatMode}
+                isAdmin={profile?.is_admin}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
