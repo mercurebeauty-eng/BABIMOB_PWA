@@ -16,6 +16,7 @@ import SpotsTab from './SpotsTab';
 import QuetesTab from './QuetesTab';
 import CrewsTab from './CrewsTab';
 import EmptyState from './EmptyState';
+import CreateVoiceRoomModal from './CreateVoiceRoomModal';
 import { pickWax } from '@/lib/waxPattern';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
@@ -78,7 +79,7 @@ function pulseHeadline(pulse: CommunePulse[]): string {
   return 'Abidjan respire.';
 }
 
-function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
+function VoiceRoomSection({ rooms, onCreate }: { rooms: VoiceRoom[], onCreate: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   
   if (rooms.length === 0) {
@@ -88,13 +89,19 @@ function VoiceRoomSection({ rooms }: { rooms: VoiceRoom[] }) {
           emoji="🎙️"
           title="Pas de salon vocal actif" 
           description="C'est calme ici. Pourquoi ne pas lancer ton propre Gbairai ?" 
-          action={{ label: "Lancer un salon", onClick: () => window.location.href = '/app/voice/create' }}
+          action={{ label: "Lancer un salon", onClick: onCreate }}
         />
       </div>
     );
   }
   return (
     <div style={{ padding: '0 16px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', letterSpacing: 1 }}>SALONS VOCAUX EN DIRECT</div>
+        <button onClick={onCreate} className="press" style={{ background: 'var(--cream-2)', border: '1px solid var(--line)', borderRadius: 10, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Ic.Plus s={12} /> Lancer
+        </button>
+      </div>
       {rooms.map(room => {
         const wax = pickWax(`vroom-${room.id}`, { rotate: true });
         const visibleAvatars = Math.min(4, Math.max(1, room.participants_count));
@@ -297,14 +304,23 @@ function EventsSection({ events }: { events: Event[] }) {
 
 export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms: initialVoiceRooms = [], quests, collectiveQuest, crews, initialTab = 'vibe' }: Props) {
   const [voiceRooms, setVoiceRooms] = useState<VoiceRoom[]>(initialVoiceRooms.length > 0 ? initialVoiceRooms : [
-    { id: '1', title: 'On gère le Gbairai de Babi 🇨🇮', participants_count: 12, emoji: '🎙️', is_live: true },
-    { id: '2', title: 'Debrief Match de hier ⚽', participants_count: 5, emoji: '⚽', is_live: true }
+    { 
+      id: '1', title: 'On gère le Gbairai de Babi 🇨🇮', participants_count: 12, emoji: '🎙️', is_live: true, 
+      creator_id: null, is_private: false, room_mode: 'classic', upvote_threshold: 15, max_speak_secs: 120, 
+      topic: 'Culture & Lifestyle', created_at: new Date().toISOString() 
+    },
+    { 
+      id: '2', title: 'Debrief Match de hier ⚽', participants_count: 5, emoji: '⚽', is_live: true, 
+      creator_id: null, is_private: false, room_mode: 'debate', upvote_threshold: 10, max_speak_secs: 60, 
+      topic: 'Sport', created_at: new Date().toISOString() 
+    }
   ]);
   const [tab, setTab] = useState(initialTab);
   const { isComplete, loading: profileLoading } = useProfileGating();
   const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
+  const [showVoiceComposer, setShowVoiceComposer] = useState(false);
   const [isPlusOpen, setIsPlusOpen] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -478,7 +494,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
             </div>
 
             {/* Voice Rooms (If any) */}
-            <VoiceRoomSection rooms={voiceRooms} />
+            <VoiceRoomSection rooms={voiceRooms} onCreate={() => setShowVoiceComposer(true)} />
 
             {/* Pulse card */}
             <div style={{ padding: '0 16px', marginBottom: 14 }}>
@@ -634,6 +650,15 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         />
       )}
 
+      {/* Voice Room Composer Modal */}
+      {showVoiceComposer && userId && (
+        <CreateVoiceRoomModal
+          userId={userId}
+          onClose={() => setShowVoiceComposer(false)}
+          onSuccess={(roomId) => router.push(`/app/voice/${roomId}`)}
+        />
+      )}
+
       {/* Story Viewer Modal */}
       {viewingStoryIndex !== null && (
         <StoryViewer
@@ -659,6 +684,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         onClose={() => setIsPlusOpen(false)} 
         onToggleHeatmap={() => setHeatMode(!heatMode)}
         onDiscover={() => router.push('/app?discover=1')}
+        onVoiceCreate={() => setShowVoiceComposer(true)}
         heatMode={heatMode}
         isAdmin={profile?.is_admin}
       />
