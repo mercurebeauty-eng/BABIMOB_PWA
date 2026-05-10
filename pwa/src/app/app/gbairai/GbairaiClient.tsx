@@ -38,6 +38,7 @@ type Props = {
   quests: Quest[];
   collectiveQuest: CollectiveQuest | null;
   crews: Crew[];
+  initialTab?: string;
 };
 
 const TABS = [
