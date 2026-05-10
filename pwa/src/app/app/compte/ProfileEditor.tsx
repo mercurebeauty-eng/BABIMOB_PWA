@@ -139,7 +139,7 @@ export default function ProfileEditor({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
-          <label style={labelStyle}>Pseudo</label>
+          <label style={labelStyle}>Pseudo <span style={{ color: 'var(--orange)' }}>*</span></label>
           <input
             type="text"
             value={name}
@@ -169,7 +169,7 @@ export default function ProfileEditor({
       </div>
 
       <div>
-        <label style={labelStyle}>Téléphone</label>
+        <label style={labelStyle}>Téléphone <span style={{ color: 'var(--orange)' }}>*</span></label>
         <input
           type="tel"
           value={phone}
@@ -226,23 +226,23 @@ export default function ProfileEditor({
 
       <button
         onClick={handleSave}
-        disabled={status === 'saving' || !name.trim() || !!phoneError}
+        disabled={status === 'saving' || !name.trim() || !phone.trim() || !!phoneError}
         className="press font-display"
         style={{
           width: '100%',
           padding: '16px',
           borderRadius: 20,
           border: 'none',
-          background: status === 'saved' ? 'var(--green)' : 'var(--orange)',
+          background: status === 'saved' ? 'var(--green)' : (!name.trim() || !phone.trim() ? 'var(--line)' : 'var(--orange)'),
           color: '#fff',
           fontSize: 16,
           letterSpacing: 0.5,
-          cursor: 'pointer',
+          cursor: (!name.trim() || !phone.trim()) ? 'not-allowed' : 'pointer',
           boxShadow: status === 'saved' ? '0 8px 20px rgba(14,168,91,0.3)' : '0 8px 20px rgba(242,108,26,0.3)',
           transition: 'all 0.3s'
         }}
       >
-        {status === 'saving' ? 'SAUVEGARDE...' : status === 'saved' ? '✓ PROFIL MIS À JOUR' : 'ENREGISTRER'}
+        {status === 'saving' ? 'SAUVEGARDE...' : status === 'saved' ? '✓ PROFIL MIS À JOUR' : (!name.trim() || !phone.trim() ? 'REMPLIR LES CHAMPS *' : 'ENREGISTRER')}
       </button>
 
       {status === 'error' && (

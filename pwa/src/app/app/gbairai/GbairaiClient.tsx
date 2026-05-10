@@ -19,6 +19,9 @@ import EmptyState from './EmptyState';
 import { pickWax } from '@/lib/waxPattern';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
+import { useProfileGating } from '@/hooks/useProfileGating';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import PlusBubble from '@/components/ui/PlusBubble';
 
 type Props = {
@@ -293,12 +296,13 @@ function EventsSection({ events }: { events: Event[] }) {
   );
 }
 
-export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms: initialVoiceRooms = [], quests, collectiveQuest, crews }: Props) {
+export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, stories, trendingTags, profile, userId, reactionsByStory = {}, myReactions = {}, events, voiceRooms: initialVoiceRooms = [], quests, collectiveQuest, crews, initialTab = 'vibe' }: Props) {
   const [voiceRooms, setVoiceRooms] = useState<VoiceRoom[]>(initialVoiceRooms.length > 0 ? initialVoiceRooms : [
     { id: '1', title: 'On gère le Gbairai de Babi 🇨🇮', participants_count: 12, emoji: '🎙️', is_live: true },
     { id: '2', title: 'Debrief Match de hier ⚽', participants_count: 5, emoji: '⚽', is_live: true }
   ]);
-  const [tab, setTab] = useState<string>('vibe');
+  const [tab, setTab] = useState(initialTab);
+  const { isComplete, loading: profileLoading } = useProfileGating();
   const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
   const [showComposer, setShowComposer] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
@@ -396,9 +400,48 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
 
       {/* ── CONTENT ── */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
+        
+        {/* Profile Gating Overlay for Social Features */}
+        {!isComplete && (tab === 'vibe' || tab === 'crews') && (
+          <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+             <div style={{ 
+               background: 'var(--cream-2)', 
+               borderRadius: 32, 
+               padding: '32px 24px', 
+               border: '2px dashed var(--line)',
+               display: 'flex',
+               flexDirection: 'column',
+               alignItems: 'center'
+             }}>
+               <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+               <h3 className="font-display" style={{ fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>Profil Incomplet</h3>
+               <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+                 Pour accéder au <b>Gbairai</b> et aux <b>Crews</b>, tu dois renseigner ton <b>Nom</b> et ton <b>Téléphone</b> dans tes paramètres.
+               </p>
+               <button
+                 onClick={() => router.push('/app/compte')}
+                 className="press font-display"
+                 style={{
+                   width: '100%',
+                   padding: '16px',
+                   borderRadius: 18,
+                   border: 'none',
+                   background: 'var(--orange)',
+                   color: '#fff',
+                   fontSize: 15,
+                   fontWeight: 800,
+                   boxShadow: '0 8px 20px rgba(242,108,26,0.25)',
+                   cursor: 'pointer'
+                 }}
+               >
+                 COMPLÉTER MON PROFIL
+               </button>
+             </div>
+          </div>
+        )}
 
         {/* TAB — POUR TOI */}
-        {tab === 'vibe' && (
+        {tab === 'vibe' && isComplete && (
           <>
             {/* Stories row */}
             <div className="no-scrollbar" style={{ display: 'flex', gap: 12, padding: '12px 16px 14px', overflowX: 'auto' }}>
@@ -568,7 +611,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
         {tab === 'quetes' && <QuetesTab quests={quests} collective={collectiveQuest} />}
 
         {/* TAB — CREWS */}
-        {tab === 'crews' && <CrewsTab crews={crews} userId={userId} />}
+        {tab === 'crews' && isComplete && <CrewsTab crews={crews} userId={userId} />}
       </div>
 
       {/* Post Composer Modal */}
