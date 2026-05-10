@@ -31,7 +31,7 @@ export default function VoiceTestPage() {
       isHost={true}
       myRole="host"
       canRequestSpeak={false}
-      myUpvotedComments={[]}
+      myUpvotedComments={new Set()}
       onUpvoteComment={async () => {}}
       onPostComment={async () => {}}
       onRequestSpeak={async () => {}}
