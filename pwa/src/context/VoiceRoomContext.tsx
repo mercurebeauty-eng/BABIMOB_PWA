@@ -21,6 +21,8 @@ const VoiceRoomContext = createContext<VoiceRoomContextType | undefined>(undefin
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
 
+import { generateLiveKitToken } from '@/app/actions/livekit';
+
 export function VoiceRoomProvider({ children }: { children: ReactNode }) {
   const [activeRoom, setActiveRoom] = useState<VoiceRoom | null>(null);
   const [isMiniPlayer, setIsMiniPlayer] = useState(false);
@@ -30,37 +32,45 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeRoom && joined) {
-      setError(null);
-      // Ideally we would pass user info in the Context or fetch from DataStore
-      // For now, if activeRoom and joined, fetch token using generic name or fetch from localStorage
-      const storedUser = localStorage.getItem('babimob_user');
-      const user = storedUser ? JSON.parse(storedUser) : null;
-      const userId = user?.id || 'anon-' + Math.random().toString(36).substr(2, 9);
-      const displayName = user?.display_name || 'Mobeur Anonyme';
+    let isMounted = true;
 
-      fetch('/api/livekit/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          roomName: activeRoom.id, 
-          participantIdentity: userId,
-          participantName: displayName,
-          isHost: false 
-        })
-      })
-      .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        if (data.token) setToken(data.token);
-      })
-      .catch(err => {
-        console.error('FETCH_TOKEN_ERROR:', err);
-        setError(err.message);
-      });
-    } else {
-      setToken(null);
+    async function getToken() {
+      if (!activeRoom || !joined) {
+        if (isMounted) setToken(null);
+        return;
+      }
+
+      try {
+        if (isMounted) setError(null);
+        
+        const storedUser = localStorage.getItem('babimob_user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        const userId = user?.id || 'anon-' + Math.random().toString(36).substr(2, 9);
+        const displayName = user?.display_name || 'Mobeur Anonyme';
+
+        console.log('CONTEXT - Appel Server Action pour room:', activeRoom.id);
+        const result = await generateLiveKitToken(activeRoom.id, userId, displayName);
+
+        if (isMounted) {
+          if (result.error) {
+            setError(result.error);
+          } else {
+            setToken(result.token);
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          console.error('CONTEXT_ACTION_ERROR:', err);
+          setError(err.message);
+        }
+      }
     }
+
+    getToken();
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeRoom, joined]);
 
   const liveKitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
