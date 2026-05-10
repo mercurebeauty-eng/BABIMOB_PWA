@@ -30,52 +30,66 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
   const [joined, setJoined] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
+    // Ne rien faire si on n'a pas de salon ou si on n'a pas cliqué sur "Rejoindre"
+    if (!activeRoom || !joined) {
+      setToken(null);
+      setError(null);
+      setIsConnecting(false);
+      return;
+    }
+
     let isMounted = true;
 
-    async function getToken() {
-      if (!activeRoom || !joined) {
-        if (isMounted) setToken(null);
-        return;
-      }
-
+    async function handleConnection() {
       try {
-        if (isMounted) setError(null);
-        
+        if (!isMounted) return;
+        setIsConnecting(true);
+        setError(null);
+
+        // Récupération sécurisée de l'utilisateur
         const storedUser = localStorage.getItem('babimob_user');
         const user = storedUser ? JSON.parse(storedUser) : null;
-        const userId = user?.id || 'anon-' + Math.random().toString(36).substr(2, 9);
-        const displayName = user?.display_name || 'Mobeur Anonyme';
+        
+        // On génère un ID unique si pas connecté
+        const userId = user?.id || `anon_${Math.random().toString(36).substr(2, 9)}`;
+        const displayName = user?.display_name || 'Mobeur';
 
-        console.log('CONTEXT - Appel Server Action pour room:', activeRoom.id);
-        const result = await generateLiveKitToken(activeRoom.id, userId, displayName);
+        console.log('ULTIMATE_CONTEXT: Demande de token pour', activeRoom?.id);
+        
+        const response = await generateLiveKitToken(activeRoom!.id, userId, displayName);
 
-        if (isMounted) {
-          if (result.error) {
-            setError(result.error);
-          } else {
-            setToken(result.token);
-          }
+        if (!isMounted) return;
+
+        if (response.error) {
+          console.error('ULTIMATE_CONTEXT: Erreur reçue', response.error);
+          setError(response.error);
+          setToken(null);
+        } else {
+          console.log('ULTIMATE_CONTEXT: Token reçu avec succès');
+          setToken(response.token);
+          setError(null);
         }
       } catch (err: any) {
         if (isMounted) {
-          console.error('CONTEXT_ACTION_ERROR:', err);
-          setError(err.message);
+          console.error('ULTIMATE_CONTEXT: Erreur fatale', err);
+          setError("Impossible de contacter le serveur vocal.");
         }
+      } finally {
+        if (isMounted) setIsConnecting(false);
       }
     }
 
-    getToken();
+    handleConnection();
 
     return () => {
       isMounted = false;
     };
-  }, [activeRoom, joined]);
+  }, [activeRoom?.id, joined]); // On surveille l'ID précis du salon
 
   const liveKitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-  console.log('VoiceRoomProvider - LiveKit URL:', liveKitUrl);
-  console.log('VoiceRoomProvider - Token Present:', !!token);
 
   return (
     <VoiceRoomContext.Provider 
@@ -91,7 +105,7 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
       {token && liveKitUrl ? (
         <LiveKitRoom
           video={false}
-          audio={!isMuted} // Controlled by the global mute state
+          audio={!isMuted}
           token={token}
           serverUrl={liveKitUrl}
           connect={joined}
