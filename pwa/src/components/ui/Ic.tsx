@@ -114,4 +114,10 @@ export const Ic = {
       <line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
   ),
+  Camera: ({ s = 20, color }: IconProps) => (
+    <P s={s} color={color}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></P>
+  ),
+  Trash: ({ s = 20, color }: IconProps) => (
+    <P s={s} color={color}><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></P>
+  ),
 };
