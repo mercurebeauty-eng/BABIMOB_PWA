@@ -12,6 +12,7 @@ interface VoiceRoomContextType {
   setIsMuted: (muted: boolean) => void;
   joined: boolean;
   setJoined: (joined: boolean) => void;
+  token: string | null;
 }
 
 const VoiceRoomContext = createContext<VoiceRoomContextType | undefined>(undefined);
@@ -63,7 +64,8 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
         activeRoom, setActiveRoom, 
         isMiniPlayer, setIsMiniPlayer,
         isMuted, setIsMuted,
-        joined, setJoined
+        joined, setJoined,
+        token
       }}
     >
       {token && liveKitUrl ? (
