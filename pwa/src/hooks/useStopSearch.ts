@@ -133,8 +133,7 @@ export function useStopSearch(options: Options = {}) {
       // Merge: places métier > stops > OSM-map > OSM-nominatim (ajouté plus tard)
       setResults((prev) => {
         const nominatim = prev.filter((r) => r.source === 'osm-nominatim');
-        const merged = mergeUnique([...places, ...stops, ...renderedResults, ...nominatim]);
-        return merged;
+        return mergeUnique([...places, ...stops, ...renderedResults, ...nominatim], trimmed);
       });
     }, SUPABASE_DEBOUNCE);
 
@@ -155,7 +154,7 @@ export function useStopSearch(options: Options = {}) {
           logo: osmCategoryEmoji(h.category, h.subcategory),
           subtitle: h.fullName ?? h.subcategory ?? h.category ?? undefined,
         }));
-        setResults((prev) => mergeUnique([...prev, ...nominatimResults]));
+        setResults((prev) => mergeUnique([...prev, ...nominatimResults], trimmed));
         setSearching(false);
       }, NOMINATIM_DEBOUNCE);
     } else {
@@ -176,11 +175,42 @@ export function useStopSearch(options: Options = {}) {
   return { query, setQuery, results, searching, clear };
 }
 
-/** Dédupe par (source, id) en conservant l'ordre du premier passage. */
-function mergeUnique(list: SearchResult[]): SearchResult[] {
+/** 
+ * Dédupe par (source, id) et score les résultats selon la pertinence par rapport à la query.
+ * Priorités : Exact Match > Starts With > Contains > Commune Match.
+ */
+function mergeUnique(list: SearchResult[], query: string): SearchResult[] {
+  const q = query.toLowerCase().trim();
+  
+  const scored = list.map(r => {
+    let score = 0;
+    const name = r.name.toLowerCase();
+    const commune = (r.commune || '').toLowerCase();
+    
+    // 1. Nom : Match exact, début, ou inclusion
+    if (name === q) score += 100;
+    else if (name.startsWith(q)) score += 80;
+    else if (name.includes(q)) score += 60;
+
+    // 2. Commune : Bonus si la recherche match la commune
+    if (commune) {
+      if (commune === q) score += 40;
+      else if (commune.startsWith(q)) score += 20;
+    }
+
+    // 3. Source : Léger avantage aux données métier Babimob
+    if (r.source === 'place') score += 10;
+    if (r.source === 'stop') score += 5;
+
+    return { ...r, score };
+  });
+
+  // Tri par score décroissant
+  scored.sort((a, b) => (b.score || 0) - (a.score || 0));
+
   const seen = new Set<string>();
   const out: SearchResult[] = [];
-  for (const r of list) {
+  for (const r of scored) {
     const key = `${r.source}:${r.id}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -188,3 +218,4 @@ function mergeUnique(list: SearchResult[]): SearchResult[] {
   }
   return out;
 }
+

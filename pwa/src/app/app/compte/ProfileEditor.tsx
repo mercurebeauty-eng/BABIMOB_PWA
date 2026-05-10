@@ -139,13 +139,13 @@ export default function ProfileEditor({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
-          <label style={labelStyle}>Pseudo <span style={{ color: 'var(--orange)' }}>*</span></label>
+          <label style={labelStyle}>Nom complet <span style={{ color: 'var(--orange)' }}>*</span></label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={30}
-            placeholder="Ton nom d'explorateur"
+            placeholder="Prénom et Nom"
             style={inputStyle}
             onFocus={(e) => e.currentTarget.style.borderColor = 'var(--orange)'}
             onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}

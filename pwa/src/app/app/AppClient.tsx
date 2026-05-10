@@ -606,7 +606,7 @@ function AppPageContent() {
       />
 
       {/* ── Top Floating Badge (Minimalist) ── */}
-      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, zIndex: 10 }}>
+      <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 12px)', left: 16, zIndex: 10 }}>
         <div style={{ background: 'var(--cream)', padding: '6px 12px', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, color: 'var(--orange)' }}>
           <div className="shimmer" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
           <span>LIVE · </span>
@@ -626,7 +626,7 @@ function AppPageContent() {
       </div>
 
       {/* ── FAB Stack (Right) ── */}
-      <div style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
+      <div className="desktop-center" style={{ position: 'absolute', right: 16, top: 'calc(env(safe-area-inset-top,0px) + 68px)', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
         {(
           [
             { icon: <Ic.Layers s={18} />, action: () => {
@@ -653,7 +653,7 @@ function AppPageContent() {
       </div>
 
       {/* ── Live Ticker ── */}
-      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 62px)', left: 0, right: 0, zIndex: 5, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
+      <div className="desktop-center" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 62px)', left: 0, right: 0, zIndex: 5, height: 28, overflow: 'hidden', pointerEvents: 'none' }}>
         <div className="ticker" style={{ display: 'flex', gap: 24, whiteSpace: 'nowrap', paddingLeft: 16, alignItems: 'center', height: '100%' }}>
           {TICKER.concat(TICKER).map(([place, status, c], i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-2)' }}>
@@ -682,6 +682,7 @@ function AppPageContent() {
               justifyContent: 'center', 
               pointerEvents: 'none' 
             }}
+            className="desktop-center"
           >
             {/* Recherche (tap) + Heatmap (swipe ≥ 60 px) */}
             {(() => {
@@ -787,6 +788,7 @@ function AppPageContent() {
               flexDirection: 'column',
               pointerEvents: 'auto'
             }}
+            className="desktop-center"
           >
             {/* Handle & Header (Drag Zone) */}
             <div 
@@ -1227,6 +1229,7 @@ function AppPageContent() {
             exit={{ opacity: 0, y: 24 }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--cream-2)', display: 'flex', flexDirection: 'column' }}
+            className="desktop-center"
           >
             <div
               style={{
@@ -1409,10 +1412,8 @@ function AppPageContent() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {results.map((r) => {
                       const isOSM = r.source === 'osm-map' || r.source === 'osm-nominatim';
-                      const badgeLabel = isOSM ? 'OSM' : (r.type === 'place' ? 'Lieu' : 'Arrêt');
-                      const badgeColor = isOSM
-                        ? 'var(--ink-2)'
-                        : (r.type === 'place' ? 'var(--orange)' : 'var(--ink-2)');
+                      const badgeLabel = r.type === 'place' ? 'Lieu' : 'Arrêt';
+                      const badgeColor = r.type === 'place' ? 'var(--orange)' : 'var(--ink-2)';
                       return (
                         <button
                           key={`${r.source}-${r.id}`}

@@ -304,8 +304,8 @@ function TabPasseport({ badges, checkinsDetail, totalPoints, checkinCount, strea
           Album de badges
         </h3>
         <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--orange)', background: 'var(--orange-pale)', padding: '6px 12px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>{badges.length} / {Object.keys(BADGE_META).length}</span>
-          <span style={{ fontSize: 14 }}>{badges.length === Object.keys(BADGE_META).length ? '🏆' : '→'}</span>
+          <span>{new Set(badges.map(b => b.badge_key)).size} / {Object.keys(BADGE_META).length}</span>
+          <span style={{ fontSize: 14 }}>{new Set(badges.map(b => b.badge_key)).size === Object.keys(BADGE_META).length ? '🏆' : '→'}</span>
         </div>
       </div>
       <div style={{ gridTemplateColumns: 'repeat(4, 1fr)', display: 'grid', gap: 10, marginBottom: 24 }}>
