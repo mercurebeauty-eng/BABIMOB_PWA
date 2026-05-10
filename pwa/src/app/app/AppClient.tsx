@@ -1457,7 +1457,7 @@ function AppPageContent() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {!searchOpen && (
+        {!searchOpen && !isPlusOpen && (
           <>
             {/* Floating Search FAB */}
             <motion.div
