@@ -20,8 +20,6 @@ import { pickWax } from '@/lib/waxPattern';
 import { Ic } from '@/components/ui/Ic';
 import { getLevel } from '@/lib/levels';
 import { useProfileGating } from '@/hooks/useProfileGating';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import PlusBubble from '@/components/ui/PlusBubble';
 
 type Props = {
