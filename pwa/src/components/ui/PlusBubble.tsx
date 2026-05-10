@@ -11,6 +11,7 @@ interface PlusBubbleProps {
   onClose: () => void;
   onToggleHeatmap: () => void;
   onDiscover?: () => void;
+  onVoiceCreate?: () => void;
   heatMode: boolean;
   isAdmin?: boolean;
 }
@@ -48,6 +49,13 @@ export default function PlusBubble({ isOpen, onClose, onToggleHeatmap, onDiscove
       color: 'var(--muted)',
       help: { title: 'Escale', content: 'Préparez vos trajets avec des arrêts intermédiaires (Fonctionnalité en cours de développement).' }
     },
+    ...(onVoiceCreate ? [{ 
+      icon: <Ic.Mic s={20} fill />, 
+      label: 'Lancer un Gbairai', 
+      action: onVoiceCreate, 
+      color: 'var(--pink)',
+      help: { title: 'Gbairai Vocal', content: 'Lancez un salon vocal méritocratique pour discuter en direct.' }
+    }] : []),
     ...(isAdmin ? [{ icon: <Ic.Map s={20} />, label: 'Admin', path: '/app/admin', color: 'var(--ink)' }] : []),
   ];
 
