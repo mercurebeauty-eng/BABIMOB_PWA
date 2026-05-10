@@ -13,6 +13,7 @@ interface VoiceRoomContextType {
   joined: boolean;
   setJoined: (joined: boolean) => void;
   token: string | null;
+  error: string | null;
 }
 
 const VoiceRoomContext = createContext<VoiceRoomContextType | undefined>(undefined);
@@ -26,11 +27,13 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
   const [isMuted, setIsMuted] = useState(true);
   const [joined, setJoined] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Ideally we would pass user info in the Context or fetch from DataStore
-    // For now, if activeRoom and joined, fetch token using generic name or fetch from localStorage
     if (activeRoom && joined) {
+      setError(null);
+      // Ideally we would pass user info in the Context or fetch from DataStore
+      // For now, if activeRoom and joined, fetch token using generic name or fetch from localStorage
       const storedUser = localStorage.getItem('babimob_user');
       const user = storedUser ? JSON.parse(storedUser) : null;
       const userId = user?.id || 'anon-' + Math.random().toString(36).substr(2, 9);
@@ -46,17 +49,23 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
           isHost: false 
         })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
         if (data.token) setToken(data.token);
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error('FETCH_TOKEN_ERROR:', err);
+        setError(err.message);
+      });
     } else {
       setToken(null);
     }
   }, [activeRoom, joined]);
 
   const liveKitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+  console.log('VoiceRoomProvider - LiveKit URL:', liveKitUrl);
+  console.log('VoiceRoomProvider - Token Present:', !!token);
 
   return (
     <VoiceRoomContext.Provider 
@@ -65,7 +74,8 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
         isMiniPlayer, setIsMiniPlayer,
         isMuted, setIsMuted,
         joined, setJoined,
-        token
+        token,
+        error
       }}
     >
       {token && liveKitUrl ? (

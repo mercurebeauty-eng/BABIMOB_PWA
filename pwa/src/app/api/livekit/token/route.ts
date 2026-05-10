@@ -9,8 +9,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'roomName and participantIdentity are required' }, { status: 400 });
     }
 
+    console.log('Generating token for room:', roomName, 'identity:', participantIdentity);
+
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
+
+    console.log('API Key presence:', !!apiKey);
+    console.log('API Secret presence:', !!apiSecret);
 
     if (!apiKey || !apiSecret) {
       return NextResponse.json({ error: 'LiveKit API credentials not configured' }, { status: 500 });
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ token });
   } catch (error: any) {
-    console.error('Error generating LiveKit token:', error);
+    console.error('LIVEKIT_TOKEN_ERROR:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
