@@ -23,6 +23,7 @@ export function BottomNav({
   onCycleNearby,
   onToggleSearch,
   onTogglePlus,
+  isPlusOpen,
   pathname: passedPathname,
 }: BottomNavProps & { pathname?: string }) {
   const router = useRouter();
@@ -53,11 +54,11 @@ export function BottomNav({
       isCenter: true
     },
     { 
-      id: 'search', 
-      label: 'Recherche', 
-      icon: Ic.Search, 
-      action: onToggleSearch,
-      active: false
+      id: 'plus', 
+      label: 'Plus', 
+      icon: Ic.Menu, 
+      action: onTogglePlus,
+      active: isPlusOpen
     },
     { 
       id: 'compte', 

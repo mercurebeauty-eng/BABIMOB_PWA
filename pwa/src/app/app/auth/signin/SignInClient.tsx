@@ -160,7 +160,7 @@ export default function SignInClient() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ton@email.com"
-                    style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: '1.5px solid var(--line)', background: 'var(--cream)', color: 'var(--ink)', fontSize: 15, fontWeight: 500, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: '1.5px solid var(--line)', background: 'var(--cream)', color: 'var(--ink)', fontSize: 16, fontWeight: 500, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                   />
                 </div>
                 {error && (

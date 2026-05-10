@@ -104,7 +104,7 @@ export default function ProfileEditor({
     border: '2px solid var(--line)',
     borderRadius: 16,
     padding: '12px 16px',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 700,
     color: 'var(--ink)',
     outline: 'none',
