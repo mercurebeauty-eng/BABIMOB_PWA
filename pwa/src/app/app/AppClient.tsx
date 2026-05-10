@@ -1457,9 +1457,10 @@ function AppPageContent() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {!searchOpen && !isPlusOpen && (
+        {!searchOpen && (
           <>
             {/* Floating Search FAB */}
+            {!isPlusOpen && (
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1491,6 +1492,7 @@ function AppPageContent() {
                 <Ic.Search s={24} />
               </button>
             </motion.div>
+            )}
 
             <motion.div
               initial={{ y: 100, opacity: 0 }}
