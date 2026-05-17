@@ -95,6 +95,11 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
         const uid = user?.id ? parseInt(user.id) || Math.floor(Math.random() * 100000) : Math.floor(Math.random() * 100000);
         const displayName = user?.display_name || 'Mobeur';
 
+        if (!activeRoom) {
+            console.error('[AGORA] Erreur: activeRoom est null');
+            return;
+        }
+
         console.log('[AGORA] Tentative de connexion au salon:', activeRoom.id, 'UID:', uid);
         
         // Token vide pour le mode "No Security" (à remplacer par un token généré côté serveur en prod)
