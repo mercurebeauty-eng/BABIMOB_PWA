@@ -92,6 +92,11 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
           throw new Error('APP_ID Agora non configuré');
         }
 
+        // Vérification de compatibilité (évite l'erreur RTCPeerConnection is not a constructor)
+        if (!AgoraRTC.checkSystemRequirements()) {
+          throw new Error("Votre navigateur ne supporte pas les appels vocaux (WebRTC). Si vous êtes dans Telegram ou Instagram, veuillez ouvrir le lien dans votre navigateur principal (Chrome/Safari).");
+        }
+
         // Récupération sécurisée de l'utilisateur
         const storedUser = localStorage.getItem('babimob_user');
         const user = storedUser ? JSON.parse(storedUser) : null;
