@@ -348,11 +348,16 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
   const searchParams = useSearchParams();
   useEffect(() => {
     if (searchParams.get('voice') === '1') {
-      setShowVoiceComposer(true);
+      if (isComplete) {
+        setShowVoiceComposer(true);
+      } else {
+        alert("Profil Incomplet : Remplissez votre Nom, Téléphone, Pseudo et Commune dans les paramètres pour lancer un vocal.");
+        router.push('/app/compte');
+      }
       // Nettoyer le param de l'URL
       router.replace('/app/gbairai');
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, isComplete]);
 
   const level = profile ? getLevel(profile.total_points ?? 0) : null;
   const activeMobeurs = stories.length;
@@ -441,7 +446,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
                <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
                <h3 className="font-display" style={{ fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>Profil Incomplet</h3>
                <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
-                 Pour accéder au <b>Gbairai</b> et aux <b>Crews</b>, tu dois renseigner ton <b>Nom</b> et ton <b>Téléphone</b> dans tes paramètres.
+                 Pour accéder au <b>Gbairai</b> et aux <b>Crews</b>, tu dois renseigner ton <b>Nom</b>, <b>Téléphone</b>, <b>Pseudo</b> et <b>Commune</b> dans tes paramètres.
                </p>
                <button
                  onClick={() => router.push('/app/compte')}
@@ -721,30 +726,7 @@ export default function GbairaiClient({ initialPosts, myLikes, hotSpots, pulse, 
             </motion.div>
             )}
 
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }}
-            >
-              <BottomNav 
-                onToggleHeatmap={() => setHeatMode(!heatMode)} 
-                heatMode={heatMode} 
-                onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
-                isPlusOpen={isPlusOpen}
-                isAdmin={profile?.is_admin}
-              />
-              <PlusBubble 
-                isOpen={isPlusOpen} 
-                onClose={() => setIsPlusOpen(false)} 
-                onToggleHeatmap={() => setHeatMode(!heatMode)}
-                onDiscover={() => router.push('/app?discover=1')}
-                onVoiceCreate={() => router.push('/app?voice=1')}
-                heatMode={heatMode}
-                isAdmin={profile?.is_admin}
-              />
-            </motion.div>
+
           </>
         )}
       </AnimatePresence>

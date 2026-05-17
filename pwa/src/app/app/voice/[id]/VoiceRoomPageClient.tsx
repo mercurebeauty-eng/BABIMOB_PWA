@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useVoiceRoom as useVoiceRoomHook } from '@/hooks/useVoiceRoom';
 import { useVoiceRoom as useVoiceRoomContext } from '@/context/VoiceRoomContext';
 import VoiceRoomUI from '@/components/voice/VoiceRoomUI';
+import { useProfileGating } from '@/hooks/useProfileGating';
 
 interface Props {
   roomId: string;
@@ -14,6 +15,7 @@ interface Props {
 
 export default function VoiceRoomPageClient({ roomId, userId, displayName, avatarEmoji }: Props) {
   const router = useRouter();
+  const { isComplete, loading: profileLoading } = useProfileGating();
   const {
     room, participants, comments, requests,
     loading, myRole, isHost, canRequestSpeak, myUpvotedComments,
@@ -30,7 +32,7 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
     }
   }, [room, setActiveRoom, setJoined]);
 
-  if (loading || !room) {
+  if (profileLoading || loading || !room) {
     return (
       <div style={{ minHeight: '100dvh', background: 'linear-gradient(160deg, #0D0D1A, #1A0A2E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
         <div style={{ textAlign: 'center' }}>
@@ -38,6 +40,24 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Chargement du salon…</div>
         </div>
         <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      </div>
+    );
+  }
+
+  if (!isComplete) {
+    return (
+      <div style={{ minHeight: '100dvh', background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, color: 'var(--ink)' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+        <h3 className="font-display" style={{ fontSize: 24, marginBottom: 8 }}>Profil Incomplet</h3>
+        <p style={{ textAlign: 'center', color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+          Pour rejoindre ce salon vocal, tu dois d'abord renseigner ton <b>Nom</b>, <b>Téléphone</b>, <b>Pseudo</b> et <b>Commune</b> dans ton profil.
+        </p>
+        <button onClick={() => router.push('/app/compte')} className="press font-display" style={{ width: '100%', padding: 16, borderRadius: 18, background: 'var(--orange)', color: '#fff', fontSize: 16, border: 'none', cursor: 'pointer' }}>
+          COMPLÉTER MON PROFIL
+        </button>
+        <button onClick={() => router.push('/app/gbairai')} style={{ marginTop: 16, background: 'none', border: 'none', color: 'var(--muted)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          Retour
+        </button>
       </div>
     );
   }

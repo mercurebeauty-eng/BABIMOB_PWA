@@ -821,22 +821,7 @@ export default function CompteClient({
         )}
       </AnimatePresence>
 
-      <BottomNav 
-        onToggleHeatmap={() => setHeatMode(!heatMode)} 
-        heatMode={heatMode} 
-        isPlusOpen={isPlusOpen}
-        onTogglePlus={() => setIsPlusOpen(!isPlusOpen)}
-        isAdmin={isAdmin}
-      />
 
-      <PlusBubble 
-        isOpen={isPlusOpen} 
-        onClose={() => setIsPlusOpen(false)} 
-        onToggleHeatmap={() => setHeatMode(!heatMode)}
-        onDiscover={() => router.push('/app?discover=1')}
-        heatMode={heatMode}
-        isAdmin={isAdmin}
-      />
     </div>
   );
 }
