@@ -264,6 +264,33 @@ function AppPageContent() {
     loadStats();
   }, [selectedPoi, supabase]);
 
+  const handleOsmPoiClick = useCallback((osmPoi: any) => {
+    setSelected(null);
+    setSelectedPoi({
+      id: `osm-${osmPoi.osmId}`,
+      place_id: `osm-${osmPoi.osmId}`,
+      name: osmPoi.name,
+      lat: osmPoi.lat,
+      lon: osmPoi.lon,
+      category: osmPoi.category || 'other',
+      logo_emoji: osmPoi.emoji || '📍',
+      cover_color: 'var(--orange)',
+      is_sponsored: false,
+      sponsor_tier: null,
+      has_campaign: false,
+      source: 'osm'
+    });
+    setPinnedSearch({
+      id: `osm-${osmPoi.osmId}`,
+      name: osmPoi.name,
+      lat: osmPoi.lat,
+      lon: osmPoi.lon,
+      emoji: osmPoi.emoji || '📍',
+      source: 'osm'
+    });
+    setSheet('half');
+  }, []);
+
   const handlePoiClick = useCallback((poi: POI) => {
     setSelected(null);
     setSelectedPoi({
@@ -595,6 +622,7 @@ function AppPageContent() {
         recenterSignal={recenterSignal}
         onStopClick={handleSelectStop}
         onPoiClick={handlePoiClick}
+        onOsmPoiClick={handleOsmPoiClick}
         onMapReady={handleMapReady}
         userLocation={userLoc}
         userHeading={userHeading}

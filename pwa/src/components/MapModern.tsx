@@ -34,6 +34,7 @@ type Props = {
   pois?: POI[];
   onStopClick?: (stop: any) => void;
   onPoiClick?: (poi: POI) => void;
+  onOsmPoiClick?: (poi: { name: string; category: string; lat: number; lon: number; osmId: string; emoji?: string }) => void;
   hotspots?: { lat: number; lon: number; intensity: number }[];
   recenterSignal?: number;
   poiCheckins?: any;
@@ -58,6 +59,7 @@ export default function MapModern({
   pois = [],
   onStopClick,
   onPoiClick,
+  onOsmPoiClick,
   hotspots = [],
   recenterSignal = 0,
   poiCheckins = {},
@@ -238,10 +240,12 @@ export default function MapModern({
         style={{ width: '100%', height: '100%' }}
         onClick={e => {
           const feature = e.features?.[0];
-          if (feature && feature.layer.id === 'stops-clusters') {
-            const clusterId = feature.properties.cluster_id;
+          if (!feature) return;
+
+          if (feature.layer.id === 'stops-clusters') {
+            const clusterId = feature.properties?.cluster_id;
             const map = mapRef.current?.getMap();
-            if (!map) return;
+            if (!map || !clusterId) return;
             
             const source: any = map.getSource('stops-source');
             source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
@@ -252,9 +256,66 @@ export default function MapModern({
                 duration: 500
               });
             });
+          } else if (feature.layer.id === 'poi-clusters') {
+            const clusterId = feature.properties?.cluster_id;
+            const map = mapRef.current?.getMap();
+            if (!map || !clusterId) return;
+            
+            const source: any = map.getSource('standard-pois-source');
+            source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+              if (err) return;
+              map.easeTo({
+                center: (feature.geometry as any).coordinates,
+                zoom: zoom,
+                duration: 500
+              });
+            });
+          } else if (feature.layer.id === 'poi-unclustered') {
+            if (feature.properties) {
+              // Convert GeoJSON properties back to POI object if needed, or pass directly
+              onPoiClick?.(feature.properties as POI);
+            }
+          } else if (feature.layer.id.startsWith('poi_') || feature.layer.id.includes('building') || feature.layer.id === 'water_name_point_label') {
+            // OSM Native Features
+            const props = feature.properties;
+            if (props && props.name) {
+              const category = props.class || props.subclass || 'place';
+              const name = props.name;
+              
+              // Essayer de déterminer un emoji en fonction de la catégorie
+              let emoji = '📍';
+              if (category.includes('restaurant') || category.includes('fast_food')) emoji = '🍽️';
+              else if (category.includes('cafe')) emoji = '☕';
+              else if (category.includes('bar') || category.includes('pub')) emoji = '🍻';
+              else if (category.includes('hospital') || category.includes('clinic')) emoji = '🏥';
+              else if (category.includes('school') || category.includes('university')) emoji = '🏫';
+              else if (category.includes('park')) emoji = '🌳';
+              else if (category.includes('bank')) emoji = '🏦';
+              else if (category.includes('shop') || category.includes('mall')) emoji = '🛒';
+              else if (category.includes('hotel')) emoji = '🏨';
+              else if (category.includes('station') || category.includes('transit')) emoji = '🚍';
+
+              onOsmPoiClick?.({
+                name,
+                category,
+                lat: e.lngLat.lat,
+                lon: e.lngLat.lng,
+                osmId: feature.id ? feature.id.toString() : `${e.lngLat.lat}-${e.lngLat.lng}`,
+                emoji
+              });
+            }
           }
         }}
-        interactiveLayerIds={['stops-clusters', 'poi-clusters']}
+        interactiveLayerIds={[
+          'stops-clusters', 
+          'poi-clusters', 
+          'poi-unclustered', 
+          'poi_r20', 
+          'poi_r7', 
+          'poi_r1', 
+          'poi_transit',
+          'water_name_point_label'
+        ]}
       >
         {children}
         {/* ITINÉRAIRES (TRACÉS VECTORIELS) */}
