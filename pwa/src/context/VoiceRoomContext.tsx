@@ -62,8 +62,9 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
 
   // Connexion/Déconnexion au salon
   useEffect(() => {
+    // Vérifications de sécurité avant toute opération
     if (!activeRoom || !joined || !agoraClient) {
-      // Nettoyage quand on quitte
+      // Nettoyage quand on quitte ou si les prérequis ne sont pas là
       if (localAudioTrack) {
         localAudioTrack.stop();
         localAudioTrack.close();
@@ -75,6 +76,10 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
     }
 
     let isMounted = true;
+    
+    // On capture les valeurs sûres dans des constantes pour TypeScript
+    const client = agoraClient;
+    const room = activeRoom;
 
     async function handleConnection() {
       try {
@@ -93,23 +98,17 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
         
         // On génère un UID unique si pas connecté
         const uid = user?.id ? parseInt(user.id) || Math.floor(Math.random() * 100000) : Math.floor(Math.random() * 100000);
-        const displayName = user?.display_name || 'Mobeur';
 
-        if (!activeRoom) {
-            console.error('[AGORA] Erreur: activeRoom est null');
-            return;
-        }
-
-        console.log('[AGORA] Tentative de connexion au salon:', activeRoom.id, 'UID:', uid);
+        console.log('[AGORA] Tentative de connexion au salon:', room.id, 'UID:', uid);
         
         // Token vide pour le mode "No Security" (à remplacer par un token généré côté serveur en prod)
         const token = null;
         
-        await agoraClient.join(appId, activeRoom.id, token, uid);
+        await client.join(appId, room.id, token, uid);
         
         // Publication du flux audio local
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await agoraClient.publish(audioTrack);
+        await client.publish(audioTrack);
         setLocalAudioTrack(audioTrack);
         
         // Gestion du mute
