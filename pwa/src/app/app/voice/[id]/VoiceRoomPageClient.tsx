@@ -23,6 +23,13 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
 
   const { setActiveRoom, setJoined, isMiniPlayer, error: roomError, agoraClient } = useVoiceRoomContext();
 
+  useEffect(() => {
+    if (room) {
+      setActiveRoom(room);
+      setJoined(true);
+    }
+  }, [room, setActiveRoom, setJoined]);
+
   if (loading || !room) {
     return (
       <div style={{ minHeight: '100dvh', background: 'linear-gradient(160deg, #0D0D1A, #1A0A2E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
@@ -65,13 +72,6 @@ export default function VoiceRoomPageClient({ roomId, userId, displayName, avata
       </div>
     );
   }
-
-  useEffect(() => {
-    if (room) {
-      setActiveRoom(room);
-      setJoined(true);
-    }
-  }, [room, setActiveRoom, setJoined]);
 
   // If MiniPlayer is active, don't render the full UI to avoid duplicating the audio simulation
   if (isMiniPlayer) {
