@@ -179,16 +179,19 @@ export default function MapModern({
     }))
   }), [stops]);
 
-  // Séparation des POIs : Elite/Pro (Markers) vs Standards (Vector)
-  const premiumPois = useMemo(() => pois.filter(p => p.sponsor_tier === 'elite' || p.sponsor_tier === 'pro'), [pois]);
-  const standardPoisGeoJSON = useMemo(() => ({
-    type: 'FeatureCollection' as const,
-    features: pois.filter(p => !p.sponsor_tier).map(p => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
-      properties: { ...p }
-    }))
-  }), [pois]);
+  // Séparation des POIs : Supabase (Markers DOM) vs OSM (Vector/WebGL avec clustering)
+  const supabasePois = useMemo(() => pois.filter(p => p.source === 'supabase'), [pois]);
+  const standardPoisGeoJSON = useMemo(() => {
+    const list = pois.filter(p => p.source === 'osm' && !p.sponsor_tier);
+    return {
+      type: 'FeatureCollection' as const,
+      features: list.map(p => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
+        properties: { ...p }
+      }))
+    };
+  }, [pois]);
 
   // Style Satellite (Esri) - optimisé
   const satelliteStyle = useMemo(() => ({
@@ -272,8 +275,21 @@ export default function MapModern({
             });
           } else if (feature.layer.id === 'poi-unclustered') {
             if (feature.properties) {
-              // Convert GeoJSON properties back to POI object if needed, or pass directly
-              onPoiClick?.(feature.properties as POI);
+              const p = feature.properties;
+              onPoiClick?.({
+                id: p.id,
+                name: p.name,
+                lat: Number(p.lat),
+                lon: Number(p.lon),
+                category: p.category,
+                subcategory: p.subcategory || undefined,
+                logo_emoji: p.logo_emoji,
+                cover_color: p.cover_color,
+                is_sponsored: p.is_sponsored === 'true' || p.is_sponsored === true,
+                sponsor_tier: p.sponsor_tier === 'null' ? null : p.sponsor_tier || null,
+                has_campaign: p.has_campaign === 'true' || p.has_campaign === true,
+                source: p.source as 'osm' | 'supabase',
+              } as POI);
             }
           } else if (feature.layer.id.startsWith('poi_') || feature.layer.id.includes('building') || feature.layer.id === 'water_name_point_label') {
             // OSM Native Features
@@ -432,17 +448,14 @@ export default function MapModern({
           />
           <Layer
             id="poi-unclustered"
-            type="symbol"
+            type="circle"
             filter={['!', ['has', 'point_count']]}
-            layout={{
-              'text-field': ['get', 'logo_emoji'],
-              'text-size': ['interpolate', ['linear'], ['zoom'], 12, 14, 18, 22],
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
-              'text-padding': 0
-            }}
             paint={{
-              'text-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0, 12, 1]
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 15, 8],
+              'circle-color': ['get', 'cover_color'],
+              'circle-stroke-width': 1.5,
+              'circle-stroke-color': '#ffffff',
+              'circle-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0, 12, 1]
             }}
           />
         </Source>
@@ -504,8 +517,8 @@ export default function MapModern({
           </Marker>
         )}
 
-        {/* POIs PREMIUM (Elite & Pro) — Toujours des Markers pour l'animation et le style */}
-        {premiumPois.map(p => {
+        {/* POIs CUSTOM & PREMIUM (Supabase) — Toujours des Markers DOM pour garantir le rendu correct des emojis et le style premium */}
+        {supabasePois.map(p => {
           const isElite = p.sponsor_tier === 'elite';
           const isPro   = p.sponsor_tier === 'pro';
           const size    = isElite ? 42 : isPro ? 34 : 28;
@@ -513,12 +526,12 @@ export default function MapModern({
             ? '3px solid #FFD700'
             : isPro
               ? '2.5px solid rgba(255, 255, 255, 0.9)'
-              : '2px solid #fff';
+              : '2px solid rgba(255, 255, 255, 0.9)';
           const shadow  = isElite
             ? '0 0 20px rgba(255,215,0,0.6), 0 8px 16px rgba(0,0,0,0.3)'
             : isPro
               ? '0 0 12px rgba(255,255,255,0.4), 0 4px 10px rgba(0,0,0,0.2)'
-              : '0 4px 10px rgba(0,0,0,0.18)';
+              : '0 2px 8px rgba(0,0,0,0.15)';
           
           return (
             <Marker 
