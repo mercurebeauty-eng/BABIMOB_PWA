@@ -1,193 +1,182 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Ic } from './ui/Ic';
+import { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 
 type Photo = {
   id: string;
   url: string;
-  caption?: string;
-  source: 'user' | 'partner' | 'pro';
-  is_verified: boolean;
+  caption: string | null;
+  sort_order: number;
 };
 
 type Props = {
   photos: Photo[];
-  onAddPhoto?: () => void;
+  placeName: string;
 };
 
-export default function PlacePhotoGallery({ photos, onAddPhoto }: Props) {
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+export default function PlacePhotoGallery({ photos, placeName }: Props) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [lightbox, setLightbox] = useState<Photo | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
 
-  const handlePrev = useCallback(() => {
-    setSelectedIdx(prev => (prev !== null && prev > 0 ? prev - 1 : prev));
-  }, []);
+  if (!photos || photos.length === 0) return null;
 
-  const handleNext = useCallback(() => {
-    setSelectedIdx(prev => (prev !== null && prev < photos.length - 1 ? prev + 1 : prev));
-  }, [photos.length]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectedIdx === null) return;
-      if (e.key === 'Escape') setSelectedIdx(null);
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIdx, handlePrev, handleNext]);
-
-  useEffect(() => {
-    if (selectedIdx !== null) {
-      if (selectedIdx < photos.length - 1) {
-        const img = new Image();
-        img.src = photos[selectedIdx + 1].url;
-      }
-      if (selectedIdx > 0) {
-        const img = new Image();
-        img.src = photos[selectedIdx - 1].url;
-      }
-    }
-  }, [selectedIdx, photos]);
+  const handleScroll = () => {
+    if (!stripRef.current) return;
+    const { scrollLeft, clientWidth } = stripRef.current;
+    const idx = Math.round(scrollLeft / (clientWidth * 0.72));
+    setActiveIdx(Math.min(idx, photos.length - 1));
+  };
 
   return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Ic.Camera s={18} color="var(--orange)" />
-          </div>
-          <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>PHOTOS & AMBIANCE</h2>
-        </div>
-        {onAddPhoto && (
-          <button 
-            onClick={onAddPhoto}
-            className="press"
-            style={{ 
-              fontSize: 11, fontWeight: 900, color: 'var(--orange)', 
-              background: 'var(--orange-pale)', border: 'none', 
-              padding: '6px 12px', borderRadius: 12, cursor: 'pointer' 
-            }}
-          >
-            AJOUTER
-          </button>
-        )}
-      </div>
-
-      {photos.length === 0 ? (
-        <div style={{ 
-          padding: 32, borderRadius: 24, background: 'var(--cream-2)', 
-          textAlign: 'center', fontSize: 13, color: 'var(--muted)', fontWeight: 700,
-          border: '2px dashed rgba(0,0,0,0.06)'
+    <>
+      <div style={{
+        background: 'var(--cream-2)', padding: '20px 0 24px', borderRadius: 32,
+        marginBottom: 20, overflow: 'hidden',
+        border: '1px solid rgba(26,20,16,0.04)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', marginBottom: 16,
         }}>
-           Pas encore de photos. Sois le premier ! 📸
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 10,
+              background: 'rgba(242,108,26,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 16 }}>📸</span>
+            </div>
+            <h2 style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, margin: 0 }}>
+              PHOTOS DU LIEU
+            </h2>
+          </div>
+          <div style={{
+            fontSize: 10, fontWeight: 900, background: 'var(--cream)',
+            padding: '6px 12px', borderRadius: 12, color: 'var(--muted)',
+            border: '1px solid rgba(0,0,0,0.05)',
+          }}>
+            {photos.length} PHOTO{photos.length > 1 ? 'S' : ''}
+          </div>
         </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {photos.slice(0, 6).map((photo, i) => (
+
+        {/* Scrollable strip */}
+        <div
+          ref={stripRef}
+          onScroll={handleScroll}
+          className="no-scrollbar"
+          style={{
+            display: 'flex', gap: 12, overflowX: 'auto',
+            padding: '0 24px', scrollSnapType: 'x mandatory',
+          }}
+        >
+          {photos.map((photo, i) => (
             <motion.div
               key={photo.id}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedIdx(i)}
-              style={{ 
-                aspectRatio: '1/1', borderRadius: 16, overflow: 'hidden', 
-                background: 'var(--cream-2)', cursor: 'pointer', position: 'relative'
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setLightbox(photo)}
+              style={{
+                flexShrink: 0,
+                width: '70vw', maxWidth: 320,
+                height: 220, borderRadius: 24,
+                overflow: 'hidden', cursor: 'zoom-in',
+                scrollSnapAlign: 'start',
+                boxShadow: activeIdx === i
+                  ? '0 12px 36px rgba(0,0,0,0.18)'
+                  : '0 4px 16px rgba(0,0,0,0.08)',
+                transition: 'box-shadow 0.3s',
+                position: 'relative',
               }}
             >
-              <img 
-                src={photo.url} 
-                alt={photo.caption || 'Photo du lieu'} 
-                loading="lazy"
-                decoding="async"
+              <img
+                src={photo.url}
+                alt={photo.caption || placeName}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                loading="lazy"
               />
-              {photo.is_verified && (
-                <div style={{ position: 'absolute', top: 6, right: 6, background: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                  <Ic.Check s={12} color="var(--orange)" />
-                </div>
-              )}
-              {i === 5 && photos.length > 6 && (
-                <div style={{ 
-                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 14, fontWeight: 900
+              {photo.caption && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  padding: '32px 16px 14px',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
                 }}>
-                  +{photos.length - 6}
+                  <div style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                    {photo.caption}
+                  </div>
                 </div>
               )}
             </motion.div>
           ))}
         </div>
-      )}
 
-      {/* FULL SCREEN VIEWER */}
-      <AnimatePresence>
-        {selectedIdx !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{ 
-              position: 'fixed', inset: 0, zIndex: 2000, 
-              background: '#000', display: 'flex', flexDirection: 'column'
-            }}
-          >
-            <div style={{ 
-              position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 20px)', 
-              left: 20, right: 20, display: 'flex', justifyContent: 'space-between', zIndex: 10 
-            }}>
-              <div style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>
-                {selectedIdx + 1} / {photos.length}
-              </div>
-              <button 
-                onClick={() => setSelectedIdx(null)}
-                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Ic.X s={24} />
-              </button>
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, position: 'relative' }}>
-              {selectedIdx > 0 && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-                  style={{ position: 'absolute', left: 20, zIndex: 10, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 44, height: 44, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}
-                >
-                  <span style={{ fontSize: 24, fontWeight: 'bold' }}>‹</span>
-                </button>
-              )}
-
-              <motion.img
-                key={photos[selectedIdx].id}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                src={photos[selectedIdx].url}
-                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 12 }}
+        {/* Dots indicator */}
+        {photos.length > 1 && (
+          <div style={{
+            display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16, padding: '0 24px',
+          }}>
+            {photos.map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: activeIdx === i ? 20 : 6,
+                  height: 6, borderRadius: 3,
+                  background: activeIdx === i ? 'var(--orange)' : 'rgba(0,0,0,0.15)',
+                  transition: 'all 0.3s',
+                }}
               />
+            ))}
+          </div>
+        )}
+      </div>
 
-              {selectedIdx < photos.length - 1 && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleNext(); }}
-                  style={{ position: 'absolute', right: 20, zIndex: 10, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 44, height: 44, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}
-                >
-                  <span style={{ fontSize: 24, fontWeight: 'bold' }}>›</span>
-                </button>
-              )}
-            </div>
-
-            {photos[selectedIdx].caption && (
-              <div style={{ padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', color: '#fff' }}>
-                <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{photos[selectedIdx].caption}</p>
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8, textTransform: 'uppercase', fontWeight: 800, letterSpacing: 0.5 }}>
-                   Posté par {photos[selectedIdx].source === 'pro' ? 'Babimob Studio' : 'Un voyageur'}
-                </div>
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 2000,
+            background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 600, width: '100%', position: 'relative' }}
+          >
+            <img
+              src={lightbox.url}
+              alt={lightbox.caption || placeName}
+              style={{ width: '100%', borderRadius: 24, maxHeight: '80vh', objectFit: 'contain' }}
+            />
+            {lightbox.caption && (
+              <div style={{
+                textAlign: 'center', color: 'rgba(255,255,255,0.7)',
+                marginTop: 16, fontSize: 14, fontWeight: 600,
+              }}>
+                {lightbox.caption}
               </div>
             )}
+            <button
+              onClick={() => setLightbox(null)}
+              style={{
+                position: 'absolute', top: -16, right: -16,
+                width: 44, height: 44, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)', border: 'none',
+                color: '#fff', fontSize: 20, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              ✕
+            </button>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
