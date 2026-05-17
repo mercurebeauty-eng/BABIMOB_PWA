@@ -11,7 +11,7 @@ import { formatDistance } from '@/lib/format';
 import { Ic } from '@/components/ui/Ic';
 import Vehicle from '@/components/ui/Vehicle';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
-import SearchUI from '@/components/SearchUI';
+
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useReachTracking } from '@/hooks/useReachTracking';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
