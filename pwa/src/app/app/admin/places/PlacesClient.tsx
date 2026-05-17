@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ic } from '@/components/ui/Ic';
+import { toast } from 'sonner';
 
 interface Place {
   id: string;
@@ -38,6 +39,13 @@ interface PlaceOffer {
   created_at?: string;
 }
 
+interface PlacePhoto {
+  id: string;
+  url: string;
+  caption: string | null;
+  sort_order: number;
+}
+
 export default function PlacesClient() {
   const supabase = createClient();
   const [places, setPlaces] = useState<Place[]>([]);
@@ -47,6 +55,12 @@ export default function PlacesClient() {
   const [offers, setOffers] = useState<PlaceOffer[]>([]);
   const [showOfferAdd, setShowOfferAdd] = useState(false);
   const [offerForm, setOfferForm] = useState({ title: '', description: '', discount_pct: 10, valid_until: '' });
+
+  // Photos vitrine state
+  const [photos, setPhotos] = useState<PlacePhoto[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoCaption, setPhotoCaption] = useState('');
+  const photoFileRef = useRef<HTMLInputElement>(null);
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -146,7 +160,69 @@ export default function PlacesClient() {
     // Fetch offers
     const { data: offerData } = await supabase.from('place_offers').select('*').eq('place_id', place.id).order('created_at', { ascending: false });
     setOffers(offerData || []);
+
+    // Fetch photos vitrine
+    const { data: photoData } = await supabase.from('place_photos').select('id, url, caption, sort_order').eq('place_id', place.id).eq('source', 'admin').order('sort_order', { ascending: true });
+    setPhotos(photoData || []);
+
     setShowAdd(true);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingId) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Photo trop lourde (max 5 MB)'); return; }
+
+    setPhotoUploading(true);
+    const ext  = file.name.split('.').pop();
+    const path = `vitrine/${editingId}/${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage.from('place-photos').upload(path, file, { upsert: false, contentType: file.type });
+    if (upErr) { toast.error('Erreur upload : ' + upErr.message); setPhotoUploading(false); return; }
+
+    const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
+    const url = urlData.publicUrl;
+
+    const maxOrder = photos.reduce((max, p) => Math.max(max, p.sort_order), -1);
+    const { data: newPhoto, error: insErr } = await supabase.from('place_photos').insert({
+      place_id: editingId, url, caption: photoCaption || null,
+      source: 'admin', sort_order: maxOrder + 1,
+    }).select('id, url, caption, sort_order').single();
+
+    if (insErr) { toast.error('Erreur DB : ' + insErr.message); }
+    else {
+      setPhotos(prev => [...prev, newPhoto]);
+      setPhotoCaption('');
+      if (photoFileRef.current) photoFileRef.current.value = '';
+      toast.success('Photo ajoutée !');
+    }
+    setPhotoUploading(false);
+  };
+
+  const deletePhoto = async (photo: PlacePhoto) => {
+    // Extract storage path from URL
+    const urlParts = photo.url.split('/place-photos/');
+    if (urlParts.length === 2) {
+      await supabase.storage.from('place-photos').remove([urlParts[1]]);
+    }
+    await supabase.from('place_photos').delete().eq('id', photo.id);
+    setPhotos(prev => prev.filter(p => p.id !== photo.id));
+    toast.success('Photo supprimée');
+  };
+
+  const movePhoto = async (photo: PlacePhoto, dir: 'up' | 'down') => {
+    const idx = photos.findIndex(p => p.id === photo.id);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= photos.length) return;
+    const newPhotos = [...photos];
+    [newPhotos[idx], newPhotos[swapIdx]] = [newPhotos[swapIdx], newPhotos[idx]];
+    // Update sort_order
+    await Promise.all([
+      supabase.from('place_photos').update({ sort_order: swapIdx }).eq('id', newPhotos[swapIdx].id),
+      supabase.from('place_photos').update({ sort_order: idx }).eq('id', newPhotos[idx].id),
+    ]);
+    setPhotos(newPhotos);
   };
 
   const handleAddOffer = async (e: React.FormEvent) => {
@@ -387,6 +463,79 @@ export default function PlacesClient() {
                       <div style={{ textAlign: 'center', opacity: 0.3, fontSize: 12, padding: 20 }}>Aucune promotion active.</div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* SECTION: PHOTOS VITRINE (ONLY IF EDITING) */}
+              {editingId && (
+                <div style={{ marginBottom: 40, background: 'rgba(0,0,0,0.2)', padding: 32, borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 13, fontWeight: 900, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: 2 }}>📸 Photos Vitrine</h3>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>{photos.length} photo{photos.length !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  {/* Upload zone */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, marginBottom: 20 }}>
+                    <input
+                      placeholder="Légende (optionnel, ex: Salle principale)"
+                      style={inputStyle}
+                      value={photoCaption}
+                      onChange={e => setPhotoCaption(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => photoFileRef.current?.click()}
+                      disabled={photoUploading}
+                      style={{
+                        background: '#60a5fa', color: '#fff', border: 'none',
+                        padding: '0 20px', borderRadius: 16, fontSize: 13,
+                        fontWeight: 900, cursor: photoUploading ? 'wait' : 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {photoUploading ? '⏳ Upload...' : '+ PHOTO'}
+                    </button>
+                    <input
+                      ref={photoFileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+
+                  {/* Photo grid */}
+                  {photos.length === 0 ? (
+                    <div style={{ textAlign: 'center', opacity: 0.3, fontSize: 12, padding: 20 }}>Aucune photo vitrine. Ajoutez-en une ci-dessus.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
+                      {photos.map((photo, idx) => (
+                        <div key={photo.id} style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', aspectRatio: '4/3', background: 'rgba(255,255,255,0.05)' }}>
+                          <img src={photo.url} alt={photo.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {/* Caption overlay */}
+                          {photo.caption && (
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 8px 6px', background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                              {photo.caption}
+                            </div>
+                          )}
+                          {/* Controls */}
+                          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
+                            {idx > 0 && (
+                              <button type="button" onClick={() => movePhoto(photo, 'up')} style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer' }}>←</button>
+                            )}
+                            {idx < photos.length - 1 && (
+                              <button type="button" onClick={() => movePhoto(photo, 'down')} style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer' }}>→</button>
+                            )}
+                            <button type="button" onClick={() => deletePhoto(photo)} style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                          </div>
+                          {/* Order badge */}
+                          <div style={{ position: 'absolute', top: 6, left: 6, width: 20, height: 20, borderRadius: 6, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#fff' }}>
+                            {idx + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

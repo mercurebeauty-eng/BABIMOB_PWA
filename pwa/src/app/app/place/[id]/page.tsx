@@ -7,20 +7,25 @@ import PlaceHeroMap from '@/components/PlaceHeroMap';
 import PoiCheckInButton from '@/components/PoiCheckInButton';
 import PoiFavoriteButton from '@/components/PoiFavoriteButton';
 import PlaceSocialSections from '@/components/PlaceSocialSections';
+import PlacePhotoGallery from '@/components/PlacePhotoGallery';
+import PlaceRatingStars from '@/components/PlaceRatingStars';
 import { Ic } from '@/components/ui/Ic';
 
-type Props = { 
+type Props = {
   params: Promise<{ id: string }>,
-  searchParams: Promise<{ lat?: string; lon?: string; name?: string; emoji?: string }> 
+  searchParams: Promise<{ lat?: string; lon?: string; name?: string; emoji?: string }>
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  food:          'RESTAURATION',
-  shop:          'COMMERCE',
-  service:       'SERVICE',
-  health:        'SANTÉ',
-  entertainment: 'LOISIRS',
-  other:         'LIEU',
+  food: 'RESTAURATION', shop: 'COMMERCE', service: 'SERVICE',
+  health: 'SANTÉ', entertainment: 'LOISIRS', other: 'LIEU',
+};
+
+const PRICE_LABELS: Record<number, string> = {
+  1: '€ · Économique',
+  2: '€€ · Abordable',
+  3: '€€€ · Intermédiaire',
+  4: '€€€€ · Haut de gamme',
 };
 
 function formatDist(m: number) {
@@ -29,148 +34,139 @@ function formatDist(m: number) {
 
 export default async function PlacePage({ params, searchParams }: Props) {
   const supabase = await createClient();
-  const { id } = await params;
-  const sParams = await searchParams;
+  const { id }   = await params;
+  const sParams  = await searchParams;
   const { data: { user } } = await supabase.auth.getUser();
 
   const isOSM = id.startsWith('osm-') || id.startsWith('nominatim-');
-  
-  let place: any = null;
-  let offers: any[] = [];
+
+  let place: any     = null;
+  let offers: any[]  = [];
   let checkins: any[] = [];
-  let advice: any[] = [];
+  let advice: any[]  = [];
   let userProfile: any = null;
+  let photos: any[]  = [];
 
   if (isOSM) {
-    // 1. On "naturalise" le lieu OSM dans notre table 'places'
     const { data: osmPlace } = await supabase.rpc('get_or_create_osm_place', {
       p_osm_id: id,
       p_name: sParams.name || 'Lieu OSM',
       p_lat: parseFloat(sParams.lat || '0'),
       p_lon: parseFloat(sParams.lon || '0'),
       p_logo_emoji: sParams.emoji || '📍',
-      p_commune: 'Abidjan' // Par défaut
+      p_commune: 'Abidjan',
     });
-    
-    // Si la naturalisation a fonctionné, on utilise l'ID Supabase pour la suite
-    // Sinon on reste sur l'ID OSM virtuel pour l'affichage de base
     place = (osmPlace && osmPlace[0]) ? osmPlace[0] : {
-      id: id,
-      name: sParams.name || 'Lieu inconnu',
+      id, name: sParams.name || 'Lieu inconnu',
       lat: parseFloat(sParams.lat || '0'),
       lon: parseFloat(sParams.lon || '0'),
       logo_emoji: sParams.emoji || '📍',
-      category: 'other',
-      address: '',
+      category: 'other', address: '',
       description: 'Lieu identifié via OpenStreetMap.',
       is_sponsored: false,
     };
   } else {
-    // MODE STANDARD (Supabase)
     const { data: dbPlace } = await supabase.from('places').select('*').eq('id', id).maybeSingle();
     if (!dbPlace) notFound();
     place = dbPlace;
   }
 
-  // 2. On charge les données sociales pour TOUS les lieux (OSM naturalisé ou Supabase)
-  // On utilise place.id qui est maintenant soit l'UUID Supabase, soit l'ID OSM
   const [
     { data: dbOffers },
     { data: dbCheckins },
     { data: dbAdvice },
-    { data: dbUserProfile }
+    { data: dbUserProfile },
+    { data: dbPhotos },
   ] = await Promise.all([
-    supabase
-      .from('place_offers')
-      .select('*')
-      .eq('place_id', place.id)
-      .eq('is_active', true)
+    supabase.from('place_offers')
+      .select('*').eq('place_id', place.id).eq('is_active', true)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('checkins')
+    supabase.from('checkins')
       .select('id, created_at, display_name, avatar_emoji, is_public')
-      .eq('place_id', place.id)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('place_advice')
-      .select('id, content, created_at, is_question, profiles(display_name, avatar_emoji)')
-      .eq('place_id', place.id)
-      .order('created_at', { ascending: false })
-      .limit(10),
-    user 
+      .eq('place_id', place.id).order('created_at', { ascending: false }).limit(5),
+    supabase.from('place_advice')
+      .select('id, content, created_at, is_question, rating, photo_url, profiles(display_name, avatar_emoji)')
+      .eq('place_id', place.id).order('created_at', { ascending: false }).limit(20),
+    user
       ? supabase.from('profiles').select('display_name, avatar_emoji, is_verified_explorer').eq('id', user.id).single()
       : Promise.resolve({ data: null }),
+    supabase.from('place_photos')
+      .select('id, url, caption, sort_order')
+      .eq('place_id', place.id)
+      .eq('source', 'admin')
+      .order('sort_order', { ascending: true }),
   ]);
 
-  offers = dbOffers || [];
-  checkins = dbCheckins || [];
-  advice = dbAdvice || [];
+  offers      = dbOffers || [];
+  checkins    = dbCheckins || [];
+  advice      = dbAdvice || [];
   userProfile = dbUserProfile;
+  photos      = dbPhotos || [];
 
-  // Les arrêts proches marchent pour tout le monde !
   const { data: nearbyStops } = await supabase.rpc('arrets_proches', {
-    p_lat: place.lat,
-    p_lon: place.lon,
-    p_radius_m: 600,
-    p_limit: 4,
+    p_lat: place.lat, p_lon: place.lon, p_radius_m: 600, p_limit: 4,
   });
 
   const now = new Date();
   const isActive = (d: string | null) => !d || new Date(d) > now;
   const sponsoredActive = !isOSM && place.is_sponsored && isActive(place.sponsor_expires_at);
   const color = place.cover_color ?? 'var(--orange)';
+  const ratingAvg   = typeof place.rating_avg === 'number' ? place.rating_avg : null;
+  const ratingCount = place.rating_count ?? 0;
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--cream)', color: 'var(--ink)', position: 'relative', overflowX: 'hidden' }}>
-      
-      {/* MAP HERO */}
+
+      {/* ── MAP HERO — TOUJOURS AFFICHÉ ── */}
       <div style={{ position: 'relative', height: '45vh', minHeight: 300 }}>
         <PlaceHeroMap lat={place.lat} lon={place.lon} emoji={place.logo_emoji ?? '📍'} name={place.name} id={place.id} />
 
-        {/* TOP HEADER OVERLAY */}
-        <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+        {/* Top controls */}
+        <div style={{
+          position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+          left: 20, right: 20, display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', zIndex: 10,
+        }}>
           <div style={{ display: 'flex', gap: 12 }}>
-            <Link href="/app" className="press" style={{ 
-              width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', 
+            <Link href="/app" className="press" style={{
+              width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.9)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: 'none', backdropFilter: 'blur(10px)'
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: 'none', backdropFilter: 'blur(10px)',
             }}>
               <Ic.Back s={22} />
             </Link>
-
             {user && (
-              <PoiFavoriteButton 
-                placeId={place.id}
-                placeName={place.name}
-                commune={place.commune}
-                lat={place.lat}
-                lon={place.lon}
-                userId={user.id}
+              <PoiFavoriteButton
+                placeId={place.id} placeName={place.name}
+                commune={place.commune} lat={place.lat} lon={place.lon} userId={user.id}
               />
             )}
           </div>
-          
+
           {sponsoredActive && (
-             <div style={{ 
-               background: 'rgba(255,255,255,0.95)', padding: '8px 16px', borderRadius: 24,
-               display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 900,
-               boxShadow: '0 8px 24px rgba(0,0,0,0.08)', color: color, backdropFilter: 'blur(10px)',
-               border: `1.5px solid ${color}20`
-             }}>
-               <span style={{ fontSize: 16 }}>{place.sponsor_tier === 'elite' ? '⭐' : '✓'}</span>
-               {place.sponsor_tier === 'elite' ? 'PARTENAIRE ÉLITE' : 'PARTENAIRE PRO'}
-             </div>
+            <div style={{
+              background: 'rgba(255,255,255,0.95)', padding: '8px 16px', borderRadius: 24,
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 900,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.08)', color, backdropFilter: 'blur(10px)',
+              border: `1.5px solid ${color}20`,
+            }}>
+              <span style={{ fontSize: 16 }}>{place.sponsor_tier === 'elite' ? '⭐' : '✓'}</span>
+              {place.sponsor_tier === 'elite' ? 'PARTENAIRE ÉLITE' : 'PARTENAIRE PRO'}
+            </div>
           )}
         </div>
 
-        {/* Bottom Fade */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to top, var(--cream), transparent)', zIndex: 2 }} />
+        {/* Bottom fade */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 100,
+          background: 'linear-gradient(to top, var(--cream), transparent)', zIndex: 2,
+        }} />
       </div>
 
+      {/* ── SCROLL CONTENT ── */}
       <div className="no-scrollbar" style={{ position: 'relative', marginTop: -60, padding: '0 16px 120px 16px', zIndex: 5 }}>
-        
-        {/* TITLE CARD — dark ink header */}
+
+        {/* ── TITLE CARD ── */}
         <div className="slide-up" style={{
           background: 'var(--ink)', padding: 24, borderRadius: 32,
           boxShadow: '0 20px 60px rgba(26,20,16,0.25)',
@@ -178,55 +174,77 @@ export default async function PlacePage({ params, searchParams }: Props) {
         }}>
           <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.07 }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
+
+            {/* Top row: emoji + info */}
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
               <div style={{
                 width: 80, height: 80, borderRadius: 22,
                 background: 'rgba(255,255,255,0.1)', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', fontSize: 40,
-                border: '2px solid rgba(255,255,255,0.15)',
-                flexShrink: 0,
+                border: '2px solid rgba(255,255,255,0.15)', flexShrink: 0,
               }}>
                 {place.logo_emoji ?? '📍'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, marginBottom: 6, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', letterSpacing: 1.5, marginBottom: 4, textTransform: 'uppercase' }}>
                   {CATEGORY_LABELS[place.category] ?? 'LIEU'}{place.commune ? ` · ${place.commune}` : ''}
                 </div>
-                <h1 className="font-display" style={{ fontSize: 26, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>{place.name}</h1>
+                <h1 className="font-display" style={{ fontSize: 26, margin: 0, lineHeight: 1.1, fontWeight: 900, color: '#fff' }}>
+                  {place.name}
+                </h1>
+
+                {/* Rating stars inline */}
+                {ratingAvg && ratingCount > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <PlaceRatingStars avg={ratingAvg} count={ratingCount} size="sm" />
+                  </div>
+                )}
+
                 {(place.address || isOSM) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
                     <Ic.Pin s={14} color="rgba(255,255,255,0.5)" />
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{place.address || 'Source: OpenStreetMap'}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+                      {place.address || 'Source: OpenStreetMap'}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Description */}
             {place.description && (
               <p style={{ marginTop: 16, fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, margin: '16px 0 0 0', fontWeight: 500 }}>
                 {place.description}
               </p>
             )}
+
+            {/* Price range */}
+            {place.price_range && (
+              <div style={{
+                marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'rgba(255,255,255,0.08)', padding: '8px 14px', borderRadius: 12,
+              }}>
+                <span style={{ fontSize: 14 }}>💰</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.7)' }}>
+                  {PRICE_LABELS[place.price_range] ?? ''}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* CHECK-IN CTA - Hide for OSM for now to avoid ID issues */}
-        <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.1s' }}>
-          <PoiCheckInButton
-            placeId={place.id}
-            placeName={place.name}
-            commune={place.commune ?? undefined}
-            lat={place.lat}
-            lon={place.lon}
-            sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
-          />
-        </div>
+        {/* ── GALERIE PHOTOS VITRINE ── */}
+        {photos.length > 0 && (
+          <div className="slide-up" style={{ animationDelay: '0.05s', marginBottom: 8 }}>
+            <PlacePhotoGallery photos={photos} placeName={place.name} />
+          </div>
+        )}
 
-        {/* CONTACT QUICK LINKS - MODERNIZED */}
+        {/* ── CONTACT QUICK LINKS ── */}
         {(place.phone || place.whatsapp || place.instagram || place.website) && (
-          <div className="slide-up" style={{ 
+          <div className="slide-up" style={{
             display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28,
-            animationDelay: '0.2s'
+            animationDelay: '0.1s',
           }}>
             {place.phone && (
               <a href={`tel:${place.phone}`} style={{ textDecoration: 'none' }}>
@@ -263,12 +281,22 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* OFFRES & PROMOS */}
-        {((place.has_campaign && place.campaign_label) || (offers && offers.length > 0)) && (
+        {/* ── CHECK-IN CTA ── */}
+        <div className="slide-up" style={{ marginBottom: 28, animationDelay: '0.2s' }}>
+          <PoiCheckInButton
+            placeId={place.id} placeName={place.name}
+            commune={place.commune ?? undefined}
+            lat={place.lat} lon={place.lon}
+            sponsorTier={place.sponsor_tier as 'pro' | 'elite' | null}
+          />
+        </div>
+
+        {/* ── OFFRES & PROMOS ── */}
+        {((place.has_campaign && place.campaign_label) || offers.length > 0) && (
           <div className="slide-up" style={{
             background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
             boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.3s',
-            border: '1px solid rgba(26,20,16,0.04)'
+            border: '1px solid rgba(26,20,16,0.04)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
               <Ic.Bolt s={22} color="var(--orange)" />
@@ -276,10 +304,11 @@ export default async function PlacePage({ params, searchParams }: Props) {
             </div>
 
             {place.has_campaign && place.campaign_label && (
-              <div style={{ 
-                background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)', color: '#fff', padding: 20, 
-                borderRadius: 24, marginBottom: 16, position: 'relative', overflow: 'hidden',
-                boxShadow: '0 12px 30px rgba(242,108,26,0.25)' 
+              <div style={{
+                background: 'linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 100%)',
+                color: '#fff', padding: 20, borderRadius: 24, marginBottom: 16,
+                position: 'relative', overflow: 'hidden',
+                boxShadow: '0 12px 30px rgba(242,108,26,0.25)',
               }}>
                 <div className="wax-bg" style={{ position: 'absolute', inset: 0, opacity: 0.15 }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
@@ -290,17 +319,17 @@ export default async function PlacePage({ params, searchParams }: Props) {
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {offers?.map((offer) => (
-                <div key={offer.id} style={{ 
-                  background: 'var(--cream-2)', padding: 18, borderRadius: 24, 
-                  display: 'flex', gap: 16, alignItems: 'center', border: '1px solid rgba(0,0,0,0.02)'
+              {offers.map(offer => (
+                <div key={offer.id} style={{
+                  background: 'var(--cream-2)', padding: 18, borderRadius: 24,
+                  display: 'flex', gap: 16, alignItems: 'center', border: '1px solid rgba(0,0,0,0.02)',
                 }}>
                   {offer.discount_pct && (
-                    <div style={{ 
+                    <div style={{
                       width: 54, height: 54, borderRadius: 16, background: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 15, fontWeight: 900, color: 'var(--orange)',
-                      boxShadow: '0 8px 20px rgba(0,0,0,0.06)'
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
                     }}>
                       -{offer.discount_pct}%
                     </div>
@@ -315,14 +344,14 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* ARRÊTS PROCHES - DESIGN REVISITÉ */}
+        {/* ── POUR VENIR ICI ── */}
         {nearbyStops && nearbyStops.length > 0 && (
           <div className="slide-up" style={{
             background: 'var(--cream-2)', padding: 24, borderRadius: 32, marginBottom: 28,
             boxShadow: '0 4px 24px rgba(0,0,0,0.03)', animationDelay: '0.4s',
-            border: '1px solid rgba(26,20,16,0.04)'
+            border: '1px solid rgba(26,20,16,0.04)',
           }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--orange-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Ic.Route s={18} color="var(--orange)" />
               </div>
@@ -330,11 +359,11 @@ export default async function PlacePage({ params, searchParams }: Props) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(nearbyStops as any[]).map((stop) => (
+              {(nearbyStops as any[]).map(stop => (
                 <Link key={stop.stop_id} href={`/app/arret/${encodeURIComponent(stop.stop_id)}`} style={{ textDecoration: 'none' }}>
-                  <div className="press" style={{ 
+                  <div className="press" style={{
                     background: 'var(--cream-2)', padding: '14px 18px', borderRadius: 24,
-                    display: 'flex', alignItems: 'center', gap: 16, border: '1px solid rgba(0,0,0,0.01)'
+                    display: 'flex', alignItems: 'center', gap: 16, border: '1px solid rgba(0,0,0,0.01)',
                   }}>
                     <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
                       🚐
@@ -353,12 +382,12 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* SECTIONS SOCIALES - Hide for OSM for now */}
+        {/* ── SECTIONS SOCIALES ── */}
         <div className="slide-up" style={{ animationDelay: '0.5s' }}>
-          <PlaceSocialSections 
-            placeId={place.id} 
+          <PlaceSocialSections
+            placeId={place.id}
             placeName={place.name}
-            initialCheckins={checkins || []} 
+            initialCheckins={checkins || []}
             initialAdvice={(advice as any[]) || []}
             userId={user?.id || null}
             userDisplayName={userProfile?.display_name || 'Un Babi'}
