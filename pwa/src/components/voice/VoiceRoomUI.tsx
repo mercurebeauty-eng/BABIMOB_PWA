@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceRoom } from '@/context/VoiceRoomContext';
 import { Ic } from '@/components/ui/Ic';
-import { useLocalParticipant, useRemoteParticipants } from '@livekit/components-react';
 import type { VoiceRoom, VoiceParticipant, VoiceRoomComment, VoiceSpeakerRequest, FloatingReaction } from '@/app/app/gbairai/types';
 
 const CRED_BADGE: Record<string, string> = { bronze: '🥉', silver: '🥈', gold: '🥇', legend: '👑' };
-const MODE_LABEL: Record<string, string> = { classic: '🎙️ Classic', debate: '⚔️ Débat', hot_seat: '🔥 Hot Seat', lightning: '⚡ Lightning' };
+const MODE_LABEL: Record<string, string> = { 
+  classic: '🎙️ Classic', 
+  debate: '⚔️ Débat', 
+  hot_seat: '🔥 Hot Seat', 
+  lightning: '⚡ Lightning' 
+};
 
 // Simulate an audio visualizer
 function AudioVisualizer({ active }: { active: boolean }) {
@@ -77,16 +81,9 @@ export default function VoiceRoomUI({
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   
-  // LiveKit hooks to detect actual speaking state
-  const { localParticipant } = useLocalParticipant();
-  const remoteParticipants = useRemoteParticipants();
-
-  const isLiveKitSpeaking = (uid: string) => {
-    if (uid === localParticipant.identity) return localParticipant.isSpeaking;
-    const rp = remoteParticipants.find(p => p.identity === uid);
-    return rp?.isSpeaking || false;
-  };
-
+  // Track speaking state locally (simulated for now, can be enhanced with WebAudio API)
+  const [speakingStates, setSpeakingStates] = useState<Record<string, boolean>>({});
+  
   const speakers = participants.filter(p => p.role === 'host' || p.role === 'speaker');
   const listeners = participants.filter(p => p.role === 'listener');
 
@@ -188,7 +185,7 @@ export default function VoiceRoomUI({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center' }}>
           {speakers.map(p => {
             const isMeSpeaker = p.user_id === userId;
-            const speaking = isLiveKitSpeaking(p.user_id);
+            const speaking = speakingStates[p.user_id] || false;
             
             return (
             <motion.div key={p.user_id} layout style={{ textAlign: 'center', width: 84, position: 'relative' }}>
