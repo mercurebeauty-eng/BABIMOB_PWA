@@ -1060,28 +1060,27 @@ function AppPageContent() {
                           <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
                           <h2 className="font-display" style={{ fontSize: 24, margin: 0, fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1 }}>{selectedPoi.name}</h2>
                       
-                      {poiSocialStats && (poiSocialStats.checkins > 0 || poiSocialStats.advice > 0) && (
-                        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                          {poiSocialStats.checkins > 0 && (
-                            <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--orange-pale)', padding: '4px 10px', borderRadius: 8 }}>
-                              🔥 {poiSocialStats.checkins} PASSAGES RÉCENTS
+                          {poiSocialStats && (poiSocialStats.checkins > 0 || poiSocialStats.advice > 0) && (
+                            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                              {poiSocialStats.checkins > 0 && (
+                                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--orange-pale)', padding: '4px 10px', borderRadius: 8 }}>
+                                  🔥 {poiSocialStats.checkins} PASSAGES RÉCENTS
+                                </div>
+                              )}
+                              {poiSocialStats.advice > 0 && (
+                                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--blue-pale)', padding: '4px 10px', borderRadius: 8 }}>
+                                  💬 {poiSocialStats.advice} AVIS
+                                </div>
+                              )}
                             </div>
                           )}
-                          {poiSocialStats.advice > 0 && (
-                            <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--blue-pale)', padding: '4px 10px', borderRadius: 8 }}>
-                              💬 {poiSocialStats.advice} AVIS
-                            </div>
-                          )}
+                           <div style={{ marginTop: 8, opacity: 0.6 }}>
+                             <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Aucun avis pour l'instant</div>
+                             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>Soyez le premier à partager votre expérience sur ce lieu !</p>
+                           </div>
                         </div>
-                      )}
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, opacity: 0.6 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Aucun avis pour l'instant</div>
-                        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>Soyez le premier à partager votre expérience sur ce lieu !</p>
-                      </div>
+                       )}
                     </div>
-                     )}
-                  </div>
                   </div>
                 </div>
 
