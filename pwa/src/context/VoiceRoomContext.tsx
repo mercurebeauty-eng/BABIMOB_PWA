@@ -101,8 +101,9 @@ export function VoiceRoomProvider({ children }: { children: ReactNode }) {
 
         console.log('[AGORA] Tentative de connexion au salon:', room.id, 'UID:', uid);
         
-        // Token vide pour le mode "No Security" (à remplacer par un token généré côté serveur en prod)
-        const token = null;
+        // Fetch dynamic token from server
+        const { generateAgoraToken } = await import('@/app/actions/agora');
+        const token = await generateAgoraToken(room.id, uid);
         
         await client.join(appId, room.id, token, uid);
         
