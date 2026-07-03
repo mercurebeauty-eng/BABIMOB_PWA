@@ -42,3 +42,12 @@ data/
 
 # Vercel
 .vercel/
+
+# Internal docs / DB migrations (schema, business logic, ops notes —
+# not meant for the public repo; keep these locally / in a private doc store)
+migration_babimob_*.sql
+audit_and_fix.sql
+README_setup.md
+LIVEKIT_FIX_GUIDE.md
+**/walkthrough.md
+.gemini/

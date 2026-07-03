@@ -40,7 +40,7 @@ Service Express minimal qui g√®re les paiements mobile money via CinetPay et cr√
 ## Installation locale (pour tester)
 
 ```bash
-cd "C:\Users\USER\Documents\BABIMOB PROJET\BABIMOB_PWA\webhook"
+cd BABIMOB_PWA/webhook
 npm install
 cp .env.example .env
 # Remplis le .env (voir section suivante)

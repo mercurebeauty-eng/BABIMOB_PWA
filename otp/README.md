@@ -28,7 +28,7 @@ Une fois le graph construit (fichier `graph.obj`, ~80-150 MB), OTP répond en ~5
 ### 1. Préparer les données d'entrée
 
 ```bash
-cd "C:\Users\USER\Documents\BABIMOB PROJET\BABIMOB_PWA\otp"
+cd BABIMOB_PWA/otp
 bash fetch_data.sh
 ```
 
