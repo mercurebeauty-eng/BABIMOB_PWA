@@ -9,7 +9,7 @@
 
 **Plateforme de mobilité urbaine pour la Côte d'Ivoire** — Recherche d'arrêts, consultation des horaires, cartes interactives, et calcul d'itinéraire multimodal en temps réel.
 
-[🌐 Site web](#) · [📖 Documentation](#) · [🐛 Issues](#) · [📧 Contact](#contact)
+[🌐 Site web](https://babimob-pwa.vercel.app) · [📖 Documentation](pwa/README.md) · [🐛 Issues](https://github.com/mercurebeauty-eng/BABIMOB_PWA/issues) · [📧 Contact](#contact)
 
 </div>
 
